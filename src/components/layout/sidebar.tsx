@@ -37,6 +37,11 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
   const [userSession, setUserSession] = useState<UserSession | null>(null);
   const [isLoadingSession, setIsLoadingSession] = useState(true);
 
+  const [isMonitoringCollapsibleOpen, setIsMonitoringCollapsibleOpen] = useState(false);
+  const [isEvaluasiCollapsibleOpen, setIsEvaluasiCollapsibleOpen] = useState(false);
+  const [isUpdateDataCollapsibleOpen, setIsUpdateDataCollapsibleOpen] = useState(false);
+
+
   useEffect(() => {
     const getSession = async () => {
       const { data: { session }, error: userError } = await supabase.auth.getSession();
@@ -85,6 +90,9 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
 
   const handleToggleCollapse = () => {
     setIsCollapsed(!isCollapsed);
+    setIsMonitoringCollapsibleOpen(false);
+    setIsEvaluasiCollapsibleOpen(false);
+    setIsUpdateDataCollapsibleOpen(false);
   };
 
   if (isLoadingSession) {
@@ -98,17 +106,18 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "hidden md:flex flex-col h-screen border-r bg-background transition-all duration-300 ease-in-out relative", // Tambahkan relative di sini
+        "hidden md:flex flex-col border-r bg-background transition-all duration-300 ease-in-out relative",
+        "fixed top-0 left-0 h-screen z-50", // Pastikan properti ini ada dan benar
         isCollapsed ? "w-[80px]" : "w-64"
       )}
     >
-      {/* Tombol Toggle Sidebar - Pindahkan posisi dan styling */}
+      {/* Tombol Toggle Sidebar */}
       <Button
         variant="ghost"
         size="icon"
         className={cn(
           "absolute top-4 z-10 rounded-full bg-background border border-gray-200 shadow-md hover:bg-gray-100",
-          isCollapsed ? "left-[calc(80px-16px)]" : "left-[calc(256px-16px)]" // Posisi tombol
+          isCollapsed ? "left-[calc(80px-16px)]" : "left-[calc(256px-16px)]"
         )}
         onClick={handleToggleCollapse}
       >
@@ -123,7 +132,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
         </Link>
       </div>
 
-      <div className="flex-1 overflow-auto py-2">
+      <div className="flex-1 overflow-y-auto py-2"> {/* Tambahkan overflow-y-auto di sini agar konten sidebar bisa di-scroll jika panjang */}
         <nav className={cn("grid items-start px-2 text-sm font-medium", isCollapsed ? "gap-1" : "gap-2 lg:px-4")}>
 
           {/* Item menu dan Collapsible yang sama */}
@@ -139,9 +148,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
             {!isCollapsed && <span className="whitespace-nowrap">Dashboard Utama</span>}
           </Link>
 
-          {/* ... Sisa menu Monitoring, Evaluasi, Statistik Produksi, Update Data (tetap sama) ... */}
-
-          {/* Monitoring */}
+          {/* Monitoring Menu */}
           <Collapsible className="grid gap-2">
             <CollapsibleTrigger asChild>
               <Button
@@ -182,7 +189,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
             )}
           </Collapsible>
 
-          {/* Evaluasi */}
+          {/* Evaluasi Menu */}
           <Collapsible className="grid gap-2">
             <CollapsibleTrigger asChild>
               <Button
@@ -330,7 +337,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
                 <Button
                   variant="ghost"
                   className={cn(
-                    "w-full flex justify-between items-center px-2 py-2 text-muted-foreground hover:text-primary",
+                    "w-full flex justify-between items-center px-2 py-2 text-muted-foreground transition-all hover:text-primary",
                     isCollapsed && "justify-center px-2 py-3"
                   )}
                 >
