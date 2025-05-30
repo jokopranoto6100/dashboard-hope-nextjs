@@ -1,36 +1,194 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 📊 Dashboard HOPE - Statistik Produksi Pertanian BPS Kalbar (Next.js Version)
 
-## Getting Started
+Dashboard HOPE adalah aplikasi web modern yang dibangun ulang dari versi Flask, kini menggunakan **Next.js sebagai *frontend* utama dan Supabase sebagai *backend-as-a-service***. Dashboard ini dirancang untuk memantau, mengevaluasi, dan menyajikan statistik produksi pertanian di Provinsi Kalimantan Barat secara internal oleh BPS Kalbar.
 
-First, run the development server:
+Migrasi ini berfokus pada arsitektur yang lebih modern, performa, skalabilitas, dan pengalaman pengguna yang lebih baik.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## 🚀 Teknologi Utama
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+* **Frontend Framework:** Next.js (React, TypeScript, Tailwind CSS)
+* **UI Components:** shadcn/ui
+* **Icons:** lucide-react
+* **Table Library:** TanStack Table (untuk tabel data yang interaktif)
+* **Backend-as-a-service:** Supabase (PostgreSQL Database, Otentikasi, API Otomatis melalui PostgREST)
+* **State Management:** React Context (untuk *state* global seperti filter tahun)
+* **Notifikasi:** Sonner (untuk *toast* notifikasi)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## ✨ Fitur Utama yang Sudah Diimplementasikan (Next.js Migration Progress)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1.  **Arsitektur & Setup Proyek Baru:**
+    * Migrasi penuh dari Flask ke Next.js sebagai *frontend* dengan React, TypeScript, dan Tailwind CSS.
+    * Penggunaan Supabase sebagai *backend* untuk database PostgreSQL, otentikasi, dan API otomatis.
+    * Inisialisasi `shadcn/ui` dan komponen-komponen dasarnya.
+    * Integrasi `TanStack Table` untuk tabel yang lebih kuat.
 
-## Learn More
+2.  **Sistem Login & Otorisasi Berbasis Peran:**
+    * Halaman login (`/auth/login`) dan registrasi (`/auth/register`) yang berfungsi penuh menggunakan Supabase Auth.
+    * Penggantian notifikasi dari SweetAlert2 ke Sonner untuk pengalaman *toast* yang lebih modern.
+    * **Middleware untuk Proteksi Rute:** Menggunakan Next.js Middleware (`middleware.ts`) untuk melindungi rute yang memerlukan otentikasi dan mengarahkan pengguna yang belum *login* ke halaman login.
+    * **Visibilitas Menu Dinamis:** Menu sidebar disesuaikan berdasarkan peran pengguna (`super_admin`, `viewer`) yang diambil dari `user_metadata` Supabase Auth.
 
-To learn more about Next.js, take a look at the following resources:
+3.  **Layout & Navigasi Sidebar yang Dinamis:**
+    * `MainLayout` yang kondisional: Sidebar dan header hanya muncul di halaman dashboard setelah *login*, tidak di halaman otentikasi.
+    * Sidebar yang dapat di-*toggle* (ciut/perluas) menjadi hanya ikon atau tampilan penuh dengan label.
+    * Penggunaan CSS Grid di `MainLayout` untuk penyesuaian layout yang mulus saat sidebar di-*toggle*.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+4.  **Filter Data Global:**
+    * **Context Tahun Global:** Implementasi `YearContext` (`src/context/YearContext.tsx`) untuk mengelola tahun yang dipilih secara global di seluruh aplikasi.
+    * **Pilihan Tahun di Header:** Penambahan komponen `Select` (`shadcn/ui`) di header aplikasi untuk memilih tahun, yang akan secara otomatis memfilter data di halaman-halaman yang relevan.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+5.  **Monitoring Ubinan (Halaman `/monitoring/ubinan`):**
+    * **Data Fetching Modular:** Logika pengambilan dan pemrosesan data diekstraksi ke *custom hooks* (`usePadiMonitoringData.ts`, `usePalawijaMonitoringData.ts`) untuk modularitas dan reusabilitas.
+    * **Paginasi Data Otomatis:** Mengimplementasikan logika paginasi kustom menggunakan `range()` dari Supabase untuk mengambil semua record (lebih dari 1000 baris) dari database, memastikan semua data tersedia.
+    * **Filter Subround:** Penambahan filter `Select` (`shadcn/ui`) di halaman untuk menyaring data berdasarkan `subround` (1, 2, 3, atau Semua) pada kedua tabulasi.
+    * **Tabulasi Ubinan Padi:**
+        * Menggunakan komponen `Table` dari `shadcn/ui` yang didukung oleh `TanStack Table` untuk tampilan data.
+        * Data diambil dari tabel `ubinan_dashboard` (sudah diasumsikan khusus padi).
+        * **Pengelompokan Data:** Dilakukan berdasarkan nama kabupaten (`nmkab` asli), dengan pembersihan nilai `nmkab` menjadi *Title Case* untuk tampilan.
+        * **Full Row Display:** Pagination telah dinonaktifkan (`getPaginationRowModel()` dihapus) untuk memastikan semua baris data kabupaten yang ditemukan akan ditampilkan sekaligus.
+        * Perhitungan kolom baru:
+            * `Target Utama`: Dihitung dari baris dengan `jenis_sampel = 'U'`.
+            * `Cadangan`: Dihitung dari baris dengan `jenis_sampel = 'C'`.
+            * `Realisasi`: Dihitung dari baris di mana kolom `r701` memiliki isian.
+            * `Persentase`: `(Realisasi / Target Utama) * 100`, diformat 2 digit desimal.
+        * **Pengurutan Data:** Hasil pengelompokan diurutkan secara *ascending* berdasarkan nama kabupaten (`nmkab`) yang sudah dibersihkan.
+        * **Visualisasi Persentase:** Kolom `Persentase (%)` menampilkan *badge* berwarna sesuai rentang (100%, 75-99%, 50-74.99%, <50%).
+        * **Baris Total:** Menampilkan agregasi total untuk semua kolom numerik di bagian bawah tabel.
+        * **Alignment Tabel:** Kolom "Kabupaten" rata kiri, sementara kolom angka lainnya (Target Utama, Cadangan, Realisasi, Lewat Panen, Fase Generatif, Anomali, Persentase) rata tengah untuk kerapian.
+        * **Default Kolom Visible:** Saat pertama kali dimuat, tabel menampilkan kolom **Kabupaten, Target Utama, Realisasi, Lewat Panen, dan Persentase**. Kolom lainnya dapat di-*toggle* visibilitasnya melalui dropdown "Kolom".
+        * **Lebar Kolom Adaptif:** Lebar kolom diatur menggunakan `table-layout: fixed` pada tabel dan properti `size` pada definisi kolom `TanStack Table`, memastikan kolom mengisi seluruh lebar tabel secara responsif.
+    * **Tabulasi Ubinan Palawija:**
+        * Data diambil dari tabel `ubinan_raw`.
+        * Difilter berdasarkan tahun global dan subround yang dipilih. (Tabel masih menggunakan HTML dasar, belum dimigrasikan ke `TanStack Table`).
 
-## Deploy on Vercel
+## 📁 Struktur Folder Proyek
+Dashboard Pertanian/
+├── .next/                         # Cache Next.js (dihapus saat debugging)
+├── node_modules/                  # Dependensi Node.js
+├── public/
+│   └── images/                    # Gambar statis (misal: login-illustration.svg)
+│   └── icon/                      # Icon aplikasi (misal: hope.png)
+├── src/
+│   ├── app/
+│   │   ├── (auth)/                # Grup rute otentikasi (jika menggunakan grouped layout)
+│   │   │   ├── login/
+│   │   │   │   └── page.tsx
+│   │   │   └── register/
+│   │   │       └── page.tsx
+│   │   ├── monitoring/
+│   │   │   └── ubinan/
+│   │   │       └── page.tsx       # Halaman Monitoring Ubinan
+│   │   ├── ... (rute aplikasi utama lainnya)
+│   │   ├── client-layout-wrapper.tsx # Wrapper untuk layout kondisional
+│   │   ├── favicon.ico
+│   │   ├── globals.css            # Styling global Tailwind CSS
+│   │   ├── layout.tsx             # Root Layout aplikasi
+│   │   └── page.tsx               # Halaman utama Dashboard
+│   ├── components/
+│   │   ├── layout/
+│   │   │   ├── main-layout.tsx    # Layout utama dengan Header dan Sidebar
+│   │   │   └── sidebar.tsx        # Komponen Sidebar
+│   │   ├── ui/                    # Komponen shadcn/ui yang di-generate
+│   │   │   ├── button.tsx
+│   │   │   ├── card.tsx
+│   │   │   ├── checkbox.tsx
+│   │   │   ├── collapsible.tsx
+│   │   │   ├── dropdown-menu.tsx
+│   │   │   ├── input.tsx
+│   │   │   ├── label.tsx
+│   │   │   ├── scroll-area.tsx
+│   │   │   ├── select.tsx
+│   │   │   ├── table.tsx
+│   │   │   ├── tabs.tsx
+│   │   │   ├── sonner.tsx
+│   │   │   └── ... (komponen shadcn/ui lainnya)
+│   │   └── ... (komponen umum lainnya)
+│   ├── context/
+│   │   └── YearContext.tsx        # Context untuk filter tahun global
+│   ├── hooks/
+│   │   ├── usePadiMonitoringData.ts     # Hook untuk fetching & processing data Padi
+│   │   └── usePalawijaMonitoringData.ts # Hook untuk fetching data Palawija
+│   ├── lib/
+│   │   ├── supabase.ts              # Konfigurasi Supabase client
+│   │   ├── utils.ts                 # Utility functions (misal: cn dari shadcn/ui)
+│   │   └── database.types.ts        # Tipe database dari Supabase CLI (opsional)
+├── .env.local                       # Variabel lingkungan
+├── middleware.ts                    # Middleware Next.js untuk otentikasi
+├── next.config.js                   # Konfigurasi Next.js
+├── package.json                     # Daftar dependensi & script
+├── tsconfig.json                    # Konfigurasi TypeScript
+└── package-lock.json                # File lock dependensi
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🛠️ Cara Instalasi & Menjalankan (Diperbarui)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1.  **Clone Repo & Masuk Folder:**
+    ```bash
+    git clone <URL_REPO_ANDA>
+    cd Dashboard\ Pertanian # atau nama folder proyek Anda
+    ```
+
+2.  **Instal Dependencies:**
+    ```bash
+    npm install
+    # atau
+    yarn install
+    ```
+    (Pastikan `package.json` Anda mencakup semua dependensi seperti `next`, `react`, `tailwindcss`, `@supabase/ssr`, `@tanstack/react-table`, `sonner`, `lucide-react`, dll.)
+
+3.  **Tambahkan File `.env.local`:**
+    Buat file `.env.local` di root folder proyek Anda dengan isi berikut:
+    ```
+    NEXT_PUBLIC_SUPABASE_URL=[https://your-project-ref.supabase.co](https://your-project-ref.supabase.co)
+    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_public_key
+    ```
+    Ganti nilai *placeholder* dengan URL dan Kunci Supabase proyek Anda yang tepat.
+
+4.  **Konfigurasi `tsconfig.json` (Jika Menggunakan TypeScript):**
+    Pastikan file `tsconfig.json` di root proyek Anda memiliki `paths` yang benar untuk alias `@/`:
+    ```json
+    {
+      "compilerOptions": {
+        "paths": {
+          "@/*": ["./src/*"]
+        }
+      }
+      // ... bagian lain
+    }
+    ```
+
+5.  **Instal Komponen shadcn/ui yang Diperlukan:**
+    Jika ada komponen yang belum terinstal, jalankan:
+    ```bash
+    npx shadcn-ui@latest add table tabs select scroll-area button card checkbox collapsible dropdown-menu input label sonner # dan komponen lain yang digunakan
+    ```
+
+6.  **Buat Tipe Database Supabase (Opsional tapi Sangat Direkomendasikan):**
+    Jika Anda belum punya, instal Supabase CLI dan generate tipe untuk keamanan tipe:
+    ```bash
+    npm install -g supabase # Jika belum terinstal
+    supabase login
+    supabase link --project-ref your-project-id # Ganti dengan ID proyek Anda
+    supabase gen types typescript --project-id "your-project-id" --schema public > src/lib/database.types.ts
+    ```
+
+7.  **Pembersihan Cache & Mulai Aplikasi:**
+    ```bash
+    rm -rf .next # Hapus folder cache Next.js
+    npm run dev
+    # atau
+    yarn dev
+    ```
+    Aplikasi akan berjalan di `http://localhost:3000`. Anda akan diarahkan ke halaman login.
+
+## 🌐 Daftar Route Penting
+
+* `/`: Dashboard Utama (membutuhkan Login)
+* `/auth/login`: Halaman Login
+* `/auth/register`: Halaman Registrasi
+* `/auth/logout`: Logout Pengguna
+* `/monitoring/ubinan`: Monitoring Ubinan Padi & Palawija (membutuhkan Login)
+* `/update-data/...`: Rute-rute untuk update data (membutuhkan peran `super_admin`)
+
+---
+
+Jika ada kendala atau permintaan fitur baru, silakan hubungi pengelola proyek.
