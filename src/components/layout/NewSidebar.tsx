@@ -3,22 +3,22 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation'; // useRouter diimpor tapi tidak digunakan di sini, bisa dihapus jika tidak ada rencana penggunaan.
+import { usePathname, useRouter } from 'next/navigation';
 import { createClientComponentSupabaseClient } from '@/lib/supabase';
 
 import { cn } from '@/lib/utils';
 import { getNavMainItems, type UserData } from '@/lib/sidebar-data';
 
-// Impor dari pustaka komponen UI Sidebar Anda
+import { Atom } from 'lucide-react';
+
 import {
   Sidebar as UiSidebar,
   SidebarHeader,
   SidebarContent,
   SidebarFooter,
-  useSidebar, // Digunakan untuk mendapatkan state 'open'
-} from '@/components/ui/sidebar';
+  useSidebar,
+} from '@/components/ui/sidebar'; // (implied, as these components are defined in sidebar.tsx)
 
-// NavMainHope dan NavUserHope sekarang akan menggunakan useSidebar() secara internal
 import { NavMainHope } from './NavMainHope';
 import { NavUserHope } from './NavUserHope';
 
@@ -28,19 +28,16 @@ interface UserSessionData {
   email: string;
 }
 
-interface NewSidebarProps {} // Tidak ada props isCollapsed/setIsCollapsed lagi
+interface NewSidebarProps {}
 
 export default function NewSidebar({}: NewSidebarProps) {
   const pathname = usePathname();
-  const router = useRouter(); // Tetap ada, mungkin digunakan untuk redirect jika user null (meski saat ini dikomentari)
+  const router = useRouter();
   const supabase = createClientComponentSupabaseClient();
 
   const [userSession, setUserSession] = React.useState<UserSessionData | null>(null);
   const [isLoadingSession, setIsLoadingSession] = React.useState(true);
   
-  // Dapatkan state 'open' dari useSidebar().
-  // Ini penting untuk menyesuaikan tampilan NewSidebar itu sendiri (misalnya loading state atau elemen lain)
-  // jika komponen <UiSidebar> belum dirender atau jika ada logika kondisional di level NewSidebar.
   const { open } = useSidebar();
 
   React.useEffect(() => {
@@ -72,7 +69,7 @@ export default function NewSidebar({}: NewSidebarProps) {
         });
       } else {
         setUserSession(null);
-        // router.push('/auth/login'); // Pertimbangkan untuk mengaktifkan ini atau menangani di middleware
+        // router.push('/auth/login');
       }
     });
     return () => {
@@ -90,8 +87,6 @@ export default function NewSidebar({}: NewSidebarProps) {
     : null;
 
   if (isLoadingSession && !userSession) {
-    // Loading state sekarang juga menggunakan variabel CSS untuk konsistensi lebar
-    // dan state 'open' dari useSidebar()
     return (
       <aside
         className={cn(
@@ -101,8 +96,8 @@ export default function NewSidebar({}: NewSidebarProps) {
         )}
         style={{
           // @ts-ignore
-          "--sidebar-width": "16rem", // Nilai default dari components/ui/sidebar.tsx
-          "--sidebar-width-icon": "3rem", // Nilai default dari components/ui/sidebar.tsx
+          "--sidebar-width": "16rem", // Should match SIDEBAR_WIDTH from sidebar.tsx
+          "--sidebar-width-icon": "3rem", // Should match SIDEBAR_WIDTH_ICON from sidebar.tsx
         }}
       >
         <p>Memuat...</p>
@@ -111,39 +106,59 @@ export default function NewSidebar({}: NewSidebarProps) {
   }
 
   return (
-    // SidebarProvider sudah ada di MainLayout
     <UiSidebar
-      variant="sidebar" // Anda bisa memilih variant lain jika diperlukan (misal: "inset")
-      collapsible="icon" // Mode ciut menjadi ikon
+      variant="sidebar"
+      collapsible="icon" // This enables group-data-[collapsible=icon] styles from sidebar.tsx
       className={cn(
-        "hidden md:flex flex-col bg-background z-50" // Kelas dasar, lebar diatur oleh UiSidebar
+        "hidden md:flex flex-col bg-background z-50" // Custom styles for UiSidebar itself
       )}
     >
-      {/* Tombol Toggle Sidebar sudah dipindahkan ke MainLayout dan menggunakan SidebarTrigger */}
-
       <SidebarHeader
         className={cn(
-          "flex h-16 items-center border-b px-4 lg:px-6", // Padding default dari template header
-          // mt-8 dihilangkan karena SidebarTrigger sudah tidak di sini, tapi di MainLayout
-          !open ? "justify-center" : "justify-start" // Penyesuaian alignment logo berdasarkan state 'open'
+          // Base styles from sidebar.tsx: "flex flex-col gap-2 p-2"
+          "h-16 border-b", // Set height and border
+          open
+            ? "px-4 lg:px-6 justify-center items-start" // For open: horizontal padding, vertical center (for flex-col), horizontal left (for flex-col)
+            : "px-0 justify-center items-center",   // For collapsed: no padding, vertical & horizontal center
+          "py-0" // Override vertical padding from base "p-2". Use "!py-0" if needed.
         )}
       >
-        <Link href="/" className="flex items-center gap-2 font-semibold" aria-label="Ke Dashboard Utama">
-          <img src="/icon/hope.png" alt="Dashboard HOPE Logo" className="h-8 w-8" />
-          {/* Teks nama dashboard ditampilkan berdasarkan state 'open' dari useSidebar() */}
-          {open && <span className="text-lg whitespace-nowrap">Dashboard HOPE</span>}
+        <Link href="/" className={cn(
+            "flex items-center gap-2", 
+            open ? "font-semibold" : ""
+          )} 
+          aria-label="Ke Dashboard Utama"
+        >
+          <div className={cn(
+            "flex items-center justify-center rounded-md",
+            open ? "bg-black p-2" : "bg-transparent p-0" 
+          )}>
+            {/* Icon Atom, disarankan size-4 (h-4 w-4) jika ingin konsisten dengan CVA SidebarMenuButton */}
+            <Atom className={cn(
+              open ? "text-white h-5 w-5" : "text-foreground h-6 w-6" // Saat ini h-5/h-6. Pertimbangkan h-4 w-4 jika ingin konsisten.
+            )} />
+          </div>
+          {open && (
+            <div className="flex flex-col"> 
+              <span className="text-base font-semibold whitespace-nowrap">Dashboard HOPE</span>
+            </div>
+          )}
         </Link>
       </SidebarHeader>
 
-      {/* Menambahkan padding horizontal px-3 ke SidebarContent untuk memberi ruang pada ikon */}
-      <SidebarContent className="flex-1 overflow-y-auto py-2 px-3">
-        {/* NavMainHope akan menggunakan useSidebar() untuk menyesuaikan tampilannya */}
+      <SidebarContent className={cn(
+        // Base styles from sidebar.tsx: "flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden"
+        // User styles:
+        "py-2", // Menambahkan padding vertikal pada content area
+        open ? "px-3" : "px-0" // Menambahkan padding horizontal kondisional
+        // flex-1 dan overflow-y-auto sudah ada di base atau kompatibel.
+      )}>
         <NavMainHope items={navMainData} />
       </SidebarContent>
 
-      {/* p-2 pada SidebarFooter untuk konsistensi dengan template ui/sidebar */}
-      <SidebarFooter className="mt-auto p-2 border-t">
-        {/* NavUserHope akan menggunakan useSidebar() untuk menyesuaikan tampilannya */}
+      <SidebarFooter className="mt-auto p-2 border-t"> 
+        {/* Base SidebarFooter: "flex flex-col gap-2 p-2" */}
+        {/* User: "mt-auto p-2 border-t". `p-2` konsisten. `mt-auto` dan `border-t` adalah tambahan. */}
         <NavUserHope user={userDataForNav} />
       </SidebarFooter>
     </UiSidebar>
