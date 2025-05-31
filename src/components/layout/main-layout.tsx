@@ -1,6 +1,8 @@
 // src/components/layout/main-layout.tsx
+'use client';
+
 import React from 'react';
-import Sidebar from './sidebar';
+import NewSidebar from './NewSidebar';
 import { cn } from '@/lib/utils';
 import {
   Select,
@@ -10,6 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useYear } from '@/context/YearContext';
+import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -21,48 +24,56 @@ export default function MainLayout({ children, isCollapsed, setIsCollapsed }: Ma
   const { selectedYear, setSelectedYear } = useYear();
   const availableYears = Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 5 + i);
 
+  const handleSidebarOpenChange = (open: boolean) => {
+    setIsCollapsed(!open);
+  };
+
   return (
-    <div className="flex min-h-screen"> {/* Ganti grid menjadi flex */}
-      {/* Sidebar (akan fixed oleh dirinya sendiri) */}
-      <Sidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
+    <SidebarProvider
+      defaultOpen={!isCollapsed}
+      open={!isCollapsed}
+      onOpenChange={handleSidebarOpenChange}
+    >
+      {/* "Outer Wrapper" ini adalah anak dari div flex w-full milik SidebarProvider.
+          Tambahkan 'flex-1' agar ia mengisi ruang horizontal yang tersedia.
+      */}
+      <div className="flex-1 min-h-screen bg-background relative"> {/* <--- TAMBAHKAN flex-1 DI SINI */}
+        <NewSidebar /> {/* Komponen ini position:fixed */}
 
-      {/* Konten utama yang akan bergeser */}
-      <div
-        className={
-          cn(
-            "flex flex-col flex-1 transition-all duration-300 ease-in-out", // flex-1 agar memenuhi sisa ruang
-            isCollapsed ? "ml-[80px]" : "ml-64" // Tambahkan margin-left dinamis di sini
-          )
-        }
-      >
-        {/* Header di sini */}
-        <header className="flex items-center justify-end h-16 border-b bg-background px-4 lg:px-6 shadow-sm">
-          <div className="flex items-center gap-4">
-            <span className="font-semibold text-gray-700">Tahun:</span>
-            <Select
-              value={String(selectedYear)}
-              onValueChange={(value) => setSelectedYear(Number(value))}
-            >
-              <SelectTrigger className="w-[100px]">
-                <SelectValue placeholder="Pilih Tahun" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableYears.map(year => (
-                  <SelectItem key={year} value={String(year)}>
-                    {year}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <div className="flex items-center gap-2"></div>
-          </div>
-        </header>
+        {/* "Main Content Wrapper" */}
+        <div
+          className={cn(
+            "flex flex-col min-h-screen transition-all duration-300 ease-in-out",
+            isCollapsed ? "ml-12" : "ml-64" // Margin sudah benar
+          )}
+        >
+          <header className="flex items-center justify-between h-16 border-b bg-card px-4 lg:px-6 shadow-sm sticky top-0 z-30">
+            <SidebarTrigger />
+            <div className="flex items-center gap-4">
+              <span className="font-semibold text-card-foreground">Tahun:</span>
+              <Select
+                value={String(selectedYear)}
+                onValueChange={(value) => setSelectedYear(Number(value))}
+              >
+                <SelectTrigger className="w-[100px]">
+                  <SelectValue placeholder="Pilih Tahun" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableYears.map(year => (
+                    <SelectItem key={year} value={String(year)}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </header>
 
-        {/* Konten utama yang dapat discroll */}
-        <main className="flex-1 overflow-y-auto p-4 bg-gray-100"> {/* flex-1 agar mengisi sisa tinggi, overflow-y-auto agar kontennya bisa discroll */}
-          {children}
-        </main>
+          <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 bg-muted/40 w-full">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </SidebarProvider>
   );
 }

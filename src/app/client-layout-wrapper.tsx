@@ -1,33 +1,48 @@
 // src/app/client-layout-wrapper.tsx
 'use client';
 
-import { usePathname } from 'next/navigation';
-import MainLayout from '@/components/layout/main-layout';
-import React, { useState } from 'react';
-import { YearProvider } from '@/context/YearContext'; // Import YearProvider
+import React, { useState, useEffect } from 'react';
+import MainLayout from '@/components/layout/main-layout'; // Sesuaikan path jika perlu
+import { getCookie } from 'cookies-next'; // Untuk membaca cookie
 
-interface ClientLayoutWrapperProps {
-  children: React.ReactNode;
-}
+// Nama cookie ini harus SAMA dengan yang digunakan oleh SidebarProvider di components/ui/sidebar.tsx
+// Di components/ui/sidebar.tsx Anda, namanya adalah SIDEBAR_COOKIE_NAME = "sidebar_state"
+const SIDEBAR_OPEN_STATE_COOKIE_NAME = "sidebar_state";
 
-export default function ClientLayoutWrapper({ children }: ClientLayoutWrapperProps) {
-  const pathname = usePathname();
-  const [isCollapsed, setIsCollapsed] = useState(false);
+export default function ClientLayoutWrapper({ children }: { children: React.ReactNode }) {
+  // Inisialisasi state 'isCollapsed'.
+  // 'isCollapsed' adalah kebalikan dari 'isOpen' yang disimpan di cookie.
+  // Jika cookie 'sidebar_state' adalah 'true' (berarti sidebar OPEN/EXPANDED), maka isCollapsed harus 'false'.
+  // Jika cookie 'sidebar_state' adalah 'false' (berarti sidebar CLOSED/COLLAPSED), maka isCollapsed harus 'true'.
+  // Default jika tidak ada cookie: sidebar tidak diciutkan (isCollapsed = false).
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    const cookieValue = getCookie(SIDEBAR_OPEN_STATE_COOKIE_NAME);
+    if (cookieValue === undefined || cookieValue === null) {
+      // Tidak ada cookie, default ke sidebar terbuka (tidak diciutkan)
+      // SidebarProvider memiliki defaultOpen = true, yang berarti open = true, jadi isCollapsed = false.
+      return false;
+    }
+    try {
+      const isOpen = JSON.parse(cookieValue as string); // Cookie menyimpan status 'open'
+      return !isOpen; // isCollapsed adalah kebalikan dari isOpen
+    } catch (error) {
+      console.error("Error parsing sidebar state cookie:", error);
+      return false; // Default jika parsing gagal
+    }
+  });
 
-  const isAuthPage = pathname.startsWith('/auth');
+  // `SidebarProvider` di dalam `MainLayout` akan menangani penulisan cookie
+  // ketika prop `open` (yang merupakan `!isCollapsed`) berubah.
+  // Fungsi `setAndPersistIsCollapsed` hanya perlu memanggil `setIsCollapsed`.
+  const setAndPersistIsCollapsed = (collapsed: boolean) => {
+    setIsCollapsed(collapsed);
+    // Tidak perlu menulis cookie di sini karena SidebarProvider (di dalam MainLayout) akan melakukannya
+    // berdasarkan prop 'open' yang diterimanya (!collapsed).
+  };
 
   return (
-    <>
-      {isAuthPage ? (
-        children
-      ) : (
-        // Bungkus MainLayout dengan YearProvider
-        <YearProvider>
-          <MainLayout isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed}>
-            {children}
-          </MainLayout>
-        </YearProvider>
-      )}
-    </>
+    <MainLayout isCollapsed={isCollapsed} setIsCollapsed={setAndPersistIsCollapsed}>
+      {children}
+    </MainLayout>
   );
 }

@@ -3,8 +3,8 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { Toaster } from '@/components/ui/sonner';
-import ClientLayoutWrapper from './client-layout-wrapper';
-import { YearProvider } from '@/context/YearContext'; // Import YearProvider
+import { YearProvider } from '@/context/YearContext';
+// Hapus import ClientLayoutWrapper dan MainLayout dari sini jika tidak digunakan lagi secara langsung
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   description: 'Statistik Produksi Pertanian BPS Kalbar',
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
@@ -21,10 +21,8 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <YearProvider> {/* Bungkus seluruh aplikasi dengan YearProvider */}
-          <ClientLayoutWrapper>
-            {children}
-          </ClientLayoutWrapper>
+        <YearProvider>
+          {children} {/* Langsung render children */}
         </YearProvider>
         <Toaster />
       </body>
