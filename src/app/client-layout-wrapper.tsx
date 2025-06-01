@@ -1,7 +1,7 @@
 // src/app/client-layout-wrapper.tsx
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState} from 'react';
 import MainLayout from '@/components/layout/main-layout'; // Sesuaikan path jika perlu
 import { getCookie } from 'cookies-next'; // Untuk membaca cookie
 

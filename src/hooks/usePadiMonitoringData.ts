@@ -1,7 +1,6 @@
 // src/hooks/usePadiMonitoringData.ts
 import { useState, useEffect } from 'react';
 import { createClientComponentSupabaseClient } from '@/lib/supabase';
-import { toast } from 'sonner';
 
 const toTitleCase = (str: string) => {
   return str.toLowerCase().split(' ').map((word) => {

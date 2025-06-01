@@ -1,4 +1,4 @@
-// src/app/monitoring/ubinan/page.tsx
+// src/app/(dashboard)/monitoring/ubinan/page.tsx
 "use client";
 
 import * as React from "react";
@@ -8,8 +8,8 @@ import { useYear } from '@/context/YearContext';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronRight, CheckCircle2 } from "lucide-react"; // Ensure CheckCircle2 is imported
-import { getPercentageBadgeClass } from "@/lib/utils"; // Import from global utils
+import { ChevronDown, ChevronRight, CheckCircle2 } from "lucide-react";
+import { getPercentageBadgeClass } from "@/lib/utils";
 
 import {
   ColumnDef,
@@ -20,14 +20,61 @@ import {
   getFilteredRowModel,
   getSortedRowModel,
   useReactTable,
+  RowData, // Pastikan RowData diimpor
 } from '@tanstack/react-table';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { usePadiMonitoringData } from '@/hooks/usePadiMonitoringData';
 import { usePalawijaMonitoringData } from '@/hooks/usePalawijaMonitoringData';
 
-// Komponen Skeleton untuk Tabel Padi
-const PadiTableSkeleton = ({ columns }: { columns: ColumnDef<any>[] }) => (
+// PERBAIKAN DI SINI
+declare module '@tanstack/react-table' {
+  interface TableMeta<TData extends RowData> {
+    // Menambahkan properti nominal untuk "menggunakan" TData
+    // Anda bisa menamainya sesuai keinginan, seringkali menggunakan underscore
+    // Ini tidak perlu diisi atau digunakan jika tidak ada fungsionalitas khusus untuknya
+    _rowData?: TData;
+
+    updateData?: (rowIndex: number, columnId: string, value: unknown) => void;
+  }
+}
+
+interface PadiDataRow {
+  nmkab: string;
+  targetUtama: number;
+  cadangan: number;
+  realisasi: number;
+  lewatPanen: number;
+  faseGeneratif_G1?: number;
+  faseGeneratif_G2?: number;
+  faseGeneratif_G3?: number;
+  faseGeneratif?: number;
+  anomali: number;
+  persentase: number | string;
+}
+
+interface PadiTotals {
+  targetUtama: number;
+  cadangan: number;
+  realisasi: number;
+  lewatPanen: number;
+  faseGeneratif?: number;
+  faseGeneratif_G1?: number;
+  faseGeneratif_G2?: number;
+  faseGeneratif_G3?: number;
+  anomali: number;
+  persentase: number | string;
+}
+
+interface PalawijaDataRow {
+  tahun: number | string | null;
+  subround: string | number | null;
+  komoditas: string | null;
+  kecamatan: string | null;
+  luas_panen_ha: number | null;
+}
+
+const PadiTableSkeleton = ({ columns }: { columns: ColumnDef<PadiDataRow, unknown>[] }) => (
   <div className="rounded-md border p-4">
     <Table>
       <TableHeader>
@@ -54,7 +101,6 @@ const PadiTableSkeleton = ({ columns }: { columns: ColumnDef<any>[] }) => (
   </div>
 );
 
-// Komponen Skeleton untuk Tabel Palawija
 const PalawijaTableSkeleton = () => (
   <div className="rounded-md border p-4">
     <table className="min-w-full">
@@ -82,7 +128,6 @@ const PalawijaTableSkeleton = () => (
   </div>
 );
 
-
 export default function UbinanMonitoringPage() {
   const { selectedYear } = useYear();
   const [selectedSubround, setSelectedSubround] = React.useState<string>('all');
@@ -90,20 +135,25 @@ export default function UbinanMonitoringPage() {
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [isGeneratifExpanded, setIsGeneratifExpanded] = React.useState<boolean>(false);
 
-  const { processedPadiData, padiTotals, loadingPadi, errorPadi, lastUpdate } = usePadiMonitoringData(selectedYear, selectedSubround);
-  const { palawijaData, loadingPalawija, errorPalawija } = usePalawijaMonitoringData(selectedYear, selectedSubround);
+  const { processedPadiData, padiTotals, loadingPadi, errorPadi, lastUpdate } = usePadiMonitoringData(selectedYear, selectedSubround) as {
+    processedPadiData: PadiDataRow[];
+    padiTotals: PadiTotals | null;
+    loadingPadi: boolean;
+    errorPadi: string | null;
+    lastUpdate: string | null;
+  };
 
-  // Fungsi toTitleCase tidak perlu diubah
-  const toTitleCase = (str: string) => str.toLowerCase().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-
-  // Fungsi getPercentageBadgeClass sudah diimpor dari lib/utils.ts, jadi hapus definisi lokalnya.
-  // const getPercentageBadgeClass = (percentage: number | string) => { ... };
+  const { palawijaData, loadingPalawija, errorPalawija } = usePalawijaMonitoringData(selectedYear, selectedSubround) as {
+    palawijaData: PalawijaDataRow[];
+    loadingPalawija: boolean;
+    errorPalawija: string | null;
+  };
 
   const getLastMonthName = () => new Date(new Date().setMonth(new Date().getMonth() - 1)).toLocaleString('id-ID', { month: 'long' });
   const lastMonthName = React.useMemo(() => getLastMonthName(), []);
 
-  const padiColumns: ColumnDef<any>[] = React.useMemo(() => {
-    const baseColumns: ColumnDef<any>[] = [
+  const padiColumns: ColumnDef<PadiDataRow>[] = React.useMemo(() => {
+    const baseColumns: ColumnDef<PadiDataRow>[] = [
       { accessorKey: "nmkab", header: () => <div className="text-left">Kabupaten/Kota</div>, cell: ({ row }) => <div className="text-left">{row.original.nmkab}</div>, minSize: 150, size: 160 },
       { accessorKey: "targetUtama", header: () => <div className="text-center">Target Utama</div>, cell: ({ row }) => <div className="text-center">{row.original.targetUtama}</div>, minSize: 80, size: 110 },
       { accessorKey: "cadangan", header: () => <div className="text-center">Cadangan</div>, cell: ({ row }) => <div className="text-center">{row.original.cadangan}</div>, minSize: 80, size: 110 },
@@ -111,29 +161,35 @@ export default function UbinanMonitoringPage() {
       { accessorKey: "lewatPanen", header: () => <div className="text-center">Lewat Panen</div>, cell: ({ row }) => <div className="text-center">{row.original.lewatPanen}</div>, minSize: 100, size: 100 },
     ];
 
-    const generatifDetailColumns: ColumnDef<any>[] = [
-      { accessorKey: "faseGeneratif_G1", header: () => <div className="text-center">G1</div>, cell: ({ row }) => <div className="text-center">{row.original.faseGeneratif_G1}</div>, minSize: 50, size: 50 },
-      { accessorKey: "faseGeneratif_G2", header: () => <div className="text-center">G2</div>, cell: ({ row }) => <div className="text-center">{row.original.faseGeneratif_G2}</div>, minSize: 50, size: 50 },
-      { accessorKey: "faseGeneratif_G3", header: () => <div className="text-center">G3</div>, cell: ({ row }) => <div className="text-center">{row.original.faseGeneratif_G3}</div>, minSize: 50, size: 50 },
+    const generatifDetailColumns: ColumnDef<PadiDataRow>[] = [
+      { accessorKey: "faseGeneratif_G1", header: () => <div className="text-center">G1</div>, cell: ({ row }) => <div className="text-center">{row.original.faseGeneratif_G1 ?? '-'}</div>, minSize: 50, size: 50 },
+      { accessorKey: "faseGeneratif_G2", header: () => <div className="text-center">G2</div>, cell: ({ row }) => <div className="text-center">{row.original.faseGeneratif_G2 ?? '-'}</div>, minSize: 50, size: 50 },
+      { accessorKey: "faseGeneratif_G3", header: () => <div className="text-center">G3</div>, cell: ({ row }) => <div className="text-center">{row.original.faseGeneratif_G3 ?? '-'}</div>, minSize: 50, size: 50 },
     ];
 
-    const generatifSummaryColumn: ColumnDef<any>[] = [
-      { accessorKey: "faseGeneratif", header: () => <div className="text-center">Generatif ({lastMonthName})</div>, cell: ({ row }) => <div className="text-center">{row.original.faseGeneratif}</div>, minSize: 130, size: 100 },
+    const generatifSummaryColumn: ColumnDef<PadiDataRow>[] = [
+      { accessorKey: "faseGeneratif", header: () => <div className="text-center">Generatif ({lastMonthName})</div>, cell: ({ row }) => <div className="text-center">{row.original.faseGeneratif ?? '-'}</div>, minSize: 130, size: 100 },
     ];
 
-    const trailingColumns: ColumnDef<any>[] = [
+    const trailingColumns: ColumnDef<PadiDataRow>[] = [
       { accessorKey: "anomali", header: () => <div className="text-center">Anomali</div>, cell: ({ row }) => <div className="text-center">{row.original.anomali}</div>, minSize: 80, size: 100 },
       {
         accessorKey: "persentase",
         header: () => <div className="text-center">Persentase (%)</div>,
         cell: ({ row }) => {
-          const value = parseFloat(row.original.persentase.toString());
-          const showCheckmark = !isNaN(value) && value >= 100;
+          const rawValue = row.original.persentase;
+          const value = typeof rawValue === 'string' ? parseFloat(rawValue) : rawValue;
+
+          if (typeof value !== 'number' || isNaN(value)) {
+            return <div className="text-center">-</div>;
+          }
+
+          const showCheckmark = value >= 100;
           return (
             <div className="text-center">
               <span className={`px-2 py-0.5 inline-flex items-center text-xs leading-5 font-semibold rounded-full ${getPercentageBadgeClass(value)}`}>
                 {showCheckmark && <CheckCircle2 className="mr-1 h-3 w-3" />}
-                {!isNaN(value) ? value.toFixed(2) : row.original.persentase}%
+                {value.toFixed(2)}%
               </span>
             </div>
           );
@@ -147,8 +203,6 @@ export default function UbinanMonitoringPage() {
       ...(isGeneratifExpanded ? generatifDetailColumns : generatifSummaryColumn),
       ...trailingColumns
     ];
-  // Karena getPercentageBadgeClass adalah fungsi global yang stabil, tidak perlu dimasukkan ke dependency array jika ia murni.
-  // Jika React Linter mengeluh, Anda bisa menambahkannya, tapi secara teknis tidak perlu jika definisinya tidak berubah.
   }, [lastMonthName, isGeneratifExpanded]);
 
   const padiTable = useReactTable({
@@ -161,23 +215,27 @@ export default function UbinanMonitoringPage() {
     onColumnFiltersChange: setColumnFilters,
     state: { sorting, columnFilters },
     columnResizeMode: 'onChange',
+    // Jika Anda menggunakan meta, Anda akan mendefinisikannya di sini, misalnya:
+    // meta: {
+    //   _rowData: undefined, // Tidak perlu diisi jika hanya untuk memuaskan tipe
+    //   updateData: (rowIndex, columnId, value) => {
+    //     // logika update data Anda
+    //   }
+    // }
   });
 
   const currentPadiSkeletonColumns = React.useMemo(() => {
-    const numBase = 5;
-    const numGeneratif = isGeneratifExpanded ? 3 : 1;
-    const numTrailing = 2;
-    const totalCols = numBase + numGeneratif + numTrailing;
-    return Array.from({ length: totalCols }).map((_, i) => ({
-        id: `skeleton-col-${i}`,
-        size: 100,
-        minSize: 80
-    })) as ColumnDef<any>[];
-  }, [isGeneratifExpanded]);
+    const activePadiColumns = padiTable.getVisibleLeafColumns();
+    return activePadiColumns.map(col => ({
+        id: col.id,
+        size: col.getSize(),
+        minSize: (col.columnDef as ColumnDef<PadiDataRow, unknown>).minSize,
+    })) as ColumnDef<PadiDataRow, unknown>[];
+  }, [padiTable]);
 
 
   return (
-    <div className="container mx-auto py-4"> {/* Mengurangi py-8 menjadi py-4 untuk padding atas/bawah */}
+    <div className="container mx-auto py-4">
       <div className="mb-2 flex items-center justify-end">
         <div className="flex items-center gap-2">
           <Select value={selectedSubround} onValueChange={setSelectedSubround}>
@@ -217,7 +275,7 @@ export default function UbinanMonitoringPage() {
                     {padiTable.getHeaderGroups().map(headerGroup => (
                       <TableRow key={headerGroup.id}>
                         {headerGroup.headers.map(header => (
-                          <TableHead key={header.id} className={header.column.id === 'nmkab' ? 'text-left' : 'text-center'} style={{ width: header.getSize(), minWidth: header.column.columnDef.minSize ? `${header.column.columnDef.minSize}px` : undefined }}>
+                          <TableHead key={header.id} className={header.column.id === 'nmkab' ? 'text-left' : 'text-center'} style={{ width: header.getSize(), minWidth: (header.column.columnDef as ColumnDef<PadiDataRow, unknown>).minSize ? `${(header.column.columnDef as ColumnDef<PadiDataRow, unknown>).minSize}px` : undefined }}>
                             {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                           </TableHead>
                         ))}
@@ -227,7 +285,7 @@ export default function UbinanMonitoringPage() {
                   <TableBody>
                     {padiTable.getRowModel().rows?.length ? padiTable.getRowModel().rows.map(row => (
                       <TableRow key={row.id}>{row.getVisibleCells().map(cell => (
-                        <TableCell key={cell.id} className={cell.column.id === 'nmkab' ? 'text-left' : 'text-center'} style={{ width: cell.column.getSize(), minWidth: cell.column.columnDef.minSize ? `${cell.column.columnDef.minSize}px` : undefined }}>
+                        <TableCell key={cell.id} className={cell.column.id === 'nmkab' ? 'text-left' : 'text-center'} style={{ width: cell.column.getSize(), minWidth: (cell.column.columnDef as ColumnDef<PadiDataRow, unknown>).minSize ? `${(cell.column.columnDef as ColumnDef<PadiDataRow, unknown>).minSize}px` : undefined }}>
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </TableCell>
                       ))}</TableRow>
@@ -239,35 +297,43 @@ export default function UbinanMonitoringPage() {
                     <tfoot className="bg-gray-50 font-bold">
                       <TableRow>
                         {padiTable.getVisibleLeafColumns().map(col => {
-                          const columnId = col.id;
+                          const columnId = col.id as keyof PadiDataRow | 'nmkab';
                           let displayValue: string | number | undefined;
                           let isPercentage = false;
 
                           if (columnId === 'nmkab') displayValue = 'Total';
-                          else if (columnId === 'targetUtama') displayValue = padiTotals.targetUtama;
-                          else if (columnId === 'cadangan') displayValue = padiTotals.cadangan;
-                          else if (columnId === 'realisasi') displayValue = padiTotals.realisasi;
-                          else if (columnId === 'lewatPanen') displayValue = padiTotals.lewatPanen;
-                          else if (columnId === 'faseGeneratif') displayValue = padiTotals.faseGeneratif;
-                          else if (columnId === 'faseGeneratif_G1') displayValue = padiTotals.faseGeneratif_G1;
-                          else if (columnId === 'faseGeneratif_G2') displayValue = padiTotals.faseGeneratif_G2;
-                          else if (columnId === 'faseGeneratif_G3') displayValue = padiTotals.faseGeneratif_G3;
-                          else if (columnId === 'anomali') displayValue = padiTotals.anomali;
                           else if (columnId === 'persentase') {
-                            displayValue = padiTotals.persentase.toFixed(2);
-                            isPercentage = true;
-                          } else displayValue = '';
+                            const rawTotalPercentage = padiTotals.persentase;
+                            const totalPercentageValue = typeof rawTotalPercentage === 'string' ? parseFloat(rawTotalPercentage) : rawTotalPercentage;
+
+                            if (typeof totalPercentageValue === 'number' && !isNaN(totalPercentageValue)) {
+                              displayValue = totalPercentageValue.toFixed(2);
+                              isPercentage = true;
+                            } else {
+                              displayValue = '-';
+                            }
+                          }
+                          else if (padiTotals[columnId as keyof PadiTotals] !== undefined && padiTotals[columnId as keyof PadiTotals] !== null) {
+                            displayValue = padiTotals[columnId as keyof PadiTotals] as string | number;
+                          } else {
+                            displayValue = '-';
+                          }
 
                           return (
-                            <TableCell key={columnId + "_total"} className={columnId === 'nmkab' ? 'px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-left' : 'px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center'} style={{ width: col.getSize(), minWidth: col.columnDef.minSize ? `${col.columnDef.minSize}px` : undefined }}>
+                            <TableCell key={columnId + "_total"} className={columnId === 'nmkab' ? 'px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-left' : 'px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center'} style={{ width: col.getSize(), minWidth: (col.columnDef as ColumnDef<PadiDataRow, unknown>).minSize ? `${(col.columnDef as ColumnDef<PadiDataRow, unknown>).minSize}px` : undefined }}>
                               {isPercentage ? (
                                 (() => {
-                                  const numericValue = padiTotals.persentase;
+                                  const rawNumericTotal = padiTotals.persentase;
+                                  const numericValue = typeof rawNumericTotal === 'string' ? parseFloat(rawNumericTotal) : rawNumericTotal;
+
+                                  if (typeof numericValue !== 'number' || isNaN(numericValue)) {
+                                    return <span>{displayValue === '-' ? '-' : `${displayValue}%`}</span>;
+                                  }
                                   const showCheckmark = numericValue >= 100;
                                   return (
                                     <span className={`px-2 py-0.5 inline-flex items-center text-xs leading-5 font-semibold rounded-full ${getPercentageBadgeClass(numericValue)}`}>
                                       {showCheckmark && <CheckCircle2 className="mr-1 h-3 w-3" />}
-                                      {numericValue.toFixed(2)}%
+                                      {displayValue}%
                                     </span>
                                   );
                                 })()
@@ -312,11 +378,11 @@ export default function UbinanMonitoringPage() {
                   <tbody className="bg-white divide-y divide-gray-200">
                     {palawijaData.map((row, index) => (
                       <tr key={index}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{row.tahun || 'N/A'}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{row.subround || 'N/A'}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{row.komoditas || 'N/A'}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{row.kecamatan || 'N/A'}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{row.luas_panen_ha || 'N/A'}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{row.tahun ?? 'N/A'}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{row.subround ?? 'N/A'}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{row.komoditas ?? 'N/A'}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{row.kecamatan ?? 'N/A'}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{row.luas_panen_ha ?? 'N/A'}</td>
                       </tr>
                     ))}
                   </tbody>
