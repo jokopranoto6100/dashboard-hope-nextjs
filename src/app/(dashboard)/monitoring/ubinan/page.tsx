@@ -20,21 +20,18 @@ import {
   getFilteredRowModel,
   getSortedRowModel,
   useReactTable,
-  RowData, // Pastikan RowData diimpor
+  RowData,
 } from '@tanstack/react-table';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { usePadiMonitoringData } from '@/hooks/usePadiMonitoringData';
-import { usePalawijaMonitoringData } from '@/hooks/usePalawijaMonitoringData';
+// Updated import for Palawija
+import { usePalawijaMonitoringData, PalawijaDataRow, PalawijaTotals } from '@/hooks/usePalawijaMonitoringData';
 
-// PERBAIKAN DI SINI
+
 declare module '@tanstack/react-table' {
   interface TableMeta<TData extends RowData> {
-    // Menambahkan properti nominal untuk "menggunakan" TData
-    // Anda bisa menamainya sesuai keinginan, seringkali menggunakan underscore
-    // Ini tidak perlu diisi atau digunakan jika tidak ada fungsionalitas khusus untuknya
     _rowData?: TData;
-
     updateData?: (rowIndex: number, columnId: string, value: unknown) => void;
   }
 }
@@ -53,7 +50,7 @@ interface PadiDataRow {
   persentase: number | string;
 }
 
-interface PadiTotals {
+interface PadiTotalsInterface { // Renamed to avoid conflict with hook type
   targetUtama: number;
   cadangan: number;
   realisasi: number;
@@ -66,13 +63,6 @@ interface PadiTotals {
   persentase: number | string;
 }
 
-interface PalawijaDataRow {
-  tahun: number | string | null;
-  subround: string | number | null;
-  komoditas: string | null;
-  kecamatan: string | null;
-  luas_panen_ha: number | null;
-}
 
 const PadiTableSkeleton = ({ columns }: { columns: ColumnDef<PadiDataRow, unknown>[] }) => (
   <div className="rounded-md border p-4">
@@ -101,53 +91,59 @@ const PadiTableSkeleton = ({ columns }: { columns: ColumnDef<PadiDataRow, unknow
   </div>
 );
 
-const PalawijaTableSkeleton = () => (
-  <div className="rounded-md border p-4">
-    <table className="min-w-full">
-      <thead className="bg-gray-50">
-        <tr>
-          {Array.from({ length: 5 }).map((_, index) => (
-            <th key={index} className="px-6 py-3">
-              <Skeleton className="h-4 w-full" />
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody className="bg-white divide-y divide-gray-200">
-        {Array.from({ length: 5 }).map((_, rowIndex) => (
-          <tr key={rowIndex}>
-            {Array.from({ length: 5 }).map((_, cellIndex) => (
-              <td key={cellIndex} className="px-6 py-4">
-                <Skeleton className="h-4 w-full" />
-              </td>
+// New Skeleton for Palawija Table
+const PalawijaTableSkeletonComponent = ({ columns }: { columns: ColumnDef<PalawijaDataRow, unknown>[] }) => (
+    <div className="rounded-md border p-4">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            {columns.map((column) => (
+              <TableHead key={column.id} style={{ width: column.size ? `${column.size}px` : 'auto', minWidth: column.minSize ? `${column.minSize}px` : 'auto' }}>
+                <Skeleton className="h-5 w-full" />
+              </TableHead>
             ))}
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-);
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {Array.from({ length: 5 }).map((_, rowIndex) => (
+            <TableRow key={rowIndex}>
+              {columns.map((column) => (
+                <TableCell key={column.id} style={{ width: column.size ? `${column.size}px` : 'auto', minWidth: column.minSize ? `${column.minSize}px` : 'auto' }}>
+                  <Skeleton className="h-5 w-full" />
+                </TableCell>
+              ))}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+
 
 export default function UbinanMonitoringPage() {
   const { selectedYear } = useYear();
   const [selectedSubround, setSelectedSubround] = React.useState<string>('all');
-  const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+
+  // Padi Table State
+  const [sortingPadi, setSortingPadi] = React.useState<SortingState>([]);
+  const [columnFiltersPadi, setColumnFiltersPadi] = React.useState<ColumnFiltersState>([]);
   const [isGeneratifExpanded, setIsGeneratifExpanded] = React.useState<boolean>(false);
+
+  // Palawija Table State
+  const [sortingPalawija, setSortingPalawija] = React.useState<SortingState>([]);
+  const [columnFiltersPalawija, setColumnFiltersPalawija] = React.useState<ColumnFiltersState>([]);
+  const [isRealisasiExpanded, setIsRealisasiExpanded] = React.useState<boolean>(false);
+
 
   const { processedPadiData, padiTotals, loadingPadi, errorPadi, lastUpdate } = usePadiMonitoringData(selectedYear, selectedSubround) as {
     processedPadiData: PadiDataRow[];
-    padiTotals: PadiTotals | null;
+    padiTotals: PadiTotalsInterface | null; // Use renamed interface
     loadingPadi: boolean;
     errorPadi: string | null;
     lastUpdate: string | null;
   };
 
-  const { palawijaData, loadingPalawija, errorPalawija } = usePalawijaMonitoringData(selectedYear, selectedSubround) as {
-    palawijaData: PalawijaDataRow[];
-    loadingPalawija: boolean;
-    errorPalawija: string | null;
-  };
+  const { processedPalawijaData, palawijaTotals, loadingPalawija, errorPalawija, lastUpdatePalawija } = usePalawijaMonitoringData(selectedYear, selectedSubround);
 
   const getLastMonthName = () => new Date(new Date().setMonth(new Date().getMonth() - 1)).toLocaleString('id-ID', { month: 'long' });
   const lastMonthName = React.useMemo(() => getLastMonthName(), []);
@@ -179,11 +175,7 @@ export default function UbinanMonitoringPage() {
         cell: ({ row }) => {
           const rawValue = row.original.persentase;
           const value = typeof rawValue === 'string' ? parseFloat(rawValue) : rawValue;
-
-          if (typeof value !== 'number' || isNaN(value)) {
-            return <div className="text-center">-</div>;
-          }
-
+          if (typeof value !== 'number' || isNaN(value)) return <div className="text-center">-</div>;
           const showCheckmark = value >= 100;
           return (
             <div className="text-center">
@@ -197,12 +189,7 @@ export default function UbinanMonitoringPage() {
         minSize: 100, size: 110
       },
     ];
-
-    return [
-      ...baseColumns,
-      ...(isGeneratifExpanded ? generatifDetailColumns : generatifSummaryColumn),
-      ...trailingColumns
-    ];
+    return [...baseColumns, ...(isGeneratifExpanded ? generatifDetailColumns : generatifSummaryColumn), ...trailingColumns];
   }, [lastMonthName, isGeneratifExpanded]);
 
   const padiTable = useReactTable({
@@ -211,17 +198,10 @@ export default function UbinanMonitoringPage() {
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    state: { sorting, columnFilters },
+    onSortingChange: setSortingPadi,
+    onColumnFiltersChange: setColumnFiltersPadi,
+    state: { sorting: sortingPadi, columnFilters: columnFiltersPadi },
     columnResizeMode: 'onChange',
-    // Jika Anda menggunakan meta, Anda akan mendefinisikannya di sini, misalnya:
-    // meta: {
-    //   _rowData: undefined, // Tidak perlu diisi jika hanya untuk memuaskan tipe
-    //   updateData: (rowIndex, columnId, value) => {
-    //     // logika update data Anda
-    //   }
-    // }
   });
 
   const currentPadiSkeletonColumns = React.useMemo(() => {
@@ -234,8 +214,83 @@ export default function UbinanMonitoringPage() {
   }, [padiTable]);
 
 
+  // Palawija Columns
+  const palawijaColumns: ColumnDef<PalawijaDataRow>[] = React.useMemo(() => {
+    const baseColumns: ColumnDef<PalawijaDataRow>[] = [
+      { accessorKey: "nmkab", header: () => <div className="text-left">Kabupaten/Kota</div>, cell: ({ row }) => <div className="text-left">{row.original.nmkab}</div>, minSize: 150, size: 160 },
+      { accessorKey: "target", header: () => <div className="text-center">Target</div>, cell: ({ row }) => <div className="text-center">{row.original.target}</div>, minSize: 80, size: 100 },
+    ];
+
+    const realisasiDetailColumns: ColumnDef<PalawijaDataRow>[] = [
+      { accessorKey: "clean", header: () => <div className="text-center">Clean</div>, cell: ({ row }) => <div className="text-center">{row.original.clean}</div>, minSize: 70, size: 70 },
+      { accessorKey: "warning", header: () => <div className="text-center">Warning</div>, cell: ({ row }) => <div className="text-center">{row.original.warning}</div>, minSize: 70, size: 70 },
+      { accessorKey: "error", header: () => <div className="text-center">Error</div>, cell: ({ row }) => <div className="text-center">{row.original.error}</div>, minSize: 70, size: 70 },
+    ];
+
+    const realisasiSummaryColumn: ColumnDef<PalawijaDataRow>[] = [
+      { accessorKey: "realisasi", header: () => <div className="text-center">Realisasi</div>, cell: ({ row }) => <div className="text-center">{row.original.realisasi}</div>, minSize: 80, size: 100 },
+    ];
+
+    const trailingColumns: ColumnDef<PalawijaDataRow>[] = [
+      {
+        accessorKey: "persentase",
+        header: () => <div className="text-center">Persentase (%)</div>,
+        cell: ({ row }) => {
+          const rawValue = row.original.persentase;
+          const value = typeof rawValue === 'string' ? parseFloat(rawValue) : rawValue;
+          if (typeof value !== 'number' || isNaN(value)) return <div className="text-center">-</div>;
+          const showCheckmark = value >= 100;
+          return (
+            <div className="text-center">
+              <span className={`px-2 py-0.5 inline-flex items-center text-xs leading-5 font-semibold rounded-full ${getPercentageBadgeClass(value)}`}>
+                {showCheckmark && <CheckCircle2 className="mr-1 h-3 w-3" />}
+                {value.toFixed(2)}%
+              </span>
+            </div>
+          );
+        },
+        minSize: 100, size: 110
+      },
+    ];
+    return [...baseColumns, ...(isRealisasiExpanded ? realisasiDetailColumns : realisasiSummaryColumn), ...trailingColumns];
+  }, [isRealisasiExpanded]);
+
+  const palawijaTable = useReactTable({
+    data: processedPalawijaData || [],
+    columns: palawijaColumns,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    onSortingChange: setSortingPalawija,
+    onColumnFiltersChange: setColumnFiltersPalawija,
+    state: { sorting: sortingPalawija, columnFilters: columnFiltersPalawija },
+    columnResizeMode: 'onChange',
+  });
+
+   const currentPalawijaSkeletonColumns = React.useMemo(() => {
+    // Define a default structure for skeleton based on initial (non-expanded) columns
+    // or use table.getVisibleLeafColumns() if the table is already initialized
+    // For simplicity, let's define it statically based on expected initial columns
+    if (loadingPalawija) {
+        const initialColumnsConfig: Partial<ColumnDef<PalawijaDataRow, unknown>>[] = [
+            { id: "nmkab", size: 160, minSize: 150 },
+            { id: "target", size: 100, minSize: 80 },
+            { id: "realisasi", size: 100, minSize: 80 }, // Assuming summary view initially
+            { id: "persentase", size: 110, minSize: 100 },
+        ];
+         return initialColumnsConfig as ColumnDef<PalawijaDataRow, unknown>[];
+    }
+    const activePalawijaColumns = palawijaTable.getVisibleLeafColumns();
+    return activePalawijaColumns.map(col => ({
+        id: col.id,
+        size: col.getSize(),
+        minSize: (col.columnDef as ColumnDef<PalawijaDataRow, unknown>).minSize,
+    })) as ColumnDef<PalawijaDataRow, unknown>[];
+  }, [palawijaTable, loadingPalawija]);
+
+
   return (
-    <div className="container mx-auto py-4">
+    <div className="container mx-auto">
       <div className="mb-2 flex items-center justify-end">
         <div className="flex items-center gap-2">
           <Select value={selectedSubround} onValueChange={setSelectedSubround}>
@@ -250,11 +305,12 @@ export default function UbinanMonitoringPage() {
         </div>
       </div>
 
+      {/* Padi Table Card */}
       <div className="mb-8">
         <Card>
           <CardHeader>
             <div className="flex justify-between items-center">
-              <CardTitle>Tabulasi Ubinan Padi</CardTitle>
+              <CardTitle>Monitoring Ubinan Padi</CardTitle>
               <Button variant="outline" size="sm" onClick={() => setIsGeneratifExpanded(!isGeneratifExpanded)}>
                 {isGeneratifExpanded ? <ChevronDown className="mr-2 h-4 w-4" /> : <ChevronRight className="mr-2 h-4 w-4" />}
                 {isGeneratifExpanded ? "Ringkas Generatif" : "Detail Generatif"}
@@ -297,7 +353,7 @@ export default function UbinanMonitoringPage() {
                     <tfoot className="bg-gray-50 font-bold">
                       <TableRow>
                         {padiTable.getVisibleLeafColumns().map(col => {
-                          const columnId = col.id as keyof PadiDataRow | 'nmkab';
+                          const columnId = col.id as keyof PadiDataRow | 'nmkab'; // Adjusted type
                           let displayValue: string | number | undefined;
                           let isPercentage = false;
 
@@ -305,30 +361,23 @@ export default function UbinanMonitoringPage() {
                           else if (columnId === 'persentase') {
                             const rawTotalPercentage = padiTotals.persentase;
                             const totalPercentageValue = typeof rawTotalPercentage === 'string' ? parseFloat(rawTotalPercentage) : rawTotalPercentage;
-
                             if (typeof totalPercentageValue === 'number' && !isNaN(totalPercentageValue)) {
                               displayValue = totalPercentageValue.toFixed(2);
                               isPercentage = true;
-                            } else {
-                              displayValue = '-';
-                            }
+                            } else displayValue = '-';
                           }
-                          else if (padiTotals[columnId as keyof PadiTotals] !== undefined && padiTotals[columnId as keyof PadiTotals] !== null) {
-                            displayValue = padiTotals[columnId as keyof PadiTotals] as string | number;
-                          } else {
-                            displayValue = '-';
-                          }
+                          // Check against PadiTotalsInterface for correct property access
+                          else if (padiTotals[columnId as keyof PadiTotalsInterface] !== undefined && padiTotals[columnId as keyof PadiTotalsInterface] !== null) {
+                            displayValue = padiTotals[columnId as keyof PadiTotalsInterface] as string | number;
+                          } else displayValue = '-';
 
                           return (
-                            <TableCell key={columnId + "_total"} className={columnId === 'nmkab' ? 'px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-left' : 'px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center'} style={{ width: col.getSize(), minWidth: (col.columnDef as ColumnDef<PadiDataRow, unknown>).minSize ? `${(col.columnDef as ColumnDef<PadiDataRow, unknown>).minSize}px` : undefined }}>
+                            <TableCell key={columnId + "_total_padi"} className={columnId === 'nmkab' ? 'px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-left' : 'px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center'} style={{ width: col.getSize(), minWidth: (col.columnDef as ColumnDef<PadiDataRow, unknown>).minSize ? `${(col.columnDef as ColumnDef<PadiDataRow, unknown>).minSize}px` : undefined }}>
                               {isPercentage ? (
                                 (() => {
                                   const rawNumericTotal = padiTotals.persentase;
                                   const numericValue = typeof rawNumericTotal === 'string' ? parseFloat(rawNumericTotal) : rawNumericTotal;
-
-                                  if (typeof numericValue !== 'number' || isNaN(numericValue)) {
-                                    return <span>{displayValue === '-' ? '-' : `${displayValue}%`}</span>;
-                                  }
+                                  if (typeof numericValue !== 'number' || isNaN(numericValue)) return <span>{displayValue === '-' ? '-' : `${displayValue}%`}</span>;
                                   const showCheckmark = numericValue >= 100;
                                   return (
                                     <span className={`px-2 py-0.5 inline-flex items-center text-xs leading-5 font-semibold rounded-full ${getPercentageBadgeClass(numericValue)}`}>
@@ -354,43 +403,98 @@ export default function UbinanMonitoringPage() {
         </Card>
       </div>
 
+      {/* Palawija Table Card */}
       <div>
         <Card>
           <CardHeader>
-            <CardTitle>Tabulasi Ubinan Palawija</CardTitle>
-            <CardDescription>Data dari tabel `ubinan_raw`.</CardDescription>
+             <div className="flex justify-between items-center">
+                <CardTitle>Monitoring Ubinan Palawija</CardTitle>
+                <Button variant="outline" size="sm" onClick={() => setIsRealisasiExpanded(!isRealisasiExpanded)}>
+                    {isRealisasiExpanded ? <ChevronDown className="mr-2 h-4 w-4" /> : <ChevronRight className="mr-2 h-4 w-4" />}
+                    {isRealisasiExpanded ? "Ringkas Realisasi" : "Detail Realisasi"}
+                </Button>
+            </div>
+            <CardDescription>
+              {!loadingPalawija && lastUpdatePalawija && <span className="block text-sm text-gray-500 mt-1">Terakhir diperbarui: {lastUpdatePalawija}</span>}
+              {loadingPalawija && <Skeleton className="h-4 w-[250px] mt-2" />}
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            {loadingPalawija && <PalawijaTableSkeleton />}
+            {loadingPalawija && <PalawijaTableSkeletonComponent columns={currentPalawijaSkeletonColumns} />}
             {errorPalawija && <p className="text-red-500 text-center">Error: {errorPalawija}</p>}
-            {!loadingPalawija && !errorPalawija && palawijaData && palawijaData.length > 0 && (
-               <ScrollArea className="h-[400px] w-full rounded-md border p-4">
-                <table className="min-w-full divide-y divide-gray-200">
-                   <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tahun</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subround</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Komoditas</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kecamatan</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Luas Panen (Ha)</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {palawijaData.map((row, index) => (
-                      <tr key={index}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{row.tahun ?? 'N/A'}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{row.subround ?? 'N/A'}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{row.komoditas ?? 'N/A'}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{row.kecamatan ?? 'N/A'}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{row.luas_panen_ha ?? 'N/A'}</td>
-                      </tr>
+            {!loadingPalawija && !errorPalawija && processedPalawijaData && processedPalawijaData.length > 0 && (
+               <ScrollArea className="w-full rounded-md border">
+                <Table>
+                  <TableHeader>
+                    {palawijaTable.getHeaderGroups().map(headerGroup => (
+                      <TableRow key={headerGroup.id}>
+                        {headerGroup.headers.map(header => (
+                          <TableHead key={header.id} className={header.column.id === 'nmkab' ? 'text-left' : 'text-center'} style={{ width: header.getSize(), minWidth: (header.column.columnDef as ColumnDef<PalawijaDataRow, unknown>).minSize ? `${(header.column.columnDef as ColumnDef<PalawijaDataRow, unknown>).minSize}px` : undefined }}>
+                            {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                          </TableHead>
+                        ))}
+                      </TableRow>
                     ))}
-                  </tbody>
-                </table>
+                  </TableHeader>
+                  <TableBody>
+                    {palawijaTable.getRowModel().rows?.length ? palawijaTable.getRowModel().rows.map(row => (
+                      <TableRow key={row.id}>{row.getVisibleCells().map(cell => (
+                        <TableCell key={cell.id} className={cell.column.id === 'nmkab' ? 'text-left' : 'text-center'} style={{ width: cell.column.getSize(), minWidth: (cell.column.columnDef as ColumnDef<PalawijaDataRow, unknown>).minSize ? `${(cell.column.columnDef as ColumnDef<PalawijaDataRow, unknown>).minSize}px` : undefined }}>
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </TableCell>
+                      ))}</TableRow>
+                    )) : (
+                      <TableRow><TableCell colSpan={palawijaColumns.length} className="h-24 text-center">Tidak ada hasil.</TableCell></TableRow>
+                    )}
+                  </TableBody>
+                  {palawijaTotals && (
+                    <tfoot className="bg-gray-50 font-bold">
+                      <TableRow>
+                        {palawijaTable.getVisibleLeafColumns().map(col => {
+                          const columnId = col.id as keyof PalawijaDataRow | 'nmkab';
+                          let displayValue: string | number | undefined;
+                          let isPercentage = false;
+
+                          if (columnId === 'nmkab') displayValue = 'Total';
+                          else if (columnId === 'persentase') {
+                            const rawTotalPercentage = palawijaTotals.persentase;
+                            const totalPercentageValue = typeof rawTotalPercentage === 'string' ? parseFloat(rawTotalPercentage) : rawTotalPercentage;
+                            if (typeof totalPercentageValue === 'number' && !isNaN(totalPercentageValue)) {
+                              displayValue = totalPercentageValue.toFixed(2);
+                              isPercentage = true;
+                            } else displayValue = '-';
+                          }
+                           else if (palawijaTotals[columnId as keyof PalawijaTotals] !== undefined && palawijaTotals[columnId as keyof PalawijaTotals] !== null) {
+                            displayValue = palawijaTotals[columnId as keyof PalawijaTotals] as string | number;
+                          } else displayValue = '-';
+
+                          return (
+                            <TableCell key={columnId + "_total_palawija"} className={columnId === 'nmkab' ? 'px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-left' : 'px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center'} style={{ width: col.getSize(), minWidth: (col.columnDef as ColumnDef<PalawijaDataRow, unknown>).minSize ? `${(col.columnDef as ColumnDef<PalawijaDataRow, unknown>).minSize}px` : undefined }}>
+                               {isPercentage ? (
+                                (() => {
+                                  const rawNumericTotal = palawijaTotals.persentase;
+                                  const numericValue = typeof rawNumericTotal === 'string' ? parseFloat(rawNumericTotal) : rawNumericTotal;
+                                  if (typeof numericValue !== 'number' || isNaN(numericValue)) return <span>{displayValue === '-' ? '-' : `${displayValue}%`}</span>;
+                                  const showCheckmark = numericValue >= 100;
+                                  return (
+                                    <span className={`px-2 py-0.5 inline-flex items-center text-xs leading-5 font-semibold rounded-full ${getPercentageBadgeClass(numericValue)}`}>
+                                      {showCheckmark && <CheckCircle2 className="mr-1 h-3 w-3" />}
+                                      {displayValue}%
+                                    </span>
+                                  );
+                                })()
+                              ) : (displayValue)}
+                            </TableCell>
+                          );
+                        })}
+                      </TableRow>
+                    </tfoot>
+                  )}
+                </Table>
                </ScrollArea>
             )}
-             {!loadingPalawija && !errorPalawija && (!palawijaData || palawijaData.length === 0) && (
-              <p className="text-center text-gray-500">Tidak ada data Ubinan Palawija ditemukan.</p>
+             {!loadingPalawija && !errorPalawija && (!processedPalawijaData || processedPalawijaData.length === 0) && (
+              <p className="text-center text-gray-500">Tidak ada data Ubinan Palawija (Non-Padi) ditemukan untuk tahun {selectedYear} dan Subround {selectedSubround === 'all' ? 'Semua' : selectedSubround}.</p>
             )}
           </CardContent>
         </Card>
