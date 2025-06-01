@@ -55,7 +55,7 @@ Migrasi ini berfokus pada arsitektur yang lebih modern, performa, skalabilitas, 
             * `Anomali`: Dihitung dari baris dengan isian pada kolom `anomali`.
             * `Persentase`: `(Realisasi / Target Utama) * 100`, diformat 2 digit desimal.
         * **Pengurutan Data:** Hasil pengelompokan diurutkan secara *ascending* berdasarkan kode kabupaten (`kab_sort_key` dari kolom `kab`).
-        * **Visualisasi Persentase:** Kolom `Persentase (%)` menampilkan *badge* berwarna sesuai rentang.
+        * **Visualisasi Persentase:** Kolom `Persentase (%)` menampilkan komponen `Badge` (shadcn/ui) dengan warna dan ikon ceklis (untuk >= 100%) yang dinamis sesuai rentang nilai, diatur oleh fungsi utilitas global (`getPercentageBadgeVariant`).
         * **Baris Total:** Menampilkan agregasi total untuk semua kolom numerik.
         * **Informasi "Terakhir Diperbarui"**: Menampilkan timestamp data terakhir diperbarui.
     * **Tabulasi Ubinan Palawija (Non-Padi):**
@@ -68,9 +68,17 @@ Migrasi ini berfokus pada arsitektur yang lebih modern, performa, skalabilitas, 
             * `Realisasi` (dan detail `Clean`, `Warning`, `Error`): Dihitung dari baris di mana `r701` memiliki isian, dan status `validasi`.
             * `Persentase`: `(Realisasi / Target) * 100`, diformat 2 digit desimal.
         * **Pengurutan Data:** Hasil pengelompokan diurutkan secara numerik berdasarkan kode `kab` (`kab_sort_key`).
-        * **Visualisasi Persentase:** Kolom `Persentase (%)` menampilkan *badge* berwarna.
+        * **Visualisasi Persentase:** Kolom `Persentase (%)` menampilkan komponen `Badge` (shadcn/ui) dengan warna dan ikon ceklis (untuk >= 100%) yang dinamis sesuai rentang nilai, diatur oleh fungsi utilitas global (`getPercentageBadgeVariant`).
         * **Baris Total:** Menampilkan agregasi total untuk semua kolom numerik.
         * **Informasi "Terakhir Diperbarui"**: Menampilkan timestamp data terakhir diperbarui dari kolom `uploaded_at`.
+
+6.  **Halaman Utama Dashboard Dinamis (`/`):**
+    * Menampilkan ringkasan data Ubinan Padi dan Palawija dalam komponen `Card` (shadcn/ui) terpisah.
+    * Untuk Padi dan Palawija, menampilkan total persentase realisasi menggunakan komponen `Badge` (shadcn/ui) dengan gaya dinamis (warna dan ikon ceklis sesuai nilai persentase).
+    * Menampilkan daftar 3 Kabupaten/Kota dengan persentase realisasi terendah untuk Padi dan Palawija, juga menggunakan komponen `Badge` untuk menyorot persentase masing-masing.
+    * Menyertakan informasi "Data per:" (timestamp pembaruan terakhir) untuk kedua ringkasan data ubinan.
+    * Ringkasan Palawija juga menampilkan jumlah status validasi data (Clean, Warning, Error) dari hasil realisasi.
+    * Pengambilan dan pemrosesan data untuk ringkasan ini menggunakan *custom hooks* yang sama (`usePadiMonitoringData`, `usePalawijaMonitoringData`).
 
 ## 📁 Struktur Folder Proyek
 Dashboard Pertanian/
@@ -92,6 +100,9 @@ Dashboard Pertanian/
 │   │   │   │       └── page.tsx       # Halaman Monitoring Ubinan
 │   │   │   ├── layout.tsx             # Root Layout aplikasi
 │   │   │   └── page.tsx               # Halaman utama Dashboard
+│   │   ├── api
+│   │   │   └── users/
+│   │   │       └── routes.ts
 │   │   ├── ... (rute aplikasi utama lainnya)
 │   │   ├── client-layout-wrapper.tsx # Wrapper untuk layout kondisional
 │   │   ├── favicon.ico
@@ -99,37 +110,57 @@ Dashboard Pertanian/
 │   ├── components/
 │   │   ├── layout/
 │   │   │   ├── main-layout.tsx    # Layout utama dengan Header dan Sidebar
-│   │   │   └── sidebar.tsx        # Komponen Sidebar
+│   │   │   └── NavMainHope.tsx        # Komponen Sidebar
+│   │   │   └── NavUserHope.tsx        # Komponen Sidebar
+│   │   │   └── NewSidebar.tsx        # Komponen Sidebar
 │   │   ├── ui/                    # Komponen shadcn/ui yang di-generate
+│   │   │   ├── avatar.tsx
+│   │   │   ├── badge.tsx
+│   │   │   ├── breadcrumb.tsx
 │   │   │   ├── button.tsx
 │   │   │   ├── card.tsx
+│   │   │   ├── carousel.tsx
+│   │   │   ├── chart.tsx
 │   │   │   ├── checkbox.tsx
 │   │   │   ├── collapsible.tsx
 │   │   │   ├── dropdown-menu.tsx
+│   │   │   ├── form.tsx
 │   │   │   ├── input.tsx
 │   │   │   ├── label.tsx
+│   │   │   ├── menubar.tsx
+│   │   │   ├── navigation-menu.tsx
 │   │   │   ├── scroll-area.tsx
 │   │   │   ├── select.tsx
+│   │   │   ├── separator.tsx
+│   │   │   ├── sheet.tsx
+│   │   │   ├── skeleton.tsx
+│   │   │   ├── sonner.tsx
 │   │   │   ├── table.tsx
 │   │   │   ├── tabs.tsx
-│   │   │   ├── sonner.tsx
-│   │   │   └── ... (komponen shadcn/ui lainnya)
+│   │   │   ├── tooltip.tsx
 │   │   └── ... (komponen umum lainnya)
 │   ├── context/
-│   │   └── YearContext.tsx        # Context untuk filter tahun global
+│   │   └── YearContext.tsx             # Context untuk filter tahun global
 │   ├── hooks/
 │   │   ├── usePadiMonitoringData.ts     # Hook untuk fetching & processing data Padi
-│   │   └── usePalawijaMonitoringData.ts # Hook untuk fetching data Palawija
+│   │   └── usePalawijaMonitoringData.ts # Hook untuk fetching & processing data Palawija
 │   ├── lib/
+│   │   ├── sidebar-data.ts 
+│   │   ├── supabase-server.ts 
 │   │   ├── supabase.ts              # Konfigurasi Supabase client
-│   │   ├── utils.ts                 # Utility functions (misal: cn dari shadcn/ui)
-│   │   └── database.types.ts        # Tipe database dari Supabase CLI (opsional)
+│   │   ├── utils.ts                 # Utility functions (misal: cn, getPercentageBadgeVariant)
+│   ├── middleware.ts                # Middleware Next.js untuk otentikasi
 ├── .env.local                       # Variabel lingkungan
-├── middleware.ts                    # Middleware Next.js untuk otentikasi
 ├── next.config.js                   # Konfigurasi Next.js
 ├── package.json                     # Daftar dependensi & script
 ├── tsconfig.json                    # Konfigurasi TypeScript
 └── package-lock.json                # File lock dependensi
+
+**Catatan Penting tentang Struktur Folder:**
+* Penempatan `middleware.ts` bisa di root folder proyek atau di dalam `src/` tergantung preferensi dan versi Next.js. Umumnya di root atau `src/`.
+* File `layout.tsx` di `src/app/(dashboard)/layout.tsx` akan menjadi layout utama untuk semua rute di dalam grup `(dashboard)`. File `src/app/layout.tsx` (jika ada di luar grup dashboard) akan menjadi root layout global.
+* `client-layout-wrapper.tsx` mungkin tidak lagi diperlukan atau perannya berubah jika logika layout utama ditangani oleh `(dashboard)/layout.tsx`.
+* `src/app/api/users/route.ts` adalah penamaan standar untuk Next.js App Router Route Handlers (sebelumnya `routes.ts`).
 
 ## 🛠️ Cara Instalasi & Menjalankan (Diperbarui)
 
@@ -160,19 +191,29 @@ Dashboard Pertanian/
     ```json
     {
       "compilerOptions": {
+        // ...
         "paths": {
           "@/*": ["./src/*"]
         }
+        // ...
       }
       // ... bagian lain
     }
     ```
+   
 
-5.  **Instal Komponen shadcn/ui yang Diperlukan:**
-    Jika ada komponen yang belum terinstal, jalankan:
+5.  **Inisialisasi dan Instal Komponen shadcn/ui:**
+    Jika `shadcn/ui` belum diinisialisasi di proyek Anda, jalankan perintah berikut terlebih dahulu:
     ```bash
-    npx shadcn-ui@latest add table tabs select scroll-area button card checkbox collapsible dropdown-menu input label sonner # dan komponen lain yang digunakan
+    npx shadcn-ui@latest init
     ```
+    Ikuti prompt untuk konfigurasi (misalnya, pilihan style, base color, lokasi `globals.css`, alias path).
+
+    Setelah inisialisasi, Anda dapat menambahkan komponen individual yang dibutuhkan. Berdasarkan struktur folder yang Anda berikan, Anda mungkin memerlukan komponen-komponen berikut (dan lainnya):
+    ```bash
+    npx shadcn-ui@latest add table tabs select scroll-area button card checkbox collapsible dropdown-menu input label sonner avatar badge breadcrumb carousel chart form menubar navigation-menu separator sheet skeleton tooltip alert dialog
+    ```
+    Tambahkan atau hapus nama komponen dari daftar di atas sesuai dengan yang benar-benar Anda gunakan atau rencanakan untuk digunakan.
 
 6.  **Buat Tipe Database Supabase (Opsional tapi Sangat Direkomendasikan):**
     Jika Anda belum punya, instal Supabase CLI dan generate tipe untuk keamanan tipe:
@@ -182,6 +223,7 @@ Dashboard Pertanian/
     supabase link --project-ref your-project-id # Ganti dengan ID proyek Anda
     supabase gen types typescript --project-id "your-project-id" --schema public > src/lib/database.types.ts
     ```
+   
 
 7.  **Pembersihan Cache & Mulai Aplikasi:**
     ```bash
@@ -190,16 +232,15 @@ Dashboard Pertanian/
     # atau
     yarn dev
     ```
-    Aplikasi akan berjalan di `http://localhost:3000`. Anda akan diarahkan ke halaman login.
+    Aplikasi akan berjalan di `http://localhost:3000`. Anda akan diarahkan ke halaman login jika rute awal dilindungi.
 
 ## 🌐 Daftar Route Penting
 
-* `/`: Dashboard Utama (membutuhkan Login)
+* `/`: Dashboard Utama (membutuhkan Login, biasanya di dalam grup `(dashboard)`)
 * `/auth/login`: Halaman Login
 * `/auth/register`: Halaman Registrasi
-* `/auth/logout`: Logout Pengguna
-* `/monitoring/ubinan`: Monitoring Ubinan Padi & Palawija (membutuhkan Login)
-* `/update-data/...`: Rute-rute untuk update data (membutuhkan peran `super_admin`)
+* `/monitoring/ubinan`: Monitoring Ubinan Padi & Palawija (membutuhkan Login, di dalam grup `(dashboard)`)
+* `/api/users`: Contoh endpoint API untuk pengguna.
 
 ---
 
