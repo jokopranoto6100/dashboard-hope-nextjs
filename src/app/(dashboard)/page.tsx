@@ -8,9 +8,10 @@ import { useYear } from '@/context/YearContext';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { usePadiMonitoringData } from '@/hooks/usePadiMonitoringData';
+import { usePalawijaMonitoringData, PalawijaDataRow } from '@/hooks/usePalawijaMonitoringData'; // Import hook dan tipe Palawija
 import { Skeleton } from "@/components/ui/skeleton";
-import { getPercentageBadgeClass } from "@/lib/utils"; // Impor fungsi global
-import { CheckCircle2 } from "lucide-react"; // Impor ikon
+import { getPercentageBadgeClass } from "@/lib/utils"; 
+import { CheckCircle2 } from "lucide-react"; 
 
 interface UserData {
   id: string;
@@ -19,10 +20,12 @@ interface UserData {
   role: string;
 }
 
-interface KabupatenRealisasi {
+// Interface ini bisa digunakan untuk kedua jenis data (Padi & Palawija)
+// dengan asumsi 'target' pada Palawija serupa dengan 'targetUtama' pada Padi untuk ringkasan ini.
+interface KabupatenRingkasan {
   nmkab: string;
   realisasi: number;
-  targetUtama: number;
+  target: number; // Menggunakan 'target' yang lebih generik
   persentase: string | number;
 }
 
@@ -34,14 +37,26 @@ export default function HomePage() {
   const [loadingUser, setLoadingUser] = React.useState(true);
   const [errorUser, setErrorUser] = React.useState<string | null>(null);
 
-  const ubinanPadiSubround = 'all';
+  const ubinanSubround = 'all'; // Digunakan untuk Padi dan Palawija
+
+  // Data Padi
   const {
     processedPadiData,
     padiTotals,
     loadingPadi,
     errorPadi,
     lastUpdate
-  } = usePadiMonitoringData(selectedYear, ubinanPadiSubround);
+  } = usePadiMonitoringData(selectedYear, ubinanSubround);
+
+  // Data Palawija
+  const {
+    processedPalawijaData, // Nama variabel ini sudah sesuai dari hook Anda
+    palawijaTotals,
+    loadingPalawija,
+    errorPalawija,
+    lastUpdatePalawija
+  } = usePalawijaMonitoringData(selectedYear, ubinanSubround);
+
 
   React.useEffect(() => {
     const fetchUserData = async () => {
@@ -84,7 +99,11 @@ export default function HomePage() {
     };
   }, [supabase]);
 
-  const getTop3RealisasiTerendah = (data: KabupatenRealisasi[] | null): KabupatenRealisasi[] => {
+  // Fungsi generik untuk mendapatkan 3 entitas dengan persentase terendah
+  // Menerima data yang memiliki properti nmkab, persentase, realisasi, dan target
+  const getTop3LowestPercentage = (
+    data: { nmkab: string; persentase: string | number; realisasi: number; target: number }[] | null
+  ): KabupatenRingkasan[] => {
     if (!data || data.length === 0) return [];
     return [...data]
       .sort((a, b) => {
@@ -93,47 +112,46 @@ export default function HomePage() {
         if (persentaseA !== persentaseB) {
           return persentaseA - persentaseB;
         }
-        return a.realisasi - b.realisasi;
+        return a.realisasi - b.realisasi; // Tie-breaker: realisasi lebih rendah
       })
-      .slice(0, 3);
+      .slice(0, 3)
+      .map(item => ({ // Map ke interface KabupatenRingkasan
+        nmkab: item.nmkab,
+        realisasi: item.realisasi,
+        target: item.target,
+        persentase: item.persentase
+      }));
   };
 
-  const top3RealisasiTerendah = React.useMemo(() => getTop3RealisasiTerendah(processedPadiData), [processedPadiData]);
-
-  // Hapus definisi lokal getPercentageBadgeClass karena sudah diimpor
-  // const getPercentageBadgeClass = (percentage: number | string) => { ... };
+  const top3PadiRealisasiTerendah = React.useMemo(() => 
+    getTop3LowestPercentage(
+      processedPadiData ? processedPadiData.map(p => ({...p, target: p.targetUtama })) : null
+    ), 
+  [processedPadiData]);
+  
+  const top3PalawijaRealisasiTerendah = React.useMemo(() => 
+    getTop3LowestPercentage(processedPalawijaData), 
+  [processedPalawijaData]);
 
   return (
     <>
       <h1 className="text-4xl font-bold mb-6">Selamat Datang di Dashboard HOPE!</h1>
 
+      {/* Card Ringkasan Ubinan Padi */}
       <Card className="mb-6">
         <CardHeader>
           <CardTitle>Ringkasan Ubinan Padi ({selectedYear})</CardTitle>
           {loadingPadi && <Skeleton className="h-4 w-[200px] mt-1" />}
           {!loadingPadi && lastUpdate && <CardDescription>Data per: {lastUpdate}</CardDescription>}
-          {errorPadi && <CardDescription className="text-red-500">Gagal memuat data ubinan: {errorPadi}</CardDescription>}
+          {errorPadi && <CardDescription className="text-red-500">Gagal memuat data ubinan padi: {errorPadi}</CardDescription>}
         </CardHeader>
         <CardContent>
-          {loadingPadi && (
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <Skeleton className="h-8 w-3/4 mb-2" />
-                <Skeleton className="h-12 w-1/2" />
-              </div>
-              <div>
-                <Skeleton className="h-8 w-3/4 mb-2" />
-                <Skeleton className="h-6 w-full mb-1" />
-                <Skeleton className="h-6 w-full mb-1" />
-                <Skeleton className="h-6 w-full" />
-              </div>
-            </div>
-          )}
+          {loadingPadi && ( /* Skeleton Padi */ <div className="grid md:grid-cols-2 gap-4"><div><Skeleton className="h-8 w-3/4 mb-2" /><Skeleton className="h-12 w-1/2" /></div><div><Skeleton className="h-8 w-3/4 mb-2" /><Skeleton className="h-6 w-full mb-1" /><Skeleton className="h-6 w-full mb-1" /><Skeleton className="h-6 w-full" /></div></div>)}
           {!loadingPadi && !errorPadi && padiTotals && processedPadiData && (
             <div className="grid md:grid-cols-2 gap-6">
               <div>
-                <h3 className="text-lg font-semibold text-gray-700 mb-1">Total Persentase Realisasi</h3>
-                <p className={`text-4xl font-bold`}> {/* Kelas warna badge dipindah ke span */}
+                <h3 className="text-lg font-semibold text-gray-700 mb-1">Total Persentase Realisasi (Padi)</h3>
+                <p className={`text-4xl font-bold`}>
                   <span className={`px-3 py-1 inline-flex items-center text-3xl font-bold rounded-full ${getPercentageBadgeClass(padiTotals.persentase)}`}>
                     {padiTotals.persentase >= 100 && <CheckCircle2 className="mr-2 h-6 w-6" />}
                     {padiTotals.persentase.toFixed(2)}%
@@ -144,10 +162,10 @@ export default function HomePage() {
                 </p>
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-gray-700 mb-2">3 Kabupaten Realisasi Terendah (%)</h3>
-                {top3RealisasiTerendah.length > 0 ? (
+                <h3 className="text-lg font-semibold text-gray-700 mb-2">3 Kab/Kota Realisasi Padi Terendah (%)</h3>
+                {top3PadiRealisasiTerendah.length > 0 ? (
                   <ul className="space-y-1">
-                    {top3RealisasiTerendah.map(kab => {
+                    {top3PadiRealisasiTerendah.map(kab => {
                       const persentaseValue = parseFloat(kab.persentase.toString());
                       const showCheckmark = !isNaN(persentaseValue) && persentaseValue >= 100;
                       return (
@@ -156,25 +174,80 @@ export default function HomePage() {
                           <span className={`font-semibold px-2 py-0.5 text-xs rounded-full inline-flex items-center ${getPercentageBadgeClass(persentaseValue)}`}>
                             {showCheckmark && <CheckCircle2 className="mr-1 h-3 w-3" />}
                             {!isNaN(persentaseValue) ? persentaseValue.toFixed(2) : kab.persentase}%
-                            <span className="ml-1 text-gray-600 oscuro:text-gray-400">({kab.realisasi}/{kab.targetUtama})</span>
+                            <span className="ml-1 text-gray-600 oscuro:text-gray-400">({kab.realisasi}/{kab.target})</span> {/* Menggunakan kab.target generik */}
                           </span>
                         </li>
                       );
                     })}
                   </ul>
                 ) : (
-                  <p className="text-sm text-gray-500">Data kabupaten tidak tersedia atau semua realisasi baik.</p>
+                  <p className="text-sm text-gray-500">Data kabupaten (Padi) tidak tersedia atau semua realisasi baik.</p>
                 )}
               </div>
             </div>
           )}
-          {!loadingPadi && !errorPadi && !padiTotals && (
-            <p className="text-gray-500">Data Ubinan Padi tidak tersedia untuk tahun {selectedYear}.</p>
-          )}
+          {!loadingPadi && !errorPadi && !padiTotals && ( <p className="text-gray-500">Data Ubinan Padi tidak tersedia untuk tahun {selectedYear}.</p>)}
         </CardContent>
       </Card>
 
-      {/* Seksi Data Pengguna (seperti sebelumnya) */}
+      {/* Card Baru untuk Ringkasan Ubinan Palawija */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Ringkasan Ubinan Palawija ({selectedYear})</CardTitle>
+          {loadingPalawija && <Skeleton className="h-4 w-[200px] mt-1" />}
+          {!loadingPalawija && lastUpdatePalawija && <CardDescription>Data per: {lastUpdatePalawija}</CardDescription>}
+          {errorPalawija && <CardDescription className="text-red-500">Gagal memuat data ubinan palawija: {errorPalawija}</CardDescription>}
+        </CardHeader>
+        <CardContent>
+          {loadingPalawija && ( /* Skeleton Palawija */ <div className="grid md:grid-cols-2 gap-4"><div><Skeleton className="h-8 w-3/4 mb-2" /><Skeleton className="h-12 w-1/2" /></div><div><Skeleton className="h-8 w-3/4 mb-2" /><Skeleton className="h-6 w-full mb-1" /><Skeleton className="h-6 w-full mb-1" /><Skeleton className="h-6 w-full" /></div></div>)}
+          {!loadingPalawija && !errorPalawija && palawijaTotals && processedPalawijaData && (
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-700 mb-1">Total Persentase Realisasi (Palawija)</h3>
+                <p className={`text-4xl font-bold`}>
+                  <span className={`px-3 py-1 inline-flex items-center text-3xl font-bold rounded-full ${getPercentageBadgeClass(palawijaTotals.persentase)}`}>
+                    {parseFloat(palawijaTotals.persentase.toString()) >= 100 && <CheckCircle2 className="mr-2 h-6 w-6" />}
+                    {typeof palawijaTotals.persentase === 'number' ? palawijaTotals.persentase.toFixed(2) : parseFloat(palawijaTotals.persentase.toString()).toFixed(2)}%
+                  </span>
+                </p>
+                <p className="text-sm text-gray-500 mt-1">
+                  ({palawijaTotals.realisasi} dari {palawijaTotals.target} Target)
+                </p>
+                 {/* Anda bisa menambahkan detail clean, warning, error di sini jika mau */}
+                 <div className="mt-2 text-xs text-gray-500">
+                    Status Validasi: Clean: {palawijaTotals.clean}, Warning: {palawijaTotals.warning}, Error: {palawijaTotals.error}
+                 </div>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-700 mb-2">3 Kab/Kota Realisasi Palawija Terendah (%)</h3>
+                {top3PalawijaRealisasiTerendah.length > 0 ? (
+                  <ul className="space-y-1">
+                    {top3PalawijaRealisasiTerendah.map(kab => {
+                      const persentaseValue = parseFloat(kab.persentase.toString());
+                      const showCheckmark = !isNaN(persentaseValue) && persentaseValue >= 100;
+                      return (
+                        <li key={kab.nmkab} className="flex justify-between items-center text-sm">
+                          <span>{kab.nmkab}</span>
+                          <span className={`font-semibold px-2 py-0.5 text-xs rounded-full inline-flex items-center ${getPercentageBadgeClass(persentaseValue)}`}>
+                            {showCheckmark && <CheckCircle2 className="mr-1 h-3 w-3" />}
+                            {!isNaN(persentaseValue) ? persentaseValue.toFixed(2) : kab.persentase}%
+                            <span className="ml-1 text-gray-600 oscuro:text-gray-400">({kab.realisasi}/{kab.target})</span> {/* Menggunakan kab.target generik */}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-gray-500">Data kabupaten (Palawija) tidak tersedia atau semua realisasi baik.</p>
+                )}
+              </div>
+            </div>
+          )}
+          {!loadingPalawija && !errorPalawija && !palawijaTotals && ( <p className="text-gray-500">Data Ubinan Palawija tidak tersedia untuk tahun {selectedYear}.</p>)}
+        </CardContent>
+      </Card>
+
+      {/* Seksi Data Pengguna (tetap sama) */}
       {(loadingUser || errorUser || (userData && userData.length > 0)) && (
           <Card className="mb-6">
               <CardHeader>
