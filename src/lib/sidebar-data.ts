@@ -5,10 +5,6 @@ import {
     FlaskConical,
     Scale,
     Database,
-    FileUp,
-    RefreshCcw,
-    Merge,
-    Factory,
     // Impor ikon lain yang Anda perlukan dari lucide-react
     // ChevronDown, // Mungkin tidak perlu di sini, akan ditangani oleh komponen Collapsible
   } from 'lucide-react';
@@ -96,39 +92,33 @@ import {
         isActive: (currentPath) => currentPath.startsWith("/update"),
         items: [
           {
-            title: "Upload Data Ubinan Mentah",
+            title: "Update Ubinan",
             url: "/update/ubinan-raw",
-            icon: FileUp,
             isActive: (currentPath) => currentPath === "/update/ubinan-raw",
           },
           {
-            title: "Upload Data Master Sampel",
+            title: "Update Master Sampel",
             url: "/update/master-sampel",
-            icon: FileUp, // Ganti ikon jika perlu
             isActive: (currentPath) => currentPath === "/update/master-sampel",
           },
           {
             title: "Generate Anomali Ubinan",
             url: "/update/generate-anomali",
-            icon: RefreshCcw,
             isActive: (currentPath) => currentPath === "/update/generate-anomali",
           },
           {
             title: "Generate Gabungan Ubinan",
             url: "/update/generate-gabung",
-            icon: Merge,
             isActive: (currentPath) => currentPath === "/update/generate-gabung",
           },
           {
             title: "Upload Data KSA",
             url: "/update/ksa",
-            icon: FileUp, // Ganti ikon jika perlu
             isActive: (currentPath) => currentPath === "/update/ksa",
           },
           {
             title: "Upload & Edit ATAP",
             url: "/update/atap",
-            icon: Factory,
             isActive: (currentPath) => currentPath === "/update/atap",
           },
         ],

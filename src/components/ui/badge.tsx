@@ -1,3 +1,4 @@
+// components/ui/badge.tsx
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
@@ -11,12 +12,16 @@ const badgeVariants = cva(
       variant: {
         default:
           "border-transparent bg-primary text-primary-foreground [a&]:hover:bg-primary/90",
-        secondary:
+        secondary: // Akan kita gunakan untuk NaN/abu-abu
           "border-transparent bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90",
-        destructive:
-          "border-transparent bg-destructive text-white [a&]:hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
+        destructive: // Untuk < 50% (merah)
+          "border-transparent bg-destructive text-destructive-foreground [a&]:hover:bg-destructive/90", // Biasanya text-destructive-foreground adalah putih atau terang
         outline:
           "text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
+        success: // Baru: untuk >= 75% (hijau)
+          "border-transparent bg-green-500 text-white [a&]:hover:bg-green-500/90",
+        warning: // Baru: untuk >= 50% && < 75% (kuning)
+          "border-transparent bg-yellow-500 text-yellow-900 [a&]:hover:bg-yellow-500/90", // text-yellow-900 untuk kontras
       },
     },
     defaultVariants: {
@@ -25,13 +30,16 @@ const badgeVariants = cva(
   }
 )
 
+// Props dari Badge component type
+export type BadgeProps = React.ComponentProps<"span"> &
+  VariantProps<typeof badgeVariants> & { asChild?: boolean }
+
 function Badge({
   className,
   variant,
   asChild = false,
   ...props
-}: React.ComponentProps<"span"> &
-  VariantProps<typeof badgeVariants> & { asChild?: boolean }) {
+}: BadgeProps) { // Gunakan type BadgeProps yang diekspor
   const Comp = asChild ? Slot : "span"
 
   return (

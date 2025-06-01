@@ -9,7 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronRight, CheckCircle2 } from "lucide-react";
-import { getPercentageBadgeClass } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge"; // PATCH: Impor komponen Badge
+import { getPercentageBadgeVariant } from "@/lib/utils"; // PATCH: Impor fungsi helper BARU untuk varian badge
+// Hapus getPercentageBadgeClass jika sudah tidak digunakan di file ini dan sudah diganti total dengan getPercentageBadgeVariant
+// import { getPercentageBadgeClass } from "@/lib/utils"; 
 
 import {
   ColumnDef,
@@ -25,7 +28,6 @@ import {
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { usePadiMonitoringData } from '@/hooks/usePadiMonitoringData';
-// Updated import for Palawija
 import { usePalawijaMonitoringData, PalawijaDataRow, PalawijaTotals } from '@/hooks/usePalawijaMonitoringData';
 
 
@@ -50,7 +52,7 @@ interface PadiDataRow {
   persentase: number | string;
 }
 
-interface PadiTotalsInterface { // Renamed to avoid conflict with hook type
+interface PadiTotalsInterface { 
   targetUtama: number;
   cadangan: number;
   realisasi: number;
@@ -91,7 +93,6 @@ const PadiTableSkeleton = ({ columns }: { columns: ColumnDef<PadiDataRow, unknow
   </div>
 );
 
-// New Skeleton for Palawija Table
 const PalawijaTableSkeletonComponent = ({ columns }: { columns: ColumnDef<PalawijaDataRow, unknown>[] }) => (
     <div className="rounded-md border p-4">
       <Table>
@@ -124,12 +125,10 @@ export default function UbinanMonitoringPage() {
   const { selectedYear } = useYear();
   const [selectedSubround, setSelectedSubround] = React.useState<string>('all');
 
-  // Padi Table State
   const [sortingPadi, setSortingPadi] = React.useState<SortingState>([]);
   const [columnFiltersPadi, setColumnFiltersPadi] = React.useState<ColumnFiltersState>([]);
   const [isGeneratifExpanded, setIsGeneratifExpanded] = React.useState<boolean>(false);
 
-  // Palawija Table State
   const [sortingPalawija, setSortingPalawija] = React.useState<SortingState>([]);
   const [columnFiltersPalawija, setColumnFiltersPalawija] = React.useState<ColumnFiltersState>([]);
   const [isRealisasiExpanded, setIsRealisasiExpanded] = React.useState<boolean>(false);
@@ -137,7 +136,7 @@ export default function UbinanMonitoringPage() {
 
   const { processedPadiData, padiTotals, loadingPadi, errorPadi, lastUpdate } = usePadiMonitoringData(selectedYear, selectedSubround) as {
     processedPadiData: PadiDataRow[];
-    padiTotals: PadiTotalsInterface | null; // Use renamed interface
+    padiTotals: PadiTotalsInterface | null;
     loadingPadi: boolean;
     errorPadi: string | null;
     lastUpdate: string | null;
@@ -147,6 +146,9 @@ export default function UbinanMonitoringPage() {
 
   const getLastMonthName = () => new Date(new Date().setMonth(new Date().getMonth() - 1)).toLocaleString('id-ID', { month: 'long' });
   const lastMonthName = React.useMemo(() => getLastMonthName(), []);
+
+  // PATCH: Hapus getPercentageBadgeClass lokal jika ada
+  // const getPercentageBadgeClass = (percentage: number | string) => { ... };
 
   const padiColumns: ColumnDef<PadiDataRow>[] = React.useMemo(() => {
     const baseColumns: ColumnDef<PadiDataRow>[] = [
@@ -179,10 +181,11 @@ export default function UbinanMonitoringPage() {
           const showCheckmark = value >= 100;
           return (
             <div className="text-center">
-              <span className={`px-2 py-0.5 inline-flex items-center text-xs leading-5 font-semibold rounded-full ${getPercentageBadgeClass(value)}`}>
-                {showCheckmark && <CheckCircle2 className="mr-1 h-3 w-3" />}
+              {/* PATCH: Menggunakan komponen Badge */}
+              <Badge variant={getPercentageBadgeVariant(value)}>
+                {showCheckmark && <CheckCircle2 />} {/* Icon menggunakan size dari CSS Badge */}
                 {value.toFixed(2)}%
-              </span>
+              </Badge>
             </div>
           );
         },
@@ -206,15 +209,17 @@ export default function UbinanMonitoringPage() {
 
   const currentPadiSkeletonColumns = React.useMemo(() => {
     const activePadiColumns = padiTable.getVisibleLeafColumns();
+    if (!activePadiColumns.length && processedPadiData?.length) { // Jika kolom belum ada tapi data ada, buat default
+        return padiColumns; // atau struktur default skeleton columns
+    }
     return activePadiColumns.map(col => ({
         id: col.id,
         size: col.getSize(),
         minSize: (col.columnDef as ColumnDef<PadiDataRow, unknown>).minSize,
     })) as ColumnDef<PadiDataRow, unknown>[];
-  }, [padiTable]);
+  }, [padiTable, processedPadiData, padiColumns]);
 
 
-  // Palawija Columns
   const palawijaColumns: ColumnDef<PalawijaDataRow>[] = React.useMemo(() => {
     const baseColumns: ColumnDef<PalawijaDataRow>[] = [
       { accessorKey: "nmkab", header: () => <div className="text-left">Kabupaten/Kota</div>, cell: ({ row }) => <div className="text-left">{row.original.nmkab}</div>, minSize: 150, size: 160 },
@@ -242,10 +247,11 @@ export default function UbinanMonitoringPage() {
           const showCheckmark = value >= 100;
           return (
             <div className="text-center">
-              <span className={`px-2 py-0.5 inline-flex items-center text-xs leading-5 font-semibold rounded-full ${getPercentageBadgeClass(value)}`}>
-                {showCheckmark && <CheckCircle2 className="mr-1 h-3 w-3" />}
+              {/* PATCH: Menggunakan komponen Badge */}
+              <Badge variant={getPercentageBadgeVariant(value)}>
+                {showCheckmark && <CheckCircle2 />}
                 {value.toFixed(2)}%
-              </span>
+              </Badge>
             </div>
           );
         },
@@ -268,14 +274,11 @@ export default function UbinanMonitoringPage() {
   });
 
    const currentPalawijaSkeletonColumns = React.useMemo(() => {
-    // Define a default structure for skeleton based on initial (non-expanded) columns
-    // or use table.getVisibleLeafColumns() if the table is already initialized
-    // For simplicity, let's define it statically based on expected initial columns
-    if (loadingPalawija) {
+    if (loadingPalawija || !palawijaTable.getVisibleLeafColumns().length && processedPalawijaData?.length) {
         const initialColumnsConfig: Partial<ColumnDef<PalawijaDataRow, unknown>>[] = [
             { id: "nmkab", size: 160, minSize: 150 },
             { id: "target", size: 100, minSize: 80 },
-            { id: "realisasi", size: 100, minSize: 80 }, // Assuming summary view initially
+            { id: "realisasi", size: 100, minSize: 80 },
             { id: "persentase", size: 110, minSize: 100 },
         ];
          return initialColumnsConfig as ColumnDef<PalawijaDataRow, unknown>[];
@@ -286,7 +289,7 @@ export default function UbinanMonitoringPage() {
         size: col.getSize(),
         minSize: (col.columnDef as ColumnDef<PalawijaDataRow, unknown>).minSize,
     })) as ColumnDef<PalawijaDataRow, unknown>[];
-  }, [palawijaTable, loadingPalawija]);
+  }, [palawijaTable, loadingPalawija, processedPalawijaData]);
 
 
   return (
@@ -322,7 +325,7 @@ export default function UbinanMonitoringPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {loadingPadi && <PadiTableSkeleton columns={currentPadiSkeletonColumns} />}
+            {loadingPadi && <PadiTableSkeleton columns={currentPadiSkeletonColumns.length > 0 ? currentPadiSkeletonColumns : padiColumns /* Fallback jika skeleton columns kosong */} />}
             {errorPadi && <p className="text-red-500 text-center">Error: {errorPadi}</p>}
             {!loadingPadi && !errorPadi && processedPadiData && processedPadiData.length > 0 && (
               <ScrollArea className="w-full rounded-md border">
@@ -353,7 +356,7 @@ export default function UbinanMonitoringPage() {
                     <tfoot className="bg-gray-50 font-bold">
                       <TableRow>
                         {padiTable.getVisibleLeafColumns().map(col => {
-                          const columnId = col.id as keyof PadiDataRow | 'nmkab'; // Adjusted type
+                          const columnId = col.id as keyof PadiDataRow | 'nmkab'; 
                           let displayValue: string | number | undefined;
                           let isPercentage = false;
 
@@ -366,7 +369,6 @@ export default function UbinanMonitoringPage() {
                               isPercentage = true;
                             } else displayValue = '-';
                           }
-                          // Check against PadiTotalsInterface for correct property access
                           else if (padiTotals[columnId as keyof PadiTotalsInterface] !== undefined && padiTotals[columnId as keyof PadiTotalsInterface] !== null) {
                             displayValue = padiTotals[columnId as keyof PadiTotalsInterface] as string | number;
                           } else displayValue = '-';
@@ -377,13 +379,14 @@ export default function UbinanMonitoringPage() {
                                 (() => {
                                   const rawNumericTotal = padiTotals.persentase;
                                   const numericValue = typeof rawNumericTotal === 'string' ? parseFloat(rawNumericTotal) : rawNumericTotal;
-                                  if (typeof numericValue !== 'number' || isNaN(numericValue)) return <span>{displayValue === '-' ? '-' : `${displayValue}%`}</span>;
+                                  if (typeof numericValue !== 'number' || isNaN(numericValue)) return <Badge variant="secondary">{displayValue === '-' ? '-' : `${displayValue}%`}</Badge>;
                                   const showCheckmark = numericValue >= 100;
                                   return (
-                                    <span className={`px-2 py-0.5 inline-flex items-center text-xs leading-5 font-semibold rounded-full ${getPercentageBadgeClass(numericValue)}`}>
-                                      {showCheckmark && <CheckCircle2 className="mr-1 h-3 w-3" />}
+                                    // PATCH: Menggunakan komponen Badge
+                                    <Badge variant={getPercentageBadgeVariant(numericValue)}>
+                                      {showCheckmark && <CheckCircle2 />}
                                       {displayValue}%
-                                    </span>
+                                    </Badge>
                                   );
                                 })()
                               ) : (displayValue)}
@@ -420,7 +423,7 @@ export default function UbinanMonitoringPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {loadingPalawija && <PalawijaTableSkeletonComponent columns={currentPalawijaSkeletonColumns} />}
+            {loadingPalawija && <PalawijaTableSkeletonComponent columns={currentPalawijaSkeletonColumns.length > 0 ? currentPalawijaSkeletonColumns : palawijaColumns /* Fallback */} />}
             {errorPalawija && <p className="text-red-500 text-center">Error: {errorPalawija}</p>}
             {!loadingPalawija && !errorPalawija && processedPalawijaData && processedPalawijaData.length > 0 && (
                <ScrollArea className="w-full rounded-md border">
@@ -474,13 +477,14 @@ export default function UbinanMonitoringPage() {
                                 (() => {
                                   const rawNumericTotal = palawijaTotals.persentase;
                                   const numericValue = typeof rawNumericTotal === 'string' ? parseFloat(rawNumericTotal) : rawNumericTotal;
-                                  if (typeof numericValue !== 'number' || isNaN(numericValue)) return <span>{displayValue === '-' ? '-' : `${displayValue}%`}</span>;
+                                  if (typeof numericValue !== 'number' || isNaN(numericValue)) return <Badge variant="secondary">{displayValue === '-' ? '-' : `${displayValue}%`}</Badge>;
                                   const showCheckmark = numericValue >= 100;
                                   return (
-                                    <span className={`px-2 py-0.5 inline-flex items-center text-xs leading-5 font-semibold rounded-full ${getPercentageBadgeClass(numericValue)}`}>
-                                      {showCheckmark && <CheckCircle2 className="mr-1 h-3 w-3" />}
+                                    // PATCH: Menggunakan komponen Badge
+                                    <Badge variant={getPercentageBadgeVariant(numericValue)}>
+                                      {showCheckmark && <CheckCircle2 />}
                                       {displayValue}%
-                                    </span>
+                                    </Badge>
                                   );
                                 })()
                               ) : (displayValue)}

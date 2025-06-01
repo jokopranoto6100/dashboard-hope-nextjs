@@ -8,10 +8,15 @@ import { useYear } from '@/context/YearContext';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { usePadiMonitoringData } from '@/hooks/usePadiMonitoringData';
-import { usePalawijaMonitoringData, PalawijaDataRow } from '@/hooks/usePalawijaMonitoringData'; // Import hook dan tipe Palawija
+import { usePalawijaMonitoringData } from '@/hooks/usePalawijaMonitoringData';
 import { Skeleton } from "@/components/ui/skeleton";
-import { getPercentageBadgeClass } from "@/lib/utils"; 
+import { Badge } from "@/components/ui/badge"; 
+import { getPercentageBadgeVariant } from "@/lib/utils"; 
 import { CheckCircle2 } from "lucide-react"; 
+
+// Hapus impor terkait chart
+// import { Bar, BarChart, ... } from "recharts"; 
+// import { ChartContainer, ... } from "@/components/ui/chart";
 
 interface UserData {
   id: string;
@@ -20,14 +25,18 @@ interface UserData {
   role: string;
 }
 
-// Interface ini bisa digunakan untuk kedua jenis data (Padi & Palawija)
-// dengan asumsi 'target' pada Palawija serupa dengan 'targetUtama' pada Padi untuk ringkasan ini.
+// Kembalikan interface KabupatenRingkasan jika diperlukan oleh getTop3LowestPercentage
 interface KabupatenRingkasan {
   nmkab: string;
   realisasi: number;
-  target: number; // Menggunakan 'target' yang lebih generik
+  target: number; 
   persentase: string | number;
 }
+
+// Hapus interface ChartDataPoint dan komponen RealisasiStackedBarChart
+// interface ChartDataPoint { ... }
+// const CustomChartTooltip = (...) => { ... };
+// const RealisasiStackedBarChart: React.FC<RealisasiChartProps> = (...) => { ... };
 
 export default function HomePage() {
   const supabase = createClientComponentSupabaseClient();
@@ -37,9 +46,8 @@ export default function HomePage() {
   const [loadingUser, setLoadingUser] = React.useState(true);
   const [errorUser, setErrorUser] = React.useState<string | null>(null);
 
-  const ubinanSubround = 'all'; // Digunakan untuk Padi dan Palawija
+  const ubinanSubround = 'all'; 
 
-  // Data Padi
   const {
     processedPadiData,
     padiTotals,
@@ -48,9 +56,8 @@ export default function HomePage() {
     lastUpdate
   } = usePadiMonitoringData(selectedYear, ubinanSubround);
 
-  // Data Palawija
   const {
-    processedPalawijaData, // Nama variabel ini sudah sesuai dari hook Anda
+    processedPalawijaData,
     palawijaTotals,
     loadingPalawija,
     errorPalawija,
@@ -58,7 +65,7 @@ export default function HomePage() {
   } = usePalawijaMonitoringData(selectedYear, ubinanSubround);
 
 
-  React.useEffect(() => {
+  React.useEffect(() => { 
     const fetchUserData = async () => {
       setLoadingUser(true);
       setErrorUser(null);
@@ -98,9 +105,8 @@ export default function HomePage() {
       }
     };
   }, [supabase]);
-
-  // Fungsi generik untuk mendapatkan 3 entitas dengan persentase terendah
-  // Menerima data yang memiliki properti nmkab, persentase, realisasi, dan target
+  
+  // Kembalikan fungsi getTop3LowestPercentage
   const getTop3LowestPercentage = (
     data: { nmkab: string; persentase: string | number; realisasi: number; target: number }[] | null
   ): KabupatenRingkasan[] => {
@@ -112,10 +118,10 @@ export default function HomePage() {
         if (persentaseA !== persentaseB) {
           return persentaseA - persentaseB;
         }
-        return a.realisasi - b.realisasi; // Tie-breaker: realisasi lebih rendah
+        return a.realisasi - b.realisasi; 
       })
       .slice(0, 3)
-      .map(item => ({ // Map ke interface KabupatenRingkasan
+      .map(item => ({ 
         nmkab: item.nmkab,
         realisasi: item.realisasi,
         target: item.target,
@@ -123,6 +129,7 @@ export default function HomePage() {
       }));
   };
 
+  // Kembalikan useMemo untuk data 3 terendah
   const top3PadiRealisasiTerendah = React.useMemo(() => 
     getTop3LowestPercentage(
       processedPadiData ? processedPadiData.map(p => ({...p, target: p.targetUtama })) : null
@@ -130,8 +137,14 @@ export default function HomePage() {
   [processedPadiData]);
   
   const top3PalawijaRealisasiTerendah = React.useMemo(() => 
-    getTop3LowestPercentage(processedPalawijaData), 
+    getTop3LowestPercentage(processedPalawijaData), // processedPalawijaData sudah memiliki 'target'
   [processedPalawijaData]);
+
+  // Hapus logika terkait chart
+  // const prepareChartData = (...) => { ... };
+  // const padiChartData = React.useMemo(...);
+  // const palawijaChartData = React.useMemo(...);
+  // const chartConfig = { ... };
 
   return (
     <>
@@ -146,21 +159,27 @@ export default function HomePage() {
           {errorPadi && <CardDescription className="text-red-500">Gagal memuat data ubinan padi: {errorPadi}</CardDescription>}
         </CardHeader>
         <CardContent>
-          {loadingPadi && ( /* Skeleton Padi */ <div className="grid md:grid-cols-2 gap-4"><div><Skeleton className="h-8 w-3/4 mb-2" /><Skeleton className="h-12 w-1/2" /></div><div><Skeleton className="h-8 w-3/4 mb-2" /><Skeleton className="h-6 w-full mb-1" /><Skeleton className="h-6 w-full mb-1" /><Skeleton className="h-6 w-full" /></div></div>)}
-          {!loadingPadi && !errorPadi && padiTotals && processedPadiData && (
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
+          {loadingPadi && ( 
+            <div className="grid md:grid-cols-2 gap-4">
+              <div><Skeleton className="h-8 w-3/4 mb-2" /><Skeleton className="h-12 w-1/2" /><Skeleton className="h-4 w-2/3 mt-1" /></div>
+              <div><Skeleton className="h-8 w-3/4 mb-2" /><Skeleton className="h-6 w-full mb-1" /><Skeleton className="h-6 w-full mb-1" /><Skeleton className="h-6 w-full" /></div> {/* Skeleton untuk list 3 terendah */}
+            </div>
+          )}
+          {!loadingPadi && !errorPadi && padiTotals && (
+            <div className="grid md:grid-cols-2 gap-6"> {/* Menggunakan md:grid-cols-2 agar konsisten */}
+              <div className="flex flex-col justify-center"> 
                 <h3 className="text-lg font-semibold text-gray-700 mb-1">Total Persentase Realisasi (Padi)</h3>
                 <p className={`text-4xl font-bold`}>
-                  <span className={`px-3 py-1 inline-flex items-center text-3xl font-bold rounded-full ${getPercentageBadgeClass(padiTotals.persentase)}`}>
+                  <Badge variant={getPercentageBadgeVariant(padiTotals.persentase)} className="px-3 py-1 text-3xl h-auto">
                     {padiTotals.persentase >= 100 && <CheckCircle2 className="mr-2 h-6 w-6" />}
                     {padiTotals.persentase.toFixed(2)}%
-                  </span>
+                  </Badge>
                 </p>
                 <p className="text-sm text-gray-500 mt-1">
                   ({padiTotals.realisasi} dari {padiTotals.targetUtama} Target Utama)
                 </p>
               </div>
+              {/* Kembalikan tampilan list untuk 3 Kab/Kota Padi Terendah */}
               <div>
                 <h3 className="text-lg font-semibold text-gray-700 mb-2">3 Kab/Kota Realisasi Padi Terendah (%)</h3>
                 {top3PadiRealisasiTerendah.length > 0 ? (
@@ -171,11 +190,11 @@ export default function HomePage() {
                       return (
                         <li key={kab.nmkab} className="flex justify-between items-center text-sm">
                           <span>{kab.nmkab}</span>
-                          <span className={`font-semibold px-2 py-0.5 text-xs rounded-full inline-flex items-center ${getPercentageBadgeClass(persentaseValue)}`}>
-                            {showCheckmark && <CheckCircle2 className="mr-1 h-3 w-3" />}
+                          <Badge variant={getPercentageBadgeVariant(persentaseValue)} className="h-auto"> {/* className h-auto agar padding badge standar */}
+                            {showCheckmark && <CheckCircle2 />} {/* Icon menggunakan size dari CSS Badge (default size-3) */}
                             {!isNaN(persentaseValue) ? persentaseValue.toFixed(2) : kab.persentase}%
-                            <span className="ml-1 text-gray-600 oscuro:text-gray-400">({kab.realisasi}/{kab.target})</span> {/* Menggunakan kab.target generik */}
-                          </span>
+                            <span className="ml-1 text-gray-500">({kab.realisasi}/{kab.target})</span>
+                          </Badge>
                         </li>
                       );
                     })}
@@ -199,25 +218,30 @@ export default function HomePage() {
           {errorPalawija && <CardDescription className="text-red-500">Gagal memuat data ubinan palawija: {errorPalawija}</CardDescription>}
         </CardHeader>
         <CardContent>
-          {loadingPalawija && ( /* Skeleton Palawija */ <div className="grid md:grid-cols-2 gap-4"><div><Skeleton className="h-8 w-3/4 mb-2" /><Skeleton className="h-12 w-1/2" /></div><div><Skeleton className="h-8 w-3/4 mb-2" /><Skeleton className="h-6 w-full mb-1" /><Skeleton className="h-6 w-full mb-1" /><Skeleton className="h-6 w-full" /></div></div>)}
-          {!loadingPalawija && !errorPalawija && palawijaTotals && processedPalawijaData && (
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
+          {loadingPalawija && ( 
+            <div className="grid md:grid-cols-2 gap-4">
+              <div><Skeleton className="h-8 w-3/4 mb-2" /><Skeleton className="h-12 w-1/2" /><Skeleton className="h-4 w-2/3 mt-1" /><Skeleton className="h-4 w-1/2 mt-1"/></div>
+              <div><Skeleton className="h-8 w-3/4 mb-2" /><Skeleton className="h-6 w-full mb-1" /><Skeleton className="h-6 w-full mb-1" /><Skeleton className="h-6 w-full" /></div> {/* Skeleton untuk list 3 terendah */}
+            </div>
+          )}
+          {!loadingPalawija && !errorPalawija && palawijaTotals && (
+            <div className="grid md:grid-cols-2 gap-6"> {/* Menggunakan md:grid-cols-2 */}
+              <div className="flex flex-col justify-center">
                 <h3 className="text-lg font-semibold text-gray-700 mb-1">Total Persentase Realisasi (Palawija)</h3>
                 <p className={`text-4xl font-bold`}>
-                  <span className={`px-3 py-1 inline-flex items-center text-3xl font-bold rounded-full ${getPercentageBadgeClass(palawijaTotals.persentase)}`}>
+                   <Badge variant={getPercentageBadgeVariant(palawijaTotals.persentase)} className="px-3 py-1 text-3xl h-auto">
                     {parseFloat(palawijaTotals.persentase.toString()) >= 100 && <CheckCircle2 className="mr-2 h-6 w-6" />}
                     {typeof palawijaTotals.persentase === 'number' ? palawijaTotals.persentase.toFixed(2) : parseFloat(palawijaTotals.persentase.toString()).toFixed(2)}%
-                  </span>
+                  </Badge>
                 </p>
                 <p className="text-sm text-gray-500 mt-1">
                   ({palawijaTotals.realisasi} dari {palawijaTotals.target} Target)
                 </p>
-                 {/* Anda bisa menambahkan detail clean, warning, error di sini jika mau */}
                  <div className="mt-2 text-xs text-gray-500">
-                    Status Validasi: Clean: {palawijaTotals.clean}, Warning: {palawijaTotals.warning}, Error: {palawijaTotals.error}
+                    Status Validasi (Realisasi): Clean: {palawijaTotals.clean}, Warning: {palawijaTotals.warning}, Error: {palawijaTotals.error}
                  </div>
               </div>
+              {/* Kembalikan tampilan list untuk 3 Kab/Kota Palawija Terendah */}
               <div>
                 <h3 className="text-lg font-semibold text-gray-700 mb-2">3 Kab/Kota Realisasi Palawija Terendah (%)</h3>
                 {top3PalawijaRealisasiTerendah.length > 0 ? (
@@ -228,11 +252,11 @@ export default function HomePage() {
                       return (
                         <li key={kab.nmkab} className="flex justify-between items-center text-sm">
                           <span>{kab.nmkab}</span>
-                          <span className={`font-semibold px-2 py-0.5 text-xs rounded-full inline-flex items-center ${getPercentageBadgeClass(persentaseValue)}`}>
-                            {showCheckmark && <CheckCircle2 className="mr-1 h-3 w-3" />}
+                           <Badge variant={getPercentageBadgeVariant(persentaseValue)} className="h-auto">
+                            {showCheckmark && <CheckCircle2 />}
                             {!isNaN(persentaseValue) ? persentaseValue.toFixed(2) : kab.persentase}%
-                            <span className="ml-1 text-gray-600 oscuro:text-gray-400">({kab.realisasi}/{kab.target})</span> {/* Menggunakan kab.target generik */}
-                          </span>
+                            <span className="ml-1 text-gray-500">({kab.realisasi}/{kab.target})</span>
+                          </Badge>
                         </li>
                       );
                     })}
@@ -299,13 +323,11 @@ export default function HomePage() {
               )}
           </Card>
       )}
-
       {!loadingUser && !errorUser && (!userData || userData.length === 0) && (
         <p className="text-lg mt-8 text-gray-600 text-center">
           Tidak ada data pengguna ditemukan atau RLS memblokir akses. Pastikan ada data pengguna atau RLS diizinkan.
         </p>
       )}
-
       <p className="mt-12 text-gray-600 text-center">
         Ini adalah halaman utama dashboard Anda. Gunakan navigasi di samping untuk menjelajahi fitur-fitur lainnya.
       </p>

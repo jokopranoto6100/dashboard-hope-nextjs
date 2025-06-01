@@ -43,23 +43,34 @@ Migrasi ini berfokus pada arsitektur yang lebih modern, performa, skalabilitas, 
     * **Filter Subround:** Penambahan filter `Select` (`shadcn/ui`) di halaman untuk menyaring data berdasarkan `subround` (1, 2, 3, atau Semua) pada kedua tabulasi.
     * **Tabulasi Ubinan Padi:**
         * Menggunakan komponen `Table` dari `shadcn/ui` yang didukung oleh `TanStack Table` untuk tampilan data.
-        * Data diambil dari tabel `ubinan_dashboard` (sudah diasumsikan khusus padi).
-        * **Pengelompokan Data:** Dilakukan berdasarkan nama kabupaten (`nmkab` asli), dengan pembersihan nilai `nmkab` menjadi *Title Case* untuk tampilan.
-        * **Full Row Display:** Pagination telah dinonaktifkan (`getPaginationRowModel()` dihapus) untuk memastikan semua baris data kabupaten yang ditemukan akan ditampilkan sekaligus.
-        * Perhitungan kolom baru:
+        * Data diambil dari tabel `ubinan_dashboard`.
+        * **Pengelompokan Data:** Dilakukan berdasarkan nama kabupaten (`nmkab` asli dari `ubinan_dashboard`), dengan pembersihan nilai `nmkab` menjadi *Title Case* untuk tampilan.
+        * **Kolom Dapat Diperluas/Diringkas (Fase Generatif):** Kolom "Fase Generatif" dapat diperluas untuk menampilkan detail G1, G2, G3 atau diringkas menjadi satu kolom total.
+        * Perhitungan kolom:
             * `Target Utama`: Dihitung dari baris dengan `jenis_sampel = 'U'`.
             * `Cadangan`: Dihitung dari baris dengan `jenis_sampel = 'C'`.
             * `Realisasi`: Dihitung dari baris di mana kolom `r701` memiliki isian.
+            * `Lewat Panen`: Dihitung berdasarkan kolom `lewat_panen_X` yang relevan dengan subround.
+            * `Fase Generatif (G1, G2, G3)`: Dihitung dari kolom bulan terakhir yang relevan.
+            * `Anomali`: Dihitung dari baris dengan isian pada kolom `anomali`.
             * `Persentase`: `(Realisasi / Target Utama) * 100`, diformat 2 digit desimal.
-        * **Pengurutan Data:** Hasil pengelompokan diurutkan secara *ascending* berdasarkan nama kabupaten (`nmkab`) yang sudah dibersihkan.
-        * **Visualisasi Persentase:** Kolom `Persentase (%)` menampilkan *badge* berwarna sesuai rentang (100%, 75-99%, 50-74.99%, <50%).
-        * **Baris Total:** Menampilkan agregasi total untuk semua kolom numerik di bagian bawah tabel.
-        * **Alignment Tabel:** Kolom "Kabupaten" rata kiri, sementara kolom angka lainnya (Target Utama, Cadangan, Realisasi, Lewat Panen, Fase Generatif, Anomali, Persentase) rata tengah untuk kerapian.
-        * **Default Kolom Visible:** Saat pertama kali dimuat, tabel menampilkan kolom **Kabupaten, Target Utama, Realisasi, Lewat Panen, dan Persentase**. Kolom lainnya dapat di-*toggle* visibilitasnya melalui dropdown "Kolom".
-        * **Lebar Kolom Adaptif:** Lebar kolom diatur menggunakan `table-layout: fixed` pada tabel dan properti `size` pada definisi kolom `TanStack Table`, memastikan kolom mengisi seluruh lebar tabel secara responsif.
-    * **Tabulasi Ubinan Palawija:**
-        * Data diambil dari tabel `ubinan_raw`.
-        * Difilter berdasarkan tahun global dan subround yang dipilih. (Tabel masih menggunakan HTML dasar, belum dimigrasikan ke `TanStack Table`).
+        * **Pengurutan Data:** Hasil pengelompokan diurutkan secara *ascending* berdasarkan kode kabupaten (`kab_sort_key` dari kolom `kab`).
+        * **Visualisasi Persentase:** Kolom `Persentase (%)` menampilkan *badge* berwarna sesuai rentang.
+        * **Baris Total:** Menampilkan agregasi total untuk semua kolom numerik.
+        * **Informasi "Terakhir Diperbarui"**: Menampilkan timestamp data terakhir diperbarui.
+    * **Tabulasi Ubinan Palawija (Non-Padi):**
+        * Menggunakan komponen `Table` dari `shadcn/ui` yang didukung oleh `TanStack Table`.
+        * Data diambil dari tabel `ubinan_raw`, dengan filter untuk mengeluarkan komoditas "padi".
+        * **Pengelompokan Data & Nama Kabupaten:** Dilakukan berdasarkan kolom `kab`. Nama Kabupaten/Kota ditampilkan berdasarkan pemetaan manual dari kode `kab` (misal, '1' menjadi 'Sambas').
+        * **Kolom Dapat Diperluas/Diringkas (Realisasi):** Kolom "Realisasi" dapat diperluas untuk menampilkan detail "Clean", "Warning", "Error" (dari kolom `validasi`) atau diringkas menjadi satu kolom total realisasi.
+        * Perhitungan kolom:
+            * `Target`: Dihitung dari baris dengan `prioritas = 'UTAMA'`.
+            * `Realisasi` (dan detail `Clean`, `Warning`, `Error`): Dihitung dari baris di mana `r701` memiliki isian, dan status `validasi`.
+            * `Persentase`: `(Realisasi / Target) * 100`, diformat 2 digit desimal.
+        * **Pengurutan Data:** Hasil pengelompokan diurutkan secara numerik berdasarkan kode `kab` (`kab_sort_key`).
+        * **Visualisasi Persentase:** Kolom `Persentase (%)` menampilkan *badge* berwarna.
+        * **Baris Total:** Menampilkan agregasi total untuk semua kolom numerik.
+        * **Informasi "Terakhir Diperbarui"**: Menampilkan timestamp data terakhir diperbarui dari kolom `uploaded_at`.
 
 ## 📁 Struktur Folder Proyek
 Dashboard Pertanian/
@@ -70,20 +81,21 @@ Dashboard Pertanian/
 │   └── icon/                      # Icon aplikasi (misal: hope.png)
 ├── src/
 │   ├── app/
-│   │   ├── (auth)/                # Grup rute otentikasi (jika menggunakan grouped layout)
+│   │   ├── auth/                # Grup rute otentikasi (jika menggunakan grouped layout)
 │   │   │   ├── login/
 │   │   │   │   └── page.tsx
 │   │   │   └── register/
 │   │   │       └── page.tsx
-│   │   ├── monitoring/
-│   │   │   └── ubinan/
-│   │   │       └── page.tsx       # Halaman Monitoring Ubinan
+│   │   ├── (dashboard)
+│   │   │   ├── monitoring/
+│   │   │   │   └── ubinan/
+│   │   │   │       └── page.tsx       # Halaman Monitoring Ubinan
+│   │   │   ├── layout.tsx             # Root Layout aplikasi
+│   │   │   └── page.tsx               # Halaman utama Dashboard
 │   │   ├── ... (rute aplikasi utama lainnya)
 │   │   ├── client-layout-wrapper.tsx # Wrapper untuk layout kondisional
 │   │   ├── favicon.ico
 │   │   ├── globals.css            # Styling global Tailwind CSS
-│   │   ├── layout.tsx             # Root Layout aplikasi
-│   │   └── page.tsx               # Halaman utama Dashboard
 │   ├── components/
 │   │   ├── layout/
 │   │   │   ├── main-layout.tsx    # Layout utama dengan Header dan Sidebar
