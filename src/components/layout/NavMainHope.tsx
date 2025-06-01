@@ -19,11 +19,11 @@ import {
   SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub, // Kita akan menggunakan gaya defaultnya kembali
+  SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
   useSidebar,
-} from '@/components/ui/sidebar';
+} from '@/components/ui/sidebar'; // Pastikan path ini benar menunjuk ke file sidebar.tsx Anda
 
 interface NavMainHopeProps {
   items: NavItem[];
@@ -31,27 +31,47 @@ interface NavMainHopeProps {
 
 export function NavMainHope({ items }: NavMainHopeProps) {
   const pathname = usePathname();
-  const { open } = useSidebar();
+  const { open } = useSidebar(); // State 'open' dari SidebarProvider
+
+  // Kalkulasi target indentasi teks (berdasarkan ikon h-4 w-4 untuk main item):
+  // - SidebarContent (saat open) memiliki px-3 -> padding-left: 0.75rem
+  // - SidebarMenuButton (dari CVA di sidebar.tsx) memiliki p-2 -> padding-left: 0.5rem
+  // - Ikon utama (h-4 w-4) memiliki lebar 1rem
+  // - Margin kanan ikon utama (mr-2) adalah 0.5rem
+  // Jadi, target indentasi teks utama = 0.75rem + 0.5rem + 1rem + 0.5rem = 2.75rem
+
+  // Untuk Submenu:
+  // - Indentasi sebelum SidebarMenuSubButton = 
+  //   0.75rem (SidebarContent pl) + 
+  //   0.875rem (SidebarMenuSub mx-3.5 -> ml) + 
+  //   0.625rem (SidebarMenuSub px-2.5 -> pl) 
+  //   = 2.25rem
+  // - SidebarMenuSubButton (dari sidebar.tsx) memiliki px-2 -> padding-left: 0.5rem
+  // Jadi, target indentasi teks submenu (tanpa ikon) = 2.25rem + 0.5rem = 2.75rem. Ini akan SEJAJAR.
 
   return (
-    <SidebarMenu>
+    <SidebarMenu> {/* Menggunakan base style dari sidebar.tsx */}
       {items.map((item) => {
         const itemIsActive = item.isActive ? item.isActive(pathname) : false;
 
         if (item.items && item.items.length > 0) {
           return (
             <Collapsible key={item.title} asChild defaultOpen={itemIsActive}>
-              <SidebarMenuItem>
+              {/* Tambahkan flex justify-center saat !open untuk menengahkan SidebarMenuButton */}
+              <SidebarMenuItem className={cn(!open && "flex justify-center")}>
                 <SidebarMenuButton
                   asChild
-                  className={cn(
+                  className={cn( // Menambahkan gaya aktif
                     itemIsActive && open && "bg-muted text-primary font-semibold",
                     itemIsActive && !open && "bg-muted text-primary"
                   )}
                   tooltip={item.title}
                 >
                   <Link href={item.url || '#'}>
-                    <item.icon className={cn("h-5 w-5 shrink-0", !open ? "mx-auto" : "mr-2")} />
+                    <item.icon className={cn(
+                      "h-4 w-4 shrink-0", // Ukuran ikon konsisten dengan ekspektasi CVA
+                      open ? "mr-2" : "" // Margin hanya saat open. Saat collapsed, padding tombol yg urus.
+                    )} />
                     {open && <span className="truncate">{item.title}</span>}
                   </Link>
                 </SidebarMenuButton>
@@ -65,23 +85,17 @@ export function NavMainHope({ items }: NavMainHopeProps) {
                 )}
                 
                 <CollapsibleContent>
-                  {/* Gunakan SidebarMenuSub tanpa className tambahan untuk mendapatkan gaya default (termasuk border-l) */}
-                  <SidebarMenuSub> {/* <--- KEMBALIKAN KE DEFAULT (HAPUS className override) */}
+                  {/* Menggunakan SidebarMenuSub dengan gaya defaultnya */}
+                  <SidebarMenuSub>
                     {item.items.map((subItem) => {
                       const subItemIsActive = subItem.isActive ? subItem.isActive(pathname) : false;
                       return (
                         <SidebarMenuSubItem key={subItem.title}>
                           <SidebarMenuSubButton
                             asChild
-                            className={cn(
-                              subItemIsActive && "bg-muted text-primary font-semibold",
-                              // Sesuaikan padding kiri untuk alignment teks
-                              // Default SidebarMenuSubButton sudah punya px-2.
-                              // Default SidebarMenuSub memberi indent (mx-3.5 + px-2.5) = 1.5rem
-                              // Teks induk dimulai pada 3.0rem (setelah padding SidebarContent px-3).
-                              // Teks submenu tanpa pl tambahan: 1.5rem (indent sub) + 0.5rem (px-2 subbutton) = 2.0rem
-                              // Jadi kita butuh pl-4 (1rem) lagi agar jadi 3.0rem.
-                              "pl-4" // <--- PENYESUAIAN PADDING KIRI DI SINI
+                            className={cn( // Hanya menambahkan gaya aktif
+                              subItemIsActive && "bg-muted text-primary font-semibold"
+                              // Tidak perlu override padding kiri (pl-*), base px-2 sudah cukup untuk alignment
                             )}
                           >
                             <Link href={subItem.url}>
@@ -103,8 +117,8 @@ export function NavMainHope({ items }: NavMainHopeProps) {
 
         // Item menu tunggal (tanpa submenu)
         return (
-          // ... (bagian ini tetap sama) ...
-          <SidebarMenuItem key={item.title}>
+          // Tambahkan flex justify-center saat !open untuk menengahkan SidebarMenuButton
+          <SidebarMenuItem key={item.title} className={cn(!open && "flex justify-center")}>
             <SidebarMenuButton
               asChild
               className={cn(
@@ -114,7 +128,10 @@ export function NavMainHope({ items }: NavMainHopeProps) {
               tooltip={item.title}
             >
               <Link href={item.url || '#'}>
-                <item.icon className={cn("h-5 w-5 shrink-0", !open ? "mx-auto" : "mr-2")} />
+                <item.icon className={cn(
+                  "h-4 w-4 shrink-0", // Ukuran ikon konsisten
+                  open ? "mr-2" : "" // Margin hanya saat open
+                )} />
                 {open && <span className="truncate">{item.title}</span>}
               </Link>
             </SidebarMenuButton>

@@ -1,7 +1,7 @@
 // src/components/layout/main-layout.tsx
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react'; // Import useState and useEffect
 import NewSidebar from './NewSidebar';
 import { cn } from '@/lib/utils';
 import {
@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useYear } from '@/context/YearContext';
-import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'; // (implied)
+import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -24,31 +24,33 @@ export default function MainLayout({ children, isCollapsed, setIsCollapsed }: Ma
   const { selectedYear, setSelectedYear } = useYear();
   const availableYears = Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 5 + i);
 
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const handleSidebarOpenChange = (open: boolean) => {
     setIsCollapsed(!open);
   };
 
   return (
-    // SidebarProvider merender <div data-slot="sidebar-wrapper" className="... flex min-h-svh w-full ...">
     <SidebarProvider 
       defaultOpen={!isCollapsed}
-      open={!isCollapsed} // State open dikontrol dari MainLayout
+      open={!isCollapsed}
       onOpenChange={handleSidebarOpenChange}
     >
-      {/* "Outer Wrapper" adalah anak dari div flex w-full milik SidebarProvider. */}
-      {/* flex-1 membuatnya mengisi ruang horizontal yang tersedia. */}
-      <div className="flex-1 min-h-screen bg-background relative"> {/* Ini sudah benar */}
-        <NewSidebar /> {/* Komponen ini position:fixed berdasarkan implementasi di sidebar.tsx */}
+      <div className="flex-1 min-h-screen bg-background relative">
+        <NewSidebar />
 
-        {/* "Main Content Wrapper" */}
         <div
           className={cn(
-            "flex flex-col min-h-screen transition-all duration-300 ease-in-out",
-            isCollapsed ? "ml-12" : "ml-64" // Margin sudah sesuai dengan SIDEBAR_WIDTH_ICON dan SIDEBAR_WIDTH
+            "flex flex-col min-h-screen", // Base classes
+            isCollapsed ? "ml-12" : "ml-64", // Margin based on state
+            mounted && "transition-all duration-200 ease-linear" // Apply transition only after mount
           )}
         >
           <header className="flex items-center justify-between h-16 border-b bg-card px-4 lg:px-6 shadow-sm sticky top-0 z-30">
-            <SidebarTrigger /> {/* Komponen dari sidebar.tsx */}
+            <SidebarTrigger />
             <div className="flex items-center gap-4">
               <span className="font-semibold text-card-foreground">Tahun:</span>
               <Select
