@@ -17,7 +17,8 @@ import {
   SidebarContent,
   SidebarFooter,
   useSidebar,
-} from '@/components/ui/sidebar'; // (implied, as these components are defined in sidebar.tsx)
+} from '@/components/ui/sidebar';
+import { Skeleton } from '@/components/ui/skeleton'; // Impor Skeleton
 
 import { NavMainHope } from './NavMainHope';
 import { NavUserHope } from './NavUserHope';
@@ -43,64 +44,99 @@ export default function NewSidebar({}: NewSidebarProps) {
   React.useEffect(() => {
     const getSession = async () => {
       setIsLoadingSession(true);
-      const { data: { session }, error } = await supabase.auth.getSession();
+      const { data: { session }, error } = await supabase.auth.getSession(); //
       if (error) {
-        console.error("Error fetching session:", error.message);
-        setUserSession(null);
+        console.error("Error fetching session:", error.message); //
+        setUserSession(null); //
       } else if (session) {
-        setUserSession({
-          role: session.user.user_metadata?.role || 'viewer',
-          username: session.user.user_metadata?.username || 'User',
-          email: session.user.email || 'N/A',
+        setUserSession({ //
+          role: session.user.user_metadata?.role || 'viewer', //
+          username: session.user.user_metadata?.username || 'User', //
+          email: session.user.email || 'N/A', //
         });
       } else {
-        setUserSession(null);
+        setUserSession(null); //
       }
-      setIsLoadingSession(false);
+      setIsLoadingSession(false); //
     };
     getSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => { //
       if (session?.user) {
-        setUserSession({
-          role: session.user.user_metadata?.role || 'viewer',
-          username: session.user.user_metadata?.username || 'User',
-          email: session.user.email || 'N/A',
+        setUserSession({ //
+          role: session.user.user_metadata?.role || 'viewer', //
+          username: session.user.user_metadata?.username || 'User', //
+          email: session.user.email || 'N/A', //
         });
       } else {
-        setUserSession(null);
+        setUserSession(null); //
         // router.push('/auth/login');
       }
     });
     return () => {
-      subscription?.unsubscribe();
+      subscription?.unsubscribe(); //
     };
   }, [supabase, router]);
 
-  const isSuperAdmin = userSession?.role === 'super_admin';
+  const isSuperAdmin = userSession?.role === 'super_admin'; //
   const navMainData = React.useMemo(
-    () => getNavMainItems(pathname, isSuperAdmin),
+    () => getNavMainItems(pathname, isSuperAdmin), //
     [pathname, isSuperAdmin]
   );
-  const userDataForNav: UserData | null = userSession
-    ? { name: userSession.username, email: userSession.email }
+  const userDataForNav: UserData | null = userSession //
+    ? { name: userSession.username, email: userSession.email } //
     : null;
 
   if (isLoadingSession && !userSession) {
     return (
       <aside
         className={cn(
-          "hidden md:flex flex-col border-r bg-background transition-all duration-300 ease-in-out",
-          "fixed top-0 left-0 h-screen z-50 justify-center items-center",
-          !open ? "w-[var(--sidebar-width-icon)]" : "w-[var(--sidebar-width)]"
+          "hidden md:flex flex-col border-r bg-background transition-all duration-300 ease-in-out", //
+          "fixed top-0 left-0 h-screen z-50", //
+          !open ? "w-[var(--sidebar-width-icon)] items-center" : "w-[var(--sidebar-width)]", //
+          "pt-4 pb-2" // Menambahkan padding atas dan bawah
         )}
         style={{
           // @ts-ignore
-          "--sidebar-width": "16rem", // Should match SIDEBAR_WIDTH from sidebar.tsx
-          "--sidebar-width-icon": "3rem", // Should match SIDEBAR_WIDTH_ICON from sidebar.tsx
+          "--sidebar-width": "16rem", //
+          "--sidebar-width-icon": "3rem", //
         }}
       >
-        <p>Memuat...</p>
+        {/* Skeleton untuk Header */}
+        <div className={cn(
+          "h-16 flex items-center",
+          open ? "px-4 lg:px-6 justify-start" : "px-0 justify-center"
+        )}>
+          <Skeleton className={cn("rounded-md", open ? "h-8 w-8" : "h-6 w-6")} />
+          {open && <Skeleton className="h-5 w-32 ml-2" />}
+        </div>
+
+        {/* Skeleton untuk Content Menu */}
+        <div className={cn(
+          "flex flex-1 flex-col gap-2 overflow-hidden py-2",
+          open ? "px-3" : "px-0 items-center"
+        )}>
+          {[...Array(5)].map((_, i) => ( // Membuat 5 baris skeleton menu
+            <div key={i} className={cn("flex items-center", open ? "p-2" : "p-0 py-2 justify-center")}>
+              <Skeleton className={cn("rounded", open ? "h-6 w-6" : "h-5 w-5")} />
+              {open && <Skeleton className="h-4 w-[calc(100%-2rem)] ml-2" />}
+            </div>
+          ))}
+        </div>
+        
+        {/* Skeleton untuk Footer (User) */}
+        <div className={cn(
+          "p-2 flex items-center",
+          open ? "justify-start" : "justify-center"
+        )}>
+          <Skeleton className={cn("rounded-lg", open ? "h-10 w-10" : "h-8 w-8")} />
+          {open && (
+            <div className="ml-2 flex-1">
+              <Skeleton className="h-4 w-3/4 mb-1" />
+              <Skeleton className="h-3 w-1/2" />
+            </div>
+          )}
+        </div>
       </aside>
     );
   }
@@ -108,37 +144,35 @@ export default function NewSidebar({}: NewSidebarProps) {
   return (
     <UiSidebar
       variant="sidebar"
-      collapsible="icon" // This enables group-data-[collapsible=icon] styles from sidebar.tsx
+      collapsible="icon" //
       className={cn(
-        "hidden md:flex flex-col bg-background z-50" // Custom styles for UiSidebar itself
+        "hidden md:flex flex-col bg-background z-50" //
       )}
     >
       <SidebarHeader
         className={cn(
-          // Base styles from sidebar.tsx: "flex flex-col gap-2 p-2"
-          "h-16 border-b", // Set height and border
+          "h-16 border-b", //
           open
-            ? "px-4 lg:px-6 justify-center items-start" // For open: horizontal padding, vertical center (for flex-col), horizontal left (for flex-col)
-            : "px-0 justify-center items-center",   // For collapsed: no padding, vertical & horizontal center
-          "py-0" // Override vertical padding from base "p-2". Use "!py-0" if needed.
+            ? "px-4 lg:px-6 justify-center items-start" //
+            : "px-0 justify-center items-center",   //
+          "py-0" //
         )}
       >
-        <Link href="/" className={cn(
-            "flex items-center gap-2", 
-            open ? "font-semibold" : ""
+        <Link href="/" className={cn( //
+            "flex items-center gap-2",  //
+            open ? "font-semibold" : "" //
           )} 
           aria-label="Ke Dashboard Utama"
         >
-          <div className={cn(
-            "flex items-center justify-center rounded-md",
-            open ? "bg-black p-2" : "bg-transparent p-0" 
+          <div className={cn( //
+            "flex items-center justify-center rounded-md", //
+            open ? "bg-black p-2" : "bg-transparent p-0"  //
           )}>
-            {/* Icon Atom, disarankan size-4 (h-4 w-4) jika ingin konsisten dengan CVA SidebarMenuButton */}
-            <Atom className={cn(
-              open ? "text-white h-5 w-5" : "text-foreground h-6 w-6" // Saat ini h-5/h-6. Pertimbangkan h-4 w-4 jika ingin konsisten.
+            <Atom className={cn( //
+              open ? "text-white h-5 w-5" : "text-foreground h-6 w-6" //
             )} />
           </div>
-          {open && (
+          {open && ( //
             <div className="flex flex-col"> 
               <span className="text-base font-semibold whitespace-nowrap">Dashboard HOPE</span>
             </div>
@@ -146,19 +180,14 @@ export default function NewSidebar({}: NewSidebarProps) {
         </Link>
       </SidebarHeader>
 
-      <SidebarContent className={cn(
-        // Base styles from sidebar.tsx: "flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden"
-        // User styles:
-        "py-2", // Menambahkan padding vertikal pada content area
-        open ? "px-3" : "px-0" // Menambahkan padding horizontal kondisional
-        // flex-1 dan overflow-y-auto sudah ada di base atau kompatibel.
+      <SidebarContent className={cn( //
+        "py-2", //
+        open ? "px-3" : "px-0" //
       )}>
         <NavMainHope items={navMainData} />
       </SidebarContent>
 
       <SidebarFooter className="mt-auto p-2 border-t"> 
-        {/* Base SidebarFooter: "flex flex-col gap-2 p-2" */}
-        {/* User: "mt-auto p-2 border-t". `p-2` konsisten. `mt-auto` dan `border-t` adalah tambahan. */}
         <NavUserHope user={userDataForNav} />
       </SidebarFooter>
     </UiSidebar>
