@@ -7,8 +7,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useYear } from '@/context/YearContext';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button"; // Import Button
-import { ChevronDown, ChevronRight } from "lucide-react"; // Import icons for button
+import { Button } from "@/components/ui/button";
+import { ChevronDown, ChevronRight, CheckCircle2 } from "lucide-react"; // Ensure CheckCircle2 is imported
+import { getPercentageBadgeClass } from "@/lib/utils"; // Import from global utils
 
 import {
   ColumnDef,
@@ -25,7 +26,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { usePadiMonitoringData } from '@/hooks/usePadiMonitoringData';
 import { usePalawijaMonitoringData } from '@/hooks/usePalawijaMonitoringData';
 
-// Komponen Skeleton untuk Tabel Padi (tidak perlu diubah signifikan, tapi pastikan menerima `columns` yang dinamis)
+// Komponen Skeleton untuk Tabel Padi
 const PadiTableSkeleton = ({ columns }: { columns: ColumnDef<any>[] }) => (
   <div className="rounded-md border p-4">
     <Table>
@@ -53,7 +54,8 @@ const PadiTableSkeleton = ({ columns }: { columns: ColumnDef<any>[] }) => (
   </div>
 );
 
-const PalawijaTableSkeleton = () => ( /* ... implementasi skeleton palawija tetap sama ... */
+// Komponen Skeleton untuk Tabel Palawija
+const PalawijaTableSkeleton = () => (
   <div className="rounded-md border p-4">
     <table className="min-w-full">
       <thead className="bg-gray-50">
@@ -86,40 +88,37 @@ export default function UbinanMonitoringPage() {
   const [selectedSubround, setSelectedSubround] = React.useState<string>('all');
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-  const [isGeneratifExpanded, setIsGeneratifExpanded] = React.useState<boolean>(false); // State untuk ekspansi
+  const [isGeneratifExpanded, setIsGeneratifExpanded] = React.useState<boolean>(false);
 
   const { processedPadiData, padiTotals, loadingPadi, errorPadi, lastUpdate } = usePadiMonitoringData(selectedYear, selectedSubround);
   const { palawijaData, loadingPalawija, errorPalawija } = usePalawijaMonitoringData(selectedYear, selectedSubround);
 
+  // Fungsi toTitleCase tidak perlu diubah
   const toTitleCase = (str: string) => str.toLowerCase().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-  const getPercentageBadgeClass = (percentage: number | string) => { /* ... implementasi tetap sama ... */
-    const value = parseFloat(percentage.toString());
-    if (isNaN(value)) return "bg-gray-200 text-gray-800";
-    if (value >= 90) return "bg-green-500 text-white";
-    if (value >= 70) return "bg-yellow-500 text-gray-900";
-    if (value >= 50) return "bg-orange-500 text-white";
-    return "bg-red-500 text-white";
-  };
+
+  // Fungsi getPercentageBadgeClass sudah diimpor dari lib/utils.ts, jadi hapus definisi lokalnya.
+  // const getPercentageBadgeClass = (percentage: number | string) => { ... };
+
   const getLastMonthName = () => new Date(new Date().setMonth(new Date().getMonth() - 1)).toLocaleString('id-ID', { month: 'long' });
   const lastMonthName = React.useMemo(() => getLastMonthName(), []);
 
   const padiColumns: ColumnDef<any>[] = React.useMemo(() => {
     const baseColumns: ColumnDef<any>[] = [
       { accessorKey: "nmkab", header: () => <div className="text-left">Kabupaten/Kota</div>, cell: ({ row }) => <div className="text-left">{row.original.nmkab}</div>, minSize: 150, size: 160 },
-      { accessorKey: "targetUtama", header: () => <div className="text-center">Target Utama</div>, cell: ({ row }) => <div className="text-center">{row.original.targetUtama}</div>, minSize: 80, size: 120 },
-      { accessorKey: "cadangan", header: () => <div className="text-center">Cadangan</div>, cell: ({ row }) => <div className="text-center">{row.original.cadangan}</div>, minSize: 80, size: 120 },
-      { accessorKey: "realisasi", header: () => <div className="text-center">Realisasi</div>, cell: ({ row }) => <div className="text-center">{row.original.realisasi}</div>, minSize: 80, size: 120 },
-      { accessorKey: "lewatPanen", header: () => <div className="text-center">Lewat Panen</div>, cell: ({ row }) => <div className="text-center">{row.original.lewatPanen}</div>, minSize: 100, size: 120 },
+      { accessorKey: "targetUtama", header: () => <div className="text-center">Target Utama</div>, cell: ({ row }) => <div className="text-center">{row.original.targetUtama}</div>, minSize: 80, size: 110 },
+      { accessorKey: "cadangan", header: () => <div className="text-center">Cadangan</div>, cell: ({ row }) => <div className="text-center">{row.original.cadangan}</div>, minSize: 80, size: 110 },
+      { accessorKey: "realisasi", header: () => <div className="text-center">Realisasi</div>, cell: ({ row }) => <div className="text-center">{row.original.realisasi}</div>, minSize: 80, size: 100 },
+      { accessorKey: "lewatPanen", header: () => <div className="text-center">Lewat Panen</div>, cell: ({ row }) => <div className="text-center">{row.original.lewatPanen}</div>, minSize: 100, size: 100 },
     ];
 
     const generatifDetailColumns: ColumnDef<any>[] = [
-      { accessorKey: "faseGeneratif_G1", header: () => <div className="text-center">G1</div>, cell: ({ row }) => <div className="text-center">{row.original.faseGeneratif_G1}</div>, minSize: 50, size: 70 },
-      { accessorKey: "faseGeneratif_G2", header: () => <div className="text-center">G2</div>, cell: ({ row }) => <div className="text-center">{row.original.faseGeneratif_G2}</div>, minSize: 50, size: 70 },
-      { accessorKey: "faseGeneratif_G3", header: () => <div className="text-center">G3</div>, cell: ({ row }) => <div className="text-center">{row.original.faseGeneratif_G3}</div>, minSize: 50, size: 70 },
+      { accessorKey: "faseGeneratif_G1", header: () => <div className="text-center">G1</div>, cell: ({ row }) => <div className="text-center">{row.original.faseGeneratif_G1}</div>, minSize: 50, size: 50 },
+      { accessorKey: "faseGeneratif_G2", header: () => <div className="text-center">G2</div>, cell: ({ row }) => <div className="text-center">{row.original.faseGeneratif_G2}</div>, minSize: 50, size: 50 },
+      { accessorKey: "faseGeneratif_G3", header: () => <div className="text-center">G3</div>, cell: ({ row }) => <div className="text-center">{row.original.faseGeneratif_G3}</div>, minSize: 50, size: 50 },
     ];
 
     const generatifSummaryColumn: ColumnDef<any>[] = [
-      { accessorKey: "faseGeneratif", header: () => <div className="text-center">Fase Generatif ({lastMonthName})</div>, cell: ({ row }) => <div className="text-center">{row.original.faseGeneratif}</div>, minSize: 130, size: 160 },
+      { accessorKey: "faseGeneratif", header: () => <div className="text-center">Generatif ({lastMonthName})</div>, cell: ({ row }) => <div className="text-center">{row.original.faseGeneratif}</div>, minSize: 130, size: 100 },
     ];
 
     const trailingColumns: ColumnDef<any>[] = [
@@ -127,8 +126,19 @@ export default function UbinanMonitoringPage() {
       {
         accessorKey: "persentase",
         header: () => <div className="text-center">Persentase (%)</div>,
-        cell: ({ row }) => (<div className="text-center"><span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getPercentageBadgeClass(row.original.persentase)}`}>{row.original.persentase}%</span></div>),
-        minSize: 100, size: 120
+        cell: ({ row }) => {
+          const value = parseFloat(row.original.persentase.toString());
+          const showCheckmark = !isNaN(value) && value >= 100;
+          return (
+            <div className="text-center">
+              <span className={`px-2 py-0.5 inline-flex items-center text-xs leading-5 font-semibold rounded-full ${getPercentageBadgeClass(value)}`}>
+                {showCheckmark && <CheckCircle2 className="mr-1 h-3 w-3" />}
+                {!isNaN(value) ? value.toFixed(2) : row.original.persentase}%
+              </span>
+            </div>
+          );
+        },
+        minSize: 100, size: 110
       },
     ];
 
@@ -137,7 +147,9 @@ export default function UbinanMonitoringPage() {
       ...(isGeneratifExpanded ? generatifDetailColumns : generatifSummaryColumn),
       ...trailingColumns
     ];
-  }, [lastMonthName, isGeneratifExpanded, getPercentageBadgeClass]); // Tambahkan isGeneratifExpanded dan getPercentageBadgeClass ke dependencies
+  // Karena getPercentageBadgeClass adalah fungsi global yang stabil, tidak perlu dimasukkan ke dependency array jika ia murni.
+  // Jika React Linter mengeluh, Anda bisa menambahkannya, tapi secara teknis tidak perlu jika definisinya tidak berubah.
+  }, [lastMonthName, isGeneratifExpanded]);
 
   const padiTable = useReactTable({
     data: processedPadiData || [],
@@ -151,28 +163,21 @@ export default function UbinanMonitoringPage() {
     columnResizeMode: 'onChange',
   });
 
-  // Mendapatkan kolom yang akan digunakan untuk skeleton, berdasarkan state ekspansi
-  // Ini penting agar skeleton cocok dengan jumlah kolom yang akan ditampilkan
   const currentPadiSkeletonColumns = React.useMemo(() => {
-    // Logika ini harus sama dengan pembentukan `padiColumns` di atas
-    // Ini adalah cara sederhana, idealnya definisi skeleton mengikuti struktur kolom aktual
-    const numBase = 5; // nmkab, target, cadangan, realisasi, lewatPanen
+    const numBase = 5;
     const numGeneratif = isGeneratifExpanded ? 3 : 1;
-    const numTrailing = 2; // anomali, persentase
+    const numTrailing = 2;
     const totalCols = numBase + numGeneratif + numTrailing;
-    
-    // Membuat array dummy ColumnDef untuk PadiTableSkeleton
-    // Anda bisa lebih detail di sini untuk mencocokkan minSize/size jika perlu
     return Array.from({ length: totalCols }).map((_, i) => ({
         id: `skeleton-col-${i}`,
-        size: 100, // ukuran default untuk skeleton
+        size: 100,
         minSize: 80
     })) as ColumnDef<any>[];
   }, [isGeneratifExpanded]);
 
 
   return (
-    <div className="container mx-auto py-8">
+    <div className="container mx-auto py-4"> {/* Mengurangi py-8 menjadi py-4 untuk padding atas/bawah */}
       <div className="mb-2 flex items-center justify-end">
         <div className="flex items-center gap-2">
           <Select value={selectedSubround} onValueChange={setSelectedSubround}>
@@ -243,10 +248,10 @@ export default function UbinanMonitoringPage() {
                           else if (columnId === 'cadangan') displayValue = padiTotals.cadangan;
                           else if (columnId === 'realisasi') displayValue = padiTotals.realisasi;
                           else if (columnId === 'lewatPanen') displayValue = padiTotals.lewatPanen;
-                          else if (columnId === 'faseGeneratif') displayValue = padiTotals.faseGeneratif; // Ini adalah total ringkasan
-                          else if (columnId === 'faseGeneratif_G1') displayValue = padiTotals.faseGeneratif_G1; // Total G1
-                          else if (columnId === 'faseGeneratif_G2') displayValue = padiTotals.faseGeneratif_G2; // Total G2
-                          else if (columnId === 'faseGeneratif_G3') displayValue = padiTotals.faseGeneratif_G3; // Total G3
+                          else if (columnId === 'faseGeneratif') displayValue = padiTotals.faseGeneratif;
+                          else if (columnId === 'faseGeneratif_G1') displayValue = padiTotals.faseGeneratif_G1;
+                          else if (columnId === 'faseGeneratif_G2') displayValue = padiTotals.faseGeneratif_G2;
+                          else if (columnId === 'faseGeneratif_G3') displayValue = padiTotals.faseGeneratif_G3;
                           else if (columnId === 'anomali') displayValue = padiTotals.anomali;
                           else if (columnId === 'persentase') {
                             displayValue = padiTotals.persentase.toFixed(2);
@@ -255,7 +260,18 @@ export default function UbinanMonitoringPage() {
 
                           return (
                             <TableCell key={columnId + "_total"} className={columnId === 'nmkab' ? 'px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-left' : 'px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center'} style={{ width: col.getSize(), minWidth: col.columnDef.minSize ? `${col.columnDef.minSize}px` : undefined }}>
-                              {isPercentage ? (<span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getPercentageBadgeClass(padiTotals.persentase)}`}>{displayValue}%</span>) : (displayValue)}
+                              {isPercentage ? (
+                                (() => {
+                                  const numericValue = padiTotals.persentase;
+                                  const showCheckmark = numericValue >= 100;
+                                  return (
+                                    <span className={`px-2 py-0.5 inline-flex items-center text-xs leading-5 font-semibold rounded-full ${getPercentageBadgeClass(numericValue)}`}>
+                                      {showCheckmark && <CheckCircle2 className="mr-1 h-3 w-3" />}
+                                      {numericValue.toFixed(2)}%
+                                    </span>
+                                  );
+                                })()
+                              ) : (displayValue)}
                             </TableCell>
                           );
                         })}
@@ -272,7 +288,6 @@ export default function UbinanMonitoringPage() {
         </Card>
       </div>
 
-      {/* Konten untuk Ubinan Palawija tetap sama */}
       <div>
         <Card>
           <CardHeader>
@@ -285,7 +300,6 @@ export default function UbinanMonitoringPage() {
             {!loadingPalawija && !errorPalawija && palawijaData && palawijaData.length > 0 && (
                <ScrollArea className="h-[400px] w-full rounded-md border p-4">
                 <table className="min-w-full divide-y divide-gray-200">
-                  {/* ... Konten tabel Palawija ... */}
                    <thead className="bg-gray-50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tahun</th>
