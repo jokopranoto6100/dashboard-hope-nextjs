@@ -1,7 +1,7 @@
 // src/app/(dashboard)/monitoring/ksa/ksa-monitoring-client-page.tsx
 "use client";
 
-import React, { useContext, useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useYear } from '@/context/YearContext';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -23,7 +23,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 
-import { useKsaMonitoringData, ProcessedKsaData, KsaTotals } from '@/hooks/useKsaMonitoringData';
+import { useKsaMonitoringData, ProcessedKsaData } from '@/hooks/useKsaMonitoringData';
 
 export default function KsaMonitoringClientPage() {
   const { selectedYear } = useYear();

@@ -51,7 +51,7 @@ export const useKsaMonitoringData = (
                 .eq('tahun', year)
                 .range(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage - 1);
             if (dbError) throw dbError;
-            if (pageData) allRawData = allRawData.concat(pageData as KsaAmatanRow[]);
+            if (pageData) allRawData = allRawData.concat(pageData as unknown as KsaAmatanRow[]);
             if (!pageData || pageData.length < itemsPerPage) break;
             currentPage++;
         }
@@ -71,7 +71,7 @@ export const useKsaMonitoringData = (
             .eq('bulan', monthNum)
             .range(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage - 1);
         if (dbError) throw dbError;
-        if (pageData) allRawData = allRawData.concat(pageData as KsaAmatanRow[]);
+        if (pageData) allRawData = allRawData.concat(pageData as unknown as KsaAmatanRow[]);
         if (!pageData || pageData.length < itemsPerPage) break;
         currentPage++;
       }
