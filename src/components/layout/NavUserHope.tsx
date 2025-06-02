@@ -4,11 +4,10 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { createClientComponentSupabaseClient } from '@/lib/supabase';
 import { User as UserIcon, Settings, LogOut, ChevronsUpDown } from 'lucide-react';
-
 import { cn } from '@/lib/utils';
-import type { UserData } from '@/lib/sidebar-data';
+// UserData dari sidebar-data tidak lagi dibutuhkan sebagai prop
+// import type { UserData } from '@/lib/sidebar-data';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -23,30 +22,27 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar, // Impor hook useSidebar
+  useSidebar,
 } from '@/components/ui/sidebar';
-// Button tidak lagi diimpor dari sini jika tidak digunakan
-// import { Button } from '@/components/ui/button'; 
+import { useAuth } from '@/context/AuthContext'; // <-- Impor useAuth
+import { Skeleton } from "@/components/ui/skeleton"; // Impor Skeleton
 
-interface NavUserHopeProps {
-  user: UserData | null;
-  // isCollapsed prop dihapus
-}
+// Props user & userRole tidak lagi diperlukan karena diambil dari context
+// interface NavUserHopeProps {
+//   user: UserData | null;
+// }
 
-export function NavUserHope({ user }: NavUserHopeProps) {
+export function NavUserHope(/*{ user }: NavUserHopeProps*/) { // Hapus props
   const router = useRouter();
-  const supabase = createClientComponentSupabaseClient();
-  const { open, isMobile } = useSidebar(); // Gunakan useSidebar untuk mendapatkan status 'open' dan 'isMobile'
+  const { userData, userRole, logout, isLoading } = useAuth(); // <-- Gunakan useAuth
+  const { open, isMobile } = useSidebar();
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/auth/login');
+    await logout(); // Gunakan fungsi logout dari context
+    router.push('/auth/login'); // Arahkan ke halaman login setelah logout
   };
 
-  if (!user) {
-    return null;
-  }
-
+  // Fungsi untuk mendapatkan inisial nama
   const getInitials = (name: string) => {
     const names = name.split(' ');
     let initials = names[0].substring(0, 1).toUpperCase();
@@ -56,6 +52,32 @@ export function NavUserHope({ user }: NavUserHopeProps) {
     return initials;
   };
 
+  // Tampilkan skeleton loading jika isLoading true
+  if (isLoading) {
+    return (
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <SidebarMenuButton size="lg" className="w-full justify-start text-left cursor-default">
+            <Skeleton className={cn("h-8 w-8 rounded-lg shrink-0", !open ? "mx-auto" : "mr-2")} />
+            {open && (
+              <div className="grid flex-1 text-sm leading-tight gap-1">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-3 w-1/2" />
+              </div>
+            )}
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      </SidebarMenu>
+    );
+  }
+
+  // Jika tidak loading dan tidak ada userData (berarti tidak ada sesi)
+  if (!userData) {
+    // Bisa jadi redirect ke login atau tidak menampilkan apa-apa, tergantung kebutuhan
+    // Untuk di dalam sidebar, mungkin lebih baik tidak menampilkan apa-apa
+    return null;
+  }
+
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -64,19 +86,18 @@ export function NavUserHope({ user }: NavUserHopeProps) {
             <SidebarMenuButton
               size="lg"
               className={cn("w-full justify-start text-left")}
-              // Tidak perlu tooltip di sini karena menu pengguna biasanya selalu terlihat atau bagian dropdownnya yang adaptif
             >
               <Avatar className={cn("h-8 w-8 rounded-lg shrink-0", !open ? "mx-auto" : "mr-2")}>
-                {user.avatar && <AvatarImage src={user.avatar} alt={user.name} />}
+                {userData.avatar && <AvatarImage src={userData.avatar} alt={userData.name} />}
                 <AvatarFallback className="rounded-lg">
-                  {getInitials(user.name)}
+                  {getInitials(userData.name)}
                 </AvatarFallback>
               </Avatar>
-              {open && ( // Tampilkan nama dan email hanya jika sidebar diperluas
+              {open && (
                 <div className="grid flex-1 text-sm leading-tight">
-                  <span className="truncate font-semibold">{user.name}</span>
+                  <span className="truncate font-semibold">{userData.name}</span>
                   <span className="truncate text-xs text-muted-foreground">
-                    {user.email}
+                    {userData.email}
                   </span>
                 </div>
               )}
@@ -85,39 +106,41 @@ export function NavUserHope({ user }: NavUserHopeProps) {
           </DropdownMenuTrigger>
           <DropdownMenuContent
             className="w-[var(--radix-dropdown-menu-trigger-width)] min-w-56 rounded-lg"
-            side={isMobile ? "top" : "right"} // Sesuaikan 'side' untuk mobile jika perlu (misal 'top')
+            side={isMobile ? "top" : "right"}
             align="end"
             sideOffset={isMobile ? 12 : 8}
           >
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-2 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg shrink-0">
-                  {user.avatar && <AvatarImage src={user.avatar} alt={user.name} />}
+                  {userData.avatar && <AvatarImage src={userData.avatar} alt={userData.name} />}
                   <AvatarFallback className="rounded-lg">
-                    {getInitials(user.name)}
+                    {getInitials(userData.name)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">{user.name}</span>
+                  <span className="truncate font-semibold">{userData.name}</span>
                   <span className="truncate text-xs text-muted-foreground">
-                    {user.email}
+                    {userData.email}
                   </span>
                 </div>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link href="/profile" className="flex items-center w-full cursor-pointer">
+              <Link href="/profil" className="flex items-center w-full cursor-pointer">
                 <UserIcon className="mr-2 h-4 w-4 shrink-0" />
                 <span>Profil</span>
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href="/pengguna" className="flex items-center w-full cursor-pointer">
-                <Settings className="mr-2 h-4 w-4 shrink-0" />
-                <span>Menajemen Pengguna</span>
-              </Link>
-            </DropdownMenuItem>
+            {userRole === 'super_admin' && ( // <-- Kondisi untuk menampilkan menu
+              <DropdownMenuItem asChild>
+                <Link href="/pengguna" className="flex items-center w-full cursor-pointer">
+                  <Settings className="mr-2 h-4 w-4 shrink-0" />
+                  <span>Manajemen Pengguna</span>
+                </Link>
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={handleLogout}

@@ -12,50 +12,60 @@ export async function middleware(req: NextRequest) {
       cookies: {
         get: (name: string) => req.cookies.get(name)?.value,
         set: (name: string, value: string, options: CookieOptions) => {
-          req.cookies.set({ name, value, ...options }); // Update request cookies
-          res.cookies.set({ name, value, ...options }); // Update response cookies
+          req.cookies.set({ name, value, ...options });
+          res.cookies.set({ name, value, ...options });
         },
         remove: (name: string, options: CookieOptions) => {
-          req.cookies.set({ name, value: '', ...options }); // Update request cookies
-          res.cookies.set({ name, value: '', ...options }); // Update response cookies
+          req.cookies.set({ name, value: '', ...options });
+          res.cookies.set({ name, value: '', ...options });
         },
       },
     }
   );
 
-  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+  // Alih-alih getSession(), gunakan getUser() untuk validasi sisi server yang lebih aman
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-  // Log untuk debugging
-  if (sessionError) {
-    console.error('Middleware Supabase getSession error:', sessionError.message);
+  if (userError) {
+    // Jika ada error saat getUser (misal, token tidak valid, jaringan, dll)
+    // Anggap saja tidak ada sesi yang valid untuk keamanan
+    console.warn('Middleware Supabase getUser error:', userError.message);
+    // Anda mungkin ingin mengosongkan cookie Supabase di sini jika tokennya jelas tidak valid,
+    // tetapi untuk saat ini, kita akan memperlakukannya sebagai tidak ada sesi.
   }
-  console.log(`Middleware: Path='${req.nextUrl.pathname}', Session=${!!session}`);
+  // console.log(`Middleware: Path='${req.nextUrl.pathname}', User=${user ? user.id : 'null'}`);
 
-  // Jika tidak ada sesi dan path BUKAN bagian dari /auth, redirect ke login
-  if (!session && !req.nextUrl.pathname.startsWith('/auth')) {
-    console.log(`Middleware: No session, redirecting to /auth/login from ${req.nextUrl.pathname}`);
+  const { pathname } = req.nextUrl;
+  const sessionExists = !!user; // Anggap sesi ada jika user berhasil diambil
+
+  const publicPaths = ['/auth/login', '/auth/register'];
+  if (!sessionExists && !publicPaths.some(p => pathname.startsWith(p)) && !pathname.startsWith('/api/auth')) {
+    console.log(`Middleware: No authenticated user, redirecting to /auth/login from ${pathname}`);
     return NextResponse.redirect(new URL('/auth/login', req.url));
   }
 
-  // Jika ADA sesi dan path ADALAH bagian dari /auth, redirect ke dashboard
-  if (session && req.nextUrl.pathname.startsWith('/auth')) {
-    console.log(`Middleware: Session exists, redirecting to / from ${req.nextUrl.pathname}`);
+  if (sessionExists && pathname.startsWith('/auth') && !pathname.startsWith('/api/auth')) {
+    console.log(`Middleware: Authenticated user, redirecting to / from ${pathname}`);
     return NextResponse.redirect(new URL('/', req.url));
   }
 
-  // Jika tidak ada kondisi redirect yang terpenuhi, lanjutkan request
-  console.log(`Middleware: Proceeding with request for ${req.nextUrl.pathname}`);
+  if (sessionExists && pathname.startsWith('/pengguna')) {
+    const userRole = user?.user_metadata?.role; // user dari getUser() sudah terverifikasi
+    // console.log(`Middleware: User trying to access ${pathname}. Role: ${userRole}`);
+
+    if (userRole !== 'super_admin') {
+      console.log(`Middleware: Unauthorized access attempt to ${pathname} by role ${userRole}. Redirecting to /.`);
+      return NextResponse.redirect(new URL('/', req.url));
+    }
+    // console.log(`Middleware: Authorized access to ${pathname} for role ${userRole}.`);
+  }
+
+  // console.log(`Middleware: Proceeding with request for ${pathname}`);
   return res;
 }
 
 export const config = {
   matcher: [
-    // Cocokkan semua path kecuali yang secara eksplisit dikecualikan:
-    // - _next/static (file statis Next.js)
-    // - _next/image (optimasi gambar Next.js)
-    // - favicon.ico
-    // - api/ (rute API Anda)
-    // - file dengan ekstensi (misalnya .png, .svg)
-    '/((?!_next/static|_next/image|favicon.ico|api|.*\\..*).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)',
   ],
 };
