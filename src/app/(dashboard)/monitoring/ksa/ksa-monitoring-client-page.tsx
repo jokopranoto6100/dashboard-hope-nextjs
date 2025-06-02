@@ -1,15 +1,18 @@
 // src/app/(dashboard)/monitoring/ksa/ksa-monitoring-client-page.tsx
 "use client";
 
-import React, { useContext, useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useYear } from '@/context/YearContext';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"; // Tambahkan CardDescription
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Terminal, ArrowUpDown } from "lucide-react";
+import { Terminal, ArrowUpDown, CheckCircle2 } from "lucide-react"; // Tambahkan CheckCircle2
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge"; // Impor Badge
+import { ScrollArea } from "@/components/ui/scroll-area"; // Impor ScrollArea
+import { getPercentageBadgeVariant } from "@/lib/utils"; // Impor helper untuk Badge
 
 import {
   ColumnDef,
@@ -20,7 +23,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 
-import { useKsaMonitoringData, ProcessedKsaData, KsaTotals } from '@/hooks/useKsaMonitoringData';
+import { useKsaMonitoringData, ProcessedKsaData, } from '@/hooks/useKsaMonitoringData';
 
 export default function KsaMonitoringClientPage() {
   const { selectedYear } = useYear();
@@ -37,7 +40,7 @@ export default function KsaMonitoringClientPage() {
 
   const { 
     data: dataKsa, 
-    totals: totalsKsa, 
+    totals: ksaTotals, 
     isLoading, 
     error, 
     lastUpdated 
@@ -80,98 +83,105 @@ export default function KsaMonitoringClientPage() {
           <Button
             variant="ghost"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="w-full flex justify-start items-center" // Rata tengah header
+            className="w-full flex justify-start items-center px-1 text-left"
           >
             Kabupaten/Kota
             <ArrowUpDown className="ml-2 h-4 w-4" />
           </Button>
         ),
-        cell: ({ row }) => <div className="text-left">{row.getValue('kabupaten')}</div>, // Data rata tengah
-        footer: () => <div className="text-left font-bold">Kalimantan Barat</div>, // Footer rata tengah
-        size: 220, // Ukuran lebih besar untuk nama kabupaten
+        cell: ({ row }) => <div className="text-left pl-2">{row.getValue('kabupaten')}</div>,
+        footer: () => <div className="text-left pl-2 font-bold">Kalimantan Barat</div>,
+        size: 220, 
       },
       {
         accessorKey: 'target',
         header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="w-full flex justify-center items-center" // Rata tengah header
-          >
-            Target
-            <ArrowUpDown className="ml-2 h-4 w-4" />
+          <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            className="w-full flex justify-center items-center" >
+            Target <ArrowUpDown className="ml-2 h-4 w-4" />
           </Button>
         ),
-        cell: ({ row }) => <div className="text-center">{row.getValue<number>('target').toLocaleString('id-ID')}</div>, // Data rata tengah
-        footer: () => <div className="text-center font-bold">{totalsKsa?.target.toLocaleString('id-ID')}</div>, // Footer rata tengah
-        size: 100, // Ukuran proporsional
+        cell: ({ row }) => <div className="text-center">{row.getValue<number>('target').toLocaleString('id-ID')}</div>,
+        footer: () => <div className="text-center font-bold">{ksaTotals?.target.toLocaleString('id-ID')}</div>,
+        size: 100, 
       },
       {
         accessorKey: 'realisasi',
         header: ({ column }) => (
-           <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="w-full flex justify-center items-center" // Rata tengah header
-          >
-            Realisasi
-            <ArrowUpDown className="ml-2 h-4 w-4" />
+           <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            className="w-full flex justify-center items-center" >
+            Realisasi <ArrowUpDown className="ml-2 h-4 w-4" />
           </Button>
         ),
-        cell: ({ row }) => <div className="text-center">{row.getValue<number>('realisasi').toLocaleString('id-ID')}</div>, // Data rata tengah
-        footer: () => <div className="text-center font-bold">{totalsKsa?.realisasi.toLocaleString('id-ID')}</div>, // Footer rata tengah
-        size: 100, // Ukuran proporsional
+        cell: ({ row }) => <div className="text-center">{row.getValue<number>('realisasi').toLocaleString('id-ID')}</div>,
+        footer: () => <div className="text-center font-bold">{ksaTotals?.realisasi.toLocaleString('id-ID')}</div>,
+        size: 100, 
       },
       {
         accessorKey: 'persentase',
         header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="w-full flex justify-center items-center" // Rata tengah header
-          >
-            Persentase (%)
-            <ArrowUpDown className="ml-2 h-4 w-4" />
+          <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            className="w-full flex justify-center items-center" >
+            Persentase (%) <ArrowUpDown className="ml-2 h-4 w-4" />
           </Button>
         ),
-        cell: ({ row }) => <div className="text-center">{row.getValue<number>('persentase').toFixed(2)}</div>, // Data rata tengah
-        footer: () => <div className="text-center font-bold">{totalsKsa?.persentase.toFixed(2)}</div>, // Footer rata tengah
-        size: 130, // Ukuran proporsional, sedikit lebih lebar untuk (%)
+        cell: ({ row }) => { // Adaptasi Badge untuk Persentase
+          const rawValue = row.getValue<string | number>('persentase');
+          const value = typeof rawValue === 'string' ? parseFloat(rawValue) : rawValue;
+          if (typeof value !== 'number' || isNaN(value)) return <div className="text-center">-</div>;
+          const showCheckmark = value >= 100;
+          return (
+            <div className="text-center">
+              <Badge variant={getPercentageBadgeVariant(value)}>
+                {showCheckmark && <CheckCircle2 className="mr-1 h-3 w-3" />} {/* Menyesuaikan ukuran ikon jika perlu */}
+                {value.toFixed(2)}%
+              </Badge>
+            </div>
+          );
+        },
+        footer: () => { // Adaptasi Badge untuk Footer Persentase
+          if (!ksaTotals?.persentase) return <div className="text-center font-bold">-</div>;
+          const rawValue = ksaTotals.persentase;
+          const value = typeof rawValue === 'string' ? parseFloat(rawValue) : rawValue;
+          if (typeof value !== 'number' || isNaN(value)) return <div className="text-center font-bold">-</div>;
+          const showCheckmark = value >= 100;
+          return (
+            <div className="text-center font-bold">
+              <Badge variant={getPercentageBadgeVariant(value)}>
+                {showCheckmark && <CheckCircle2 className="mr-1 h-3 w-3" />}
+                {value.toFixed(2)}%
+              </Badge>
+            </div>
+          );
+        },
+        size: 130, 
       },
       {
         accessorKey: 'inkonsisten',
         header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="w-full flex justify-center items-center" // Rata tengah header
-          >
-            Inkonsisten
-            <ArrowUpDown className="ml-2 h-4 w-4" />
+          <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            className="w-full flex justify-center items-center" >
+            Inkonsisten <ArrowUpDown className="ml-2 h-4 w-4" />
           </Button>
         ),
-        cell: ({ row }) => <div className="text-center">{row.getValue<number>('inkonsisten').toLocaleString('id-ID')}</div>, // Data rata tengah
-        footer: () => <div className="text-center font-bold">{totalsKsa?.inkonsisten.toLocaleString('id-ID')}</div>, // Footer rata tengah
-        size: 110, // Ukuran proporsional
+        cell: ({ row }) => <div className="text-center">{row.getValue<number>('inkonsisten').toLocaleString('id-ID')}</div>,
+        footer: () => <div className="text-center font-bold">{ksaTotals?.inkonsisten.toLocaleString('id-ID')}</div>,
+        size: 110, 
       },
       {
         accessorKey: 'kode_12',
         header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="w-full flex justify-center items-center" // Rata tengah header
-          >
-            Kode 12
-            <ArrowUpDown className="ml-2 h-4 w-4" />
+          <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            className="w-full flex justify-center items-center" >
+            Kode 12 <ArrowUpDown className="ml-2 h-4 w-4" />
           </Button>
         ),
-        cell: ({ row }) => <div className="text-center">{row.getValue<number>('kode_12').toLocaleString('id-ID')}</div>, // Data rata tengah
-        footer: () => <div className="text-center font-bold">{totalsKsa?.kode_12.toLocaleString('id-ID')}</div>, // Footer rata tengah
-        size: 100, // Ukuran proporsional
+        cell: ({ row }) => <div className="text-center">{row.getValue<number>('kode_12').toLocaleString('id-ID')}</div>,
+        footer: () => <div className="text-center font-bold">{ksaTotals?.kode_12.toLocaleString('id-ID')}</div>,
+        size: 100, 
       },
     ],
-    [totalsKsa]
+    [ksaTotals]
   );
 
   const table = useReactTable({
@@ -183,53 +193,53 @@ export default function KsaMonitoringClientPage() {
     onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    // enableColumnResizing: true, // Jika ingin mengaktifkan resize kolom manual (opsional)
   });
 
-  // ----- Bagian Skeleton Loading & Error Handling (Tetap Sama) -----
+  // Skeleton columns definition (bisa disesuaikan lebih lanjut jika diperlukan)
+  const skeletonColumns: Partial<ColumnDef<ProcessedKsaData>>[] = useMemo(() => columns.map(col => ({
+    id: col.id ?? (col as any).accessorKey, // Menangani jika id tidak eksplisit
+    size: (col as any).size,
+    minSize: (col as any).minSize,
+  })), [columns]);
+
+
   if (isLoading && !dataKsa?.length && !hasAttemptedFallback) {
     return (
-      <div className="p-4 md:p-6 space-y-4">
-        <div className="flex flex-col md:flex-row justify-between items-center gap-2">
+      <div className="container mx-auto py-4 md:py-6"> {/* Menggunakan container */}
+        <div className="mb-4 flex flex-col md:flex-row justify-between items-center gap-2"> {/* Menambah mb-4 */}
           <Skeleton className="h-8 w-full md:w-1/3" />
           <Skeleton className="h-10 w-full md:w-[180px]" />
         </div>
-        <Skeleton className="h-6 w-1/2 md:w-1/4 mb-2" />
         <Card>
           <CardHeader>
-            <Skeleton className="h-6 w-3/4" />
+            <Skeleton className="h-7 w-3/4 mb-2" /> {/* Skeleton untuk CardTitle */}
+            <Skeleton className="h-4 w-1/2" />      {/* Skeleton untuk CardDescription (last updated) */}
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              <div className="flex justify-between p-2 border-b">
-                  <Skeleton className="h-5 w-[60px]" /> {/* Sesuaikan dengan size kolom No */}
-                  <Skeleton className="h-5 flex-1 mx-1" /> {/* Kolom Kabupaten */}
-                  <Skeleton className="h-5 w-[100px] mx-1" />
-                  <Skeleton className="h-5 w-[100px] mx-1" />
-                  <Skeleton className="h-5 w-[130px] mx-1" />
-                  <Skeleton className="h-5 w-[110px] mx-1" />
-                  <Skeleton className="h-5 w-[100px]" />
-              </div>
-              {[...Array(5)].map((_, i) => (
-                 <div key={i} className="flex justify-between p-3 border-b">
-                    <Skeleton className="h-5 w-[60px]" />
-                    <Skeleton className="h-5 flex-1 mx-1" />
-                    <Skeleton className="h-5 w-[100px] mx-1" />
-                    <Skeleton className="h-5 w-[100px] mx-1" />
-                    <Skeleton className="h-5 w-[130px] mx-1" />
-                    <Skeleton className="h-5 w-[110px] mx-1" />
-                    <Skeleton className="h-5 w-[100px]" />
-                </div>
-              ))}
-              <div className="flex justify-between p-3 border-b bg-muted/50">
-                    <Skeleton className="h-5 w-[60px]" />
-                    <Skeleton className="h-5 flex-1 mx-1 font-bold" />
-                    <Skeleton className="h-5 w-[100px] mx-1" />
-                    <Skeleton className="h-5 w-[100px] mx-1" />
-                    <Skeleton className="h-5 w-[130px] mx-1" />
-                    <Skeleton className="h-5 w-[110px] mx-1" />
-                    <Skeleton className="h-5 w-[100px]" />
-                </div>
+            {/* Skeleton Table */}
+            <div className="rounded-md border p-4">
+                <Table>
+                <TableHeader>
+                    <TableRow>
+                    {skeletonColumns.map((column) => (
+                        <TableHead key={column.id} style={{ width: column.size ? `${column.size}px` : 'auto', minWidth: column.minSize ? `${column.minSize}px` : 'auto' }}>
+                        <Skeleton className="h-5 w-full" />
+                        </TableHead>
+                    ))}
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {Array.from({ length: 5 }).map((_, rowIndex) => (
+                    <TableRow key={rowIndex}>
+                        {skeletonColumns.map((column) => (
+                        <TableCell key={column.id} style={{ width: column.size ? `${column.size}px` : 'auto', minWidth: column.minSize ? `${column.minSize}px` : 'auto' }}>
+                            <Skeleton className="h-5 w-full" />
+                        </TableCell>
+                        ))}
+                    </TableRow>
+                    ))}
+                </TableBody>
+                </Table>
             </div>
           </CardContent>
         </Card>
@@ -239,8 +249,8 @@ export default function KsaMonitoringClientPage() {
 
   if (error) {
     return (
-      <div className="p-4 md:p-6">
-        <Alert variant="destructive">
+      <div className="container mx-auto py-4 md:py-6"> {/* Menggunakan container */}
+        <Alert variant="destructive" className="m-4">
           <Terminal className="h-4 w-4" />
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
@@ -249,11 +259,11 @@ export default function KsaMonitoringClientPage() {
     );
   }
   
-  // ----- Bagian Tampilan Utama dengan TanStack Table -----
   return (
-    <div className="p-4 md:p-6 space-y-4">
-      <div className="flex flex-col md:flex-row justify-between items-center gap-2">
-        <h1 className="text-2xl font-semibold">Monitoring KSA (Kerangka Sampel Area)</h1>
+    // Menggunakan container mx-auto dan padding vertikal
+    <div className="container mx-auto"> 
+      <div className="mb-4 flex flex-col md:flex-row justify-between items-center gap-2"> {/* Menambah mb-4 */}
+        <h1 className="text-2xl font-semibold"></h1>
         <Select onValueChange={handleMonthChange} value={selectedMonth}>
           <SelectTrigger className="w-full md:w-[180px]">
             <SelectValue placeholder="Pilih Bulan" />
@@ -269,53 +279,38 @@ export default function KsaMonitoringClientPage() {
         </Select>
       </div>
 
-      {lastUpdated && (
-        <p className="text-sm text-muted-foreground">
-          Terakhir diperbarui: {lastUpdated}
-        </p>
-      )}
-
+      {/* Card Utama untuk tabel KSA */}
       <Card>
         <CardHeader>
           <CardTitle>
-            Data KSA per Kabupaten (Tahun: {selectedYear}
-            {selectedMonth !== "Semua" && months.find(m => m.value === selectedMonth) 
-              ? `, Bulan: ${months.find(m => m.value === selectedMonth)?.label}` 
-              : ''})
+            Monitoring KSA Padi
           </CardTitle>
+          {/* Menampilkan lastUpdated di CardDescription */}
+          <CardDescription>
+            {!isLoading && lastUpdated && <span className="block text-sm text-gray-500 mt-1">Terakhir diperbarui: {lastUpdated}</span>}
+            {isLoading && <Skeleton className="h-4 w-[250px] mt-2" />}
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          {/* Tambahkan overflow-x-auto untuk scrolling horizontal pada layar kecil */}
-          <div className="rounded-md border overflow-x-auto"> 
+          {/* Menggunakan ScrollArea seperti di Ubinan */}
+          <ScrollArea className="w-full rounded-md border"> 
             <Table>
               <TableHeader>
                 {table.getHeaderGroups().map(headerGroup => (
                   <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map(header => {
-                      return (
-                        // Menggunakan style untuk mengatur lebar kolom berdasarkan `size`
-                        <TableHead key={header.id} style={{ width: header.getSize() }}>
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(
-                                header.column.columnDef.header,
-                                header.getContext()
-                              )}
-                        </TableHead>
-                      )
-                    })}
+                    {headerGroup.headers.map(header => (
+                      <TableHead key={header.id} style={{ width: header.getSize() }}>
+                        {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                      </TableHead>
+                    ))}
                   </TableRow>
                 ))}
               </TableHeader>
               <TableBody>
                 {table.getRowModel().rows?.length ? (
                   table.getRowModel().rows.map(row => (
-                    <TableRow
-                      key={row.id}
-                      data-state={row.getIsSelected() && "selected"}
-                    >
+                    <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
                       {row.getVisibleCells().map(cell => (
-                        // Menggunakan style untuk mengatur lebar kolom berdasarkan `size`
                         <TableCell key={cell.id} style={{ width: cell.column.getSize() }}>
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </TableCell>
@@ -335,19 +330,13 @@ export default function KsaMonitoringClientPage() {
                   </TableRow>
                 )}
               </TableBody>
-              {totalsKsa && dataKsa && dataKsa.length > 0 && (
+              {ksaTotals && dataKsa && dataKsa.length > 0 && (
                 <tfoot className="bg-muted/50 font-semibold">
                   {table.getFooterGroups().map(footerGroup => (
                     <TableRow key={footerGroup.id}>
                       {footerGroup.headers.map(header => (
-                        // Menggunakan style untuk mengatur lebar kolom berdasarkan `size`
                         <TableCell key={header.id} className="p-2" style={{ width: header.column.getSize() }}>
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(
-                                header.column.columnDef.footer,
-                                header.getContext()
-                              )}
+                          {header.isPlaceholder ? null : flexRender(header.column.columnDef.footer, header.getContext())}
                         </TableCell>
                       ))}
                     </TableRow>
@@ -355,7 +344,16 @@ export default function KsaMonitoringClientPage() {
                 </tfoot>
               )}
             </Table>
-          </div>
+          </ScrollArea>
+          {/* Menampilkan pesan jika data benar-benar kosong setelah loading selesai */}
+          {!isLoading && !error && (!dataKsa || dataKsa.length === 0) && (
+            <p className="text-center text-gray-500 py-4">
+                Tidak ada data KSA ditemukan untuk Tahun {selectedYear}
+                {selectedMonth !== "Semua" && months.find(m => m.value === selectedMonth) 
+                    ? ` dan Bulan ${months.find(m => m.value === selectedMonth)?.label}` 
+                    : ''}.
+            </p>
+            )}
         </CardContent>
       </Card>
     </div>

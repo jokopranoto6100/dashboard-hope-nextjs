@@ -9,10 +9,11 @@ import { useYear } from '@/context/YearContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { usePadiMonitoringData } from '@/hooks/usePadiMonitoringData';
 import { usePalawijaMonitoringData } from '@/hooks/usePalawijaMonitoringData';
+import { useKsaMonitoringData } from '@/hooks/useKsaMonitoringData'; // Impor hook KSA
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { getPercentageBadgeVariant } from "@/lib/utils";
-import { CheckCircle2, TrendingUp, AlertTriangle, Info, TrendingDown, PackagePlus } from "lucide-react";
+import { CheckCircle2, TrendingUp, AlertTriangle, Info, TrendingDown, PackagePlus, BarChart3 } from "lucide-react"; // Menambahkan BarChart3 untuk KSA
 
 export default function HomePage() {
   const supabase = createClientComponentSupabaseClient();
@@ -33,6 +34,14 @@ export default function HomePage() {
     errorPalawija,
     lastUpdatePalawija
   } = usePalawijaMonitoringData(selectedYear, ubinanSubround);
+
+  // Memanggil hook KSA. selectedMonthParams tidak diisi, akan mengambil data tahunan.
+  const { 
+    totals: ksaTotals, 
+    isLoading: loadingKsa, 
+    error: errorKsa, 
+    lastUpdated: lastUpdatedKsa 
+  } = useKsaMonitoringData();
 
   const getKpiBadge = (value: number | string | undefined, isPercentage = true, isChange = false) => {
     if (value === undefined || value === null || (typeof value === 'string' && value === "N/A")) {
@@ -69,8 +78,7 @@ export default function HomePage() {
     <>
       {/* <h1 className="text-3xl md:text-4xl font-bold mb-6">Selamat Datang di Dashboard HOPE!</h1> */}
       
-      {/* Mengubah md:grid-cols-2 menjadi md:grid-cols-3 */}
-      <div className="grid gap-4 md:grid-cols-4 mb-6"> 
+      <div className="grid gap-4 md:grid-cols-3 mb-6"> {/* Tetap menggunakan md:grid-cols-4 */}
         {/* Card 1: Ringkasan Realisasi Padi */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -159,13 +167,13 @@ export default function HomePage() {
                 <div className="text-xs text-muted-foreground mt-1 flex flex-wrap items-center gap-1">
                   Status Validasi:&nbsp;
                   <Badge variant="success">
-                    Clean: {palawijaTotals.clean}
+                    C: {palawijaTotals.clean}
                   </Badge>
                   <Badge variant="warning">
-                    Warning: {palawijaTotals.warning}
+                    W: {palawijaTotals.warning}
                   </Badge>
                   <Badge variant="destructive">
-                    Error: {palawijaTotals.error}
+                    E: {palawijaTotals.error}
                   </Badge>
                 </div>
                 {lastUpdatePalawija && <p className="text-xs text-muted-foreground mt-1">Data per: {lastUpdatePalawija}</p>}
@@ -176,19 +184,61 @@ export default function HomePage() {
           </CardContent>
         </Card>
 
-        {/* Card 3: KPI Kosong / Mendatang */}
+        {/* Card 3: Ringkasan KSA */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Kegiatan Lainnya</CardTitle>
-            <Badge variant="outline"><PackagePlus /></Badge> 
+            <CardTitle className="text-sm font-medium">Ringkasan KSA ({selectedYear})</CardTitle>
+            {loadingKsa ? <Skeleton className="h-5 w-12" /> :
+              ksaTotals ? (() => {
+                const badgeInfo = getKpiBadge(ksaTotals.persentase);
+                return (
+                  <Badge variant={badgeInfo.variant}>
+                    {badgeInfo.icon}
+                    {badgeInfo.text && <span>{badgeInfo.text}</span>}
+                  </Badge>
+                );
+              })() : <Badge variant="outline">N/A</Badge>
+            }
           </CardHeader>
           <CardContent>
-            <Skeleton className="h-8 w-3/4 mb-1" />
-            <Skeleton className="h-4 w-full mb-1" />
-            <Skeleton className="h-4 w-1/2" />
+            {loadingKsa ? (
+              <>
+                <Skeleton className="h-8 w-3/4 mb-1" />
+                <Skeleton className="h-4 w-full mb-1" /> {/* Realisasi dari Target */}
+                <Skeleton className="h-5 w-1/2 mb-1" /> {/* Inkonsisten */}
+                <Skeleton className="h-4 w-1/2 mb-1" /> {/* Kode 12 */}
+                <Skeleton className="h-4 w-2/3 mt-1" /> {/* Data per */}
+              </>
+            ) : errorKsa ? (
+              <p className="text-xs text-red-500">Error: {errorKsa}</p>
+            ) : ksaTotals ? (
+              <>
+                <div className="text-2xl font-bold">{ksaTotals.persentase.toFixed(2)}%</div>
+                <p className="text-xs text-muted-foreground">
+                  Realisasi: {ksaTotals.realisasi} dari {ksaTotals.target} Target
+                </p>
+                <p className="text-xs text-muted-foreground mt-1 flex items-center flex-wrap">
+                  Inkonsisten:&nbsp;
+                  {ksaTotals.inkonsisten > 0 ? (
+                    <Badge variant="destructive"> 
+                      {ksaTotals.inkonsisten}
+                    </Badge>
+                  ) : (
+                    <Badge variant="success">{ksaTotals.inkonsisten}</Badge>
+                  )}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Total Kode 12: <span className="font-semibold">{ksaTotals.kode_12}</span>
+                </p>
+                {lastUpdatedKsa && <p className="text-xs text-muted-foreground mt-1">Data per: {lastUpdatedKsa}</p>}
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">Data KSA tidak tersedia.</p>
+            )}
           </CardContent>
         </Card>
-
+        
+        {/* Card 4: KPI Kosong / Mendatang */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Kegiatan Lainnya</CardTitle>

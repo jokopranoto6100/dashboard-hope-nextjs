@@ -58,6 +58,11 @@ import {
             url: "/monitoring/ksa",
             isActive: (currentPath) => currentPath === "/monitoring/ksa",
           },
+          {
+            title: "Kehutanan",
+            url: "/monitoring/kehutanan",
+            isActive: (currentPath) => currentPath === "/monitoring/kehutanan",
+          },
         ],
       },
       {
