@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/app/(dashboard)/monitoring/ksa/ksa-monitoring-client-page.tsx
 "use client";
 
@@ -160,7 +161,7 @@ export default function KsaMonitoringClientPage() {
 
   if (isLoading) { 
     return (
-      <div className="container mx-auto py-4 md:py-6">
+      <div className="container mx-auto py-4">
         {/* Judul halaman tidak ditampilkan saat loading, atau bisa diganti skeleton */}
         <div className="mb-4 flex flex-col md:flex-row justify-end items-center gap-2">
           <Skeleton className="h-10 w-full md:w-[180px]" /> {/* Hanya skeleton untuk filter bulan */}

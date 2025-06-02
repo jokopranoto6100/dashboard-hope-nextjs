@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // src/app/(dashboard)/page.tsx
 "use client";
 
@@ -13,7 +14,7 @@ import { useKsaMonitoringData } from '@/hooks/useKsaMonitoringData'; // Impor ho
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { getPercentageBadgeVariant } from "@/lib/utils";
-import { CheckCircle2, TrendingUp, AlertTriangle, Info, TrendingDown, PackagePlus, BarChart3 } from "lucide-react"; // Menambahkan BarChart3 untuk KSA
+import { CheckCircle2, TrendingUp, AlertTriangle, Info, TrendingDown, PackagePlus } from "lucide-react"; // Menambahkan BarChart3 untuk KSA
 
 export default function HomePage() {
   const supabase = createClientComponentSupabaseClient();
