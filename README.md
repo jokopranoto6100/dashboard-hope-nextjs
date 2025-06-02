@@ -307,6 +307,7 @@ Dashboard Pertanian/
 /auth/login: Halaman Login
 /auth/register: Halaman Registrasi
 /monitoring/ubinan: Monitoring Ubinan Padi & Palawija
+/monitoring/ksa: Monitoring KSA Padi
 /pengguna: Halaman Manajemen Pengguna (baru, hanya untuk super_admin)
 /api/users: Contoh endpoint API untuk pengguna (status tidak berubah).
 
