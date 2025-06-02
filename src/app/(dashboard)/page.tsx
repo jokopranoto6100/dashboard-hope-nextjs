@@ -70,7 +70,7 @@ export default function HomePage() {
       {/* <h1 className="text-3xl md:text-4xl font-bold mb-6">Selamat Datang di Dashboard HOPE!</h1> */}
       
       {/* Mengubah md:grid-cols-2 menjadi md:grid-cols-3 */}
-      <div className="grid gap-4 md:grid-cols-3 mb-6"> 
+      <div className="grid gap-4 md:grid-cols-4 mb-6"> 
         {/* Card 1: Ringkasan Realisasi Padi */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -177,6 +177,18 @@ export default function HomePage() {
         </Card>
 
         {/* Card 3: KPI Kosong / Mendatang */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Kegiatan Lainnya</CardTitle>
+            <Badge variant="outline"><PackagePlus /></Badge> 
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-8 w-3/4 mb-1" />
+            <Skeleton className="h-4 w-full mb-1" />
+            <Skeleton className="h-4 w-1/2" />
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Kegiatan Lainnya</CardTitle>
