@@ -25,8 +25,9 @@ Migrasi ini berfokus pada arsitektur yang lebih modern, performa, skalabilitas, 
 2.  **Sistem Login & Otorisasi Berbasis Peran:**
     * Halaman login (`/auth/login`) dan registrasi (`/auth/register`) yang berfungsi penuh menggunakan Supabase Auth.
     * Penggantian notifikasi dari SweetAlert2 ke Sonner untuk pengalaman *toast* yang lebih modern.
-    * **Middleware untuk Proteksi Rute:** Menggunakan Next.js Middleware (`middleware.ts`) untuk melindungi rute yang memerlukan otentikasi dan mengarahkan pengguna yang belum *login* ke halaman login.
+    * **Middleware untuk Proteksi Rute:** Menggunakan Next.js Middleware (`middleware.ts`) untuk melindungi rute yang memerlukan otentikasi dan mengarahkan pengguna yang belum *login* ke halaman login. Middleware juga diperbarui untuk menggunakan `supabase.auth.getUser()` untuk validasi sesi yang lebih aman di sisi server.
     * **Visibilitas Menu Dinamis:** Menu sidebar disesuaikan berdasarkan peran pengguna (`super_admin`, `viewer`) yang diambil dari `user_metadata` Supabase Auth.
+    * **React Context untuk Autentikasi (`AuthContext`)**: Implementasi `AuthContext` (`src/context/AuthContext.tsx`) untuk mengelola sesi pengguna, data pengguna (termasuk peran dari `user_metadata`), dan status loading secara global di sisi klien. Komponen `NavUserHope.tsx` telah diupdate untuk menggunakan *context* ini.
 
 3.  **Layout & Navigasi Sidebar yang Dinamis:**
     * `MainLayout` yang kondisional: Sidebar dan header hanya muncul di halaman dashboard setelah *login*, tidak di halaman otentikasi.
@@ -80,6 +81,39 @@ Migrasi ini berfokus pada arsitektur yang lebih modern, performa, skalabilitas, 
     * Ringkasan Palawija juga menampilkan jumlah status validasi data (Clean, Warning, Error) dari hasil realisasi.
     * Pengambilan dan pemrosesan data untuk ringkasan ini menggunakan *custom hooks* yang sama (`usePadiMonitoringData`, `usePalawijaMonitoringData`).
 
+7.  **Manajemen Pengguna (Halaman `/pengguna`) - (Fitur Baru dalam Sesi Ini):**
+    * **Akses Terbatas**: Halaman hanya dapat diakses oleh pengguna dengan peran `super_admin`. Proteksi diterapkan di level *middleware* (`middleware.ts`) dan juga di *server component* halaman (`src/app/(dashboard)/pengguna/page.tsx`).
+    * **Visibilitas Menu**: Menu "Manajemen Pengguna" di `NavUserHope.tsx` hanya terlihat oleh `super_admin`, menggunakan data peran dari `AuthContext`.
+    * **Struktur Data Pengguna**: Dikonfirmasi bahwa kolom kustom `role` dan `username` ada langsung di tabel `public.users` (bukan di `auth.users` atau hanya di `user_metadata` untuk daftar pengguna).
+    * **Pengambilan Daftar Pengguna**:
+        * `src/app/(dashboard)/pengguna/page.tsx` (Server Component) mengambil daftar semua pengguna.
+        * Menggunakan fungsi PostgreSQL `get_all_managed_users()` yang dipanggil via `supabaseServer.rpc()` untuk melakukan `LEFT JOIN` antara `auth.users` (untuk `id`, `email`, `created_at`) dan `public.users` (untuk kolom kustom `username`, `role`).
+    * **Tampilan Tabel Pengguna**:
+        * Komponen klien `src/app/(dashboard)/pengguna/user-management-client-page.tsx` menampilkan daftar pengguna menggunakan `TanStack Table`.
+        * Fitur tabel: sorting, filtering (berdasarkan email), dan paginasi.
+    * **Server Actions (`src/app/(dashboard)/pengguna/_actions.ts`)**:
+        * Fungsi `verifySuperAdmin()` untuk memastikan hanya admin yang bisa menjalankan aksi.
+        * `deleteUserAction(userId)`: Menghapus pengguna dari `Supabase Auth`.
+        * `updateUserRoleAction({ userId, newRole })`:
+            * Memanggil fungsi PostgreSQL `update_user_custom_role(userId, newRole)` via RPC untuk mengupdate kolom `role` di tabel `public.users`.
+            * Juga mengupdate `user_metadata.role` pengguna target untuk konsistensi sesi.
+        * `createUserAction(userData)`:
+            * Membuat pengguna baru di `Supabase Auth`.
+            * Memanggil fungsi RPC `update_user_custom_role` dan `update_user_custom_username` untuk mengisi kolom kustom di `public.users`.
+            * Juga mengupdate `user_metadata` pengguna baru.
+        * `editUserAction(payload)`: Kerangka telah dibuat untuk mengedit detail pengguna, termasuk email, password (opsional), username (via RPC), dan role (via RPC), serta `user_metadata`.
+    * **Fungsi PostgreSQL untuk Kolom Kustom**:
+        * `update_user_custom_role(user_id, new_role)`: Dibuat dan digunakan untuk mengupdate kolom `role` di `public.users`. Fungsi ini mengembalikan peran baru yang di-set.
+        * `update_user_custom_username(user_id, new_username)`: Dibuat dan digunakan untuk mengupdate kolom `username` di `public.users`. Fungsi ini mengembalikan username baru yang di-set.
+    * **UI Aksi Pengguna**:
+        * Tombol "Hapus Pengguna" di tabel dengan dialog konfirmasi (`AlertDialog`) dan notifikasi `toast` (Sonner).
+        * Tombol "Ubah Peran" di tabel (menjadi "Super Admin" atau "Viewer") dengan notifikasi `toast`.
+        * Tombol "Tambah Pengguna Baru" yang membuka dialog (`Dialog`) dengan form (`React Hook Form` + `Zod` untuk validasi) untuk membuat pengguna baru.
+        * Tombol "Edit Pengguna" di tabel yang membuka dialog (`Dialog`) dengan form untuk mengedit data pengguna.
+        * Status loading (`useTransition`, ikon `Loader2`) diimplementasikan untuk tombol-tombol aksi (hapus, ubah peran, tambah, edit) untuk memberikan feedback visual selama proses.
+    * **Revalidasi Data**: `revalidatePath('/pengguna')` digunakan di Server Actions untuk memastikan data di halaman diperbarui setelah aksi.
+
+
 ## 📁 Struktur Folder Proyek
 Dashboard Pertanian/
 ├── .next/                         # Cache Next.js (dihapus saat debugging)
@@ -98,6 +132,10 @@ Dashboard Pertanian/
 │   │   │   ├── monitoring/
 │   │   │   │   └── ubinan/
 │   │   │   │       └── page.tsx       # Halaman Monitoring Ubinan
+│   │   │   ├── pengguna/
+│   │   │   │   └── _action.ts
+│   │   │   │   ├── page.tsx
+│   │   │   │   ├── user-management-client-page.tsx
 │   │   │   ├── layout.tsx             # Root Layout aplikasi
 │   │   │   └── page.tsx               # Halaman utama Dashboard
 │   │   ├── api
@@ -140,7 +178,8 @@ Dashboard Pertanian/
 │   │   │   ├── tooltip.tsx
 │   │   └── ... (komponen umum lainnya)
 │   ├── context/
-│   │   └── YearContext.tsx             # Context untuk filter tahun global
+│   │   ├── YearContext.tsx             # Context untuk filter tahun global
+│   │   └── AuthContext.tsx
 │   ├── hooks/
 │   │   ├── usePadiMonitoringData.ts     # Hook untuk fetching & processing data Padi
 │   │   └── usePalawijaMonitoringData.ts # Hook untuk fetching & processing data Palawija
@@ -236,12 +275,27 @@ Dashboard Pertanian/
 
 ## 🌐 Daftar Route Penting
 
-* `/`: Dashboard Utama (membutuhkan Login, biasanya di dalam grup `(dashboard)`)
-* `/auth/login`: Halaman Login
-* `/auth/register`: Halaman Registrasi
-* `/monitoring/ubinan`: Monitoring Ubinan Padi & Palawija (membutuhkan Login, di dalam grup `(dashboard)`)
-* `/api/users`: Contoh endpoint API untuk pengguna.
+/: Dashboard Utama
+/auth/login: Halaman Login
+/auth/register: Halaman Registrasi
+/monitoring/ubinan: Monitoring Ubinan Padi & Palawija
+/pengguna: Halaman Manajemen Pengguna (baru, hanya untuk super_admin)
+/api/users: Contoh endpoint API untuk pengguna (status tidak berubah).
 
 ---
+🚧 TODO & Isu yang Perlu Diperhatikan
+Error cookies() di Server Components/Actions:
+Masih muncul pesan Error: Route "/pengguna" used cookies().get(...). cookies() should be awaited before using its value. di log server. Meskipun fungsionalitas utama berjalan, ini perlu diinvestigasi lebih lanjut untuk memastikan stabilitas dan praktik terbaik Next.js. Mungkin terkait versi Next.js atau @supabase/ssr.
+Fitur "Edit Pengguna":
+UI Dialog dan form untuk edit pengguna sudah ada di UserManagementClientPage.tsx.
+Server Action editUserAction sudah ada kerangkanya di _actions.ts. Perlu pengujian menyeluruh untuk memastikan semua field (email, password opsional, username kustom, role kustom, dan user_metadata) terupdate dengan benar.
+Fitur "Lihat Detail Pengguna":
+Masih TODO. Bisa berupa dialog read-only yang menampilkan semua informasi relevan pengguna.
+Penyempurnaan UI/UX Manajemen Pengguna:
+Pesan error/sukses yang lebih spesifik dari Server Actions.
+Mungkin perlu validasi yang lebih kompleks untuk form.
+RLS (Row Level Security):
+Sempat ada error "Gagal mengambil informasi peran user. Pastikan RLS diizinkan" saat login ulang setelah peran diubah. Ini perlu dipantau. Jika muncul lagi, periksa kebijakan RLS di tabel auth.users dan public.users. Idealnya, pengguna harus bisa membaca data mereka sendiri yang relevan untuk sesi.
+Konsistensi username: Pastikan username di public.users selalu sinkron dengan user_metadata.username jika keduanya digunakan. Server Actions saat ini sudah mencoba mengupdate keduanya.
 
 Jika ada kendala atau permintaan fitur baru, silakan hubungi pengelola proyek.
