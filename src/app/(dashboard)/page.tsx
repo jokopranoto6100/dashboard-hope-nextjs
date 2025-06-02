@@ -82,7 +82,7 @@ export default function HomePage() {
         {/* Card 1: Ringkasan Realisasi Padi */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ringkasan Realisasi Padi ({selectedYear})</CardTitle>
+            <CardTitle className="text-sm font-medium">Ubinan Padi ({selectedYear})</CardTitle>
             {loadingPadi ? <Skeleton className="h-5 w-12" /> :
               padiTotals ? (() => {
                 const badgeInfo = getKpiBadge(padiTotals.persentase);
@@ -135,7 +135,7 @@ export default function HomePage() {
         {/* Card 2: Ringkasan Realisasi Palawija */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ringkasan Realisasi Palawija ({selectedYear})</CardTitle>
+            <CardTitle className="text-sm font-medium">Ubinan Palawija ({selectedYear})</CardTitle>
             {loadingPalawija ? <Skeleton className="h-5 w-12" /> :
               palawijaTotals ? (() => {
                 const badgeInfo = getKpiBadge(parseFloat(palawijaTotals.persentase.toString()));
@@ -187,7 +187,7 @@ export default function HomePage() {
         {/* Card 3: Ringkasan KSA */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ringkasan KSA ({selectedYear})</CardTitle>
+            <CardTitle className="text-sm font-medium">KSA Padi ({selectedYear})</CardTitle>
             {loadingKsa ? <Skeleton className="h-5 w-12" /> :
               ksaTotals ? (() => {
                 const badgeInfo = getKpiBadge(ksaTotals.persentase);

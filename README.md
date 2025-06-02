@@ -113,6 +113,30 @@ Migrasi ini berfokus pada arsitektur yang lebih modern, performa, skalabilitas, 
         * Status loading (`useTransition`, ikon `Loader2`) diimplementasikan untuk tombol-tombol aksi (hapus, ubah peran, tambah, edit) untuk memberikan feedback visual selama proses.
     * **Revalidasi Data**: `revalidatePath('/pengguna')` digunakan di Server Actions untuk memastikan data di halaman diperbarui setelah aksi.
 
+8.  **Monitoring KSA (Halaman `/monitoring/ksa`):**
+    * **Nama Halaman & Judul Kartu:** Halaman didedikasikan untuk "Monitoring KSA Padi".
+    * **Data Fetching Modular:** Menggunakan *custom hook* baru `useKsaMonitoringData.ts` untuk pengambilan dan pemrosesan data dari tabel `ksa_amatan` di Supabase. Mengimplementasikan logika paginasi untuk mengambil semua record.
+    * **Filtering Data:**
+        * Terintegrasi dengan filter `YearContext` global.
+        * Filter Bulan lokal menggunakan komponen `Select` (`shadcn/ui`), diposisikan di kanan atas kartu tabel.
+        * **Logika Default Bulan Cerdas:** Filter bulan secara otomatis memprioritaskan bulan berjalan. Jika data bulan berjalan kosong, hook secara internal akan mengambil dan menampilkan data bulan sebelumnya untuk pengalaman pengguna yang lebih baik tanpa "glitch" tabel kosong.
+    * **Tampilan Tabel Interaktif (TanStack Table & shadcn/ui):**
+        * Menampilkan data KSA dalam tabel yang responsif dan dapat di-*scroll* (menggunakan `ScrollArea`).
+        * **Kolom Utama:** Kabupaten/Kota (rata kiri), Target, Realisasi, Persentase (%), Inkonsisten, dan Kode 12 (rata tengah).
+        * **Pengurutan Kolom (Sorting):**
+            * Dinonaktifkan untuk kolom "Kabupaten/Kota", "Target", dan "Realisasi".
+            * Diaktifkan untuk kolom "Persentase (%)", "Inkonsisten", dan "Kode 12".
+        * **Pengelompokan & Pengurutan Data:** Data dikelompokkan berdasarkan `kabupaten` dan diurutkan berdasarkan `kode_kab`.
+        * **Perhitungan Kolom Spesifik:**
+            * `Target`: Dihitung dari jumlah baris yang memiliki isian pada kolom `subsegmen`.
+            * `Realisasi`: Dihitung dari jumlah baris yang memiliki isian pada kolom `n`.
+            * `Persentase (%)`: Dihitung sebagai `(Realisasi / Target) * 100` dan divisualisasikan menggunakan komponen `Badge` (`shadcn/ui`) dengan warna dan ikon ceklis (`CheckCircle2`) yang dinamis berdasarkan nilai (menggunakan utilitas `getPercentageBadgeVariant`).
+            * `Inkonsisten`: Dihitung dari jumlah baris di mana kolom `evaluasi` bernilai `'inkonsisten'`.
+            * `Kode 12`: Dihitung dari penjumlahan baris dengan `n = 12` dan baris yang memiliki isian pada `flag_kode_12`.
+        * **Baris Total Keseluruhan:** Menampilkan label "Kalimantan Barat" di kolom pertama dan nilai agregat total untuk semua kolom numerik.
+        * **Informasi "Terakhir Diperbarui":** Menampilkan *timestamp* dari kolom `tanggal` maksimum data yang ditampilkan, diletakkan di `CardDescription` untuk konsistensi.
+    * **Layout & Styling:** Mengikuti konsistensi desain dengan halaman Monitoring Ubinan, termasuk struktur `Card`, `CardHeader`, `CardTitle`, `CardDescription`, dan `CardContent`.
+
 
 ## 📁 Struktur Folder Proyek
 Dashboard Pertanian/
@@ -132,6 +156,9 @@ Dashboard Pertanian/
 │   │   │   ├── monitoring/
 │   │   │   │   └── ubinan/
 │   │   │   │       └── page.tsx       # Halaman Monitoring Ubinan
+│   │   │   │   ├── ksa/
+│   │   │   │   │   ├── page.tsx                       # Halaman Monitoring KSA (Server Component)
+│   │   │   │   │   └── ksa-monitoring-client-page.tsx # Komponen Klien untuk tabel KSA
 │   │   │   ├── pengguna/
 │   │   │   │   └── _action.ts
 │   │   │   │   ├── page.tsx
@@ -183,6 +210,7 @@ Dashboard Pertanian/
 │   ├── hooks/
 │   │   ├── usePadiMonitoringData.ts     # Hook untuk fetching & processing data Padi
 │   │   └── usePalawijaMonitoringData.ts # Hook untuk fetching & processing data Palawija
+│   │   └── useKsaMonitoringData.ts    # Hook untuk fetching & processing data KSA
 │   ├── lib/
 │   │   ├── sidebar-data.ts 
 │   │   ├── supabase-server.ts 
@@ -196,9 +224,9 @@ Dashboard Pertanian/
 └── package-lock.json                # File lock dependensi
 
 **Catatan Penting tentang Struktur Folder:**
-* Penempatan `middleware.ts` bisa di root folder proyek atau di dalam `src/` tergantung preferensi dan versi Next.js. Umumnya di root atau `src/`.
+* Penempatan `middleware.ts` di dalam `src/`.
 * File `layout.tsx` di `src/app/(dashboard)/layout.tsx` akan menjadi layout utama untuk semua rute di dalam grup `(dashboard)`. File `src/app/layout.tsx` (jika ada di luar grup dashboard) akan menjadi root layout global.
-* `client-layout-wrapper.tsx` mungkin tidak lagi diperlukan atau perannya berubah jika logika layout utama ditangani oleh `(dashboard)/layout.tsx`.
+* `client-layout-wrapper.tsx` tetap dibutuhkan.
 * `src/app/api/users/route.ts` adalah penamaan standar untuk Next.js App Router Route Handlers (sebelumnya `routes.ts`).
 
 ## 🛠️ Cara Instalasi & Menjalankan (Diperbarui)

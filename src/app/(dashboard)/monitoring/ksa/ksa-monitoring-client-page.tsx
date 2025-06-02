@@ -1,18 +1,18 @@
 // src/app/(dashboard)/monitoring/ksa/ksa-monitoring-client-page.tsx
 "use client";
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useContext, useState, useMemo, useEffect } from 'react';
 import { useYear } from '@/context/YearContext';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"; // Tambahkan CardDescription
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Terminal, ArrowUpDown, CheckCircle2 } from "lucide-react"; // Tambahkan CheckCircle2
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge"; // Impor Badge
-import { ScrollArea } from "@/components/ui/scroll-area"; // Impor ScrollArea
-import { getPercentageBadgeVariant } from "@/lib/utils"; // Impor helper untuk Badge
+import { Terminal, ArrowUpDown, CheckCircle2 } from "lucide-react";
+import { Button } from "@/components/ui/button"; // Pastikan Button diimpor jika digunakan untuk sorting kolom lain
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { getPercentageBadgeVariant } from "@/lib/utils";
 
 import {
   ColumnDef,
@@ -23,47 +23,39 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 
-import { useKsaMonitoringData, ProcessedKsaData, } from '@/hooks/useKsaMonitoringData';
+import { useKsaMonitoringData, ProcessedKsaData, KsaTotals } from '@/hooks/useKsaMonitoringData';
 
 export default function KsaMonitoringClientPage() {
   const { selectedYear } = useYear();
 
-  const getCurrentMonthString = () => String(new Date().getMonth() + 1);
-  const getPreviousMonthString = () => {
-    const currentMonth = new Date().getMonth() + 1;
-    return String(currentMonth === 1 ? 12 : currentMonth - 1);
-  };
-
-  const [selectedMonth, setSelectedMonth] = useState<string>(getCurrentMonthString());
-  const [hasAttemptedFallback, setHasAttemptedFallback] = useState<boolean>(false);
+  const initialMonth = useMemo(() => String(new Date().getMonth() + 1), []);
+  
+  const [displayMonth, setDisplayMonth] = useState<string>(initialMonth);
+  const [fetchBehavior, setFetchBehavior] = useState<'autoFallback' | 'directFetch'>('autoFallback');
+  
   const [sorting, setSorting] = useState<SortingState>([]);
 
   const { 
     data: dataKsa, 
-    totals: ksaTotals, 
+    ksaTotals, 
     isLoading, 
     error, 
-    lastUpdated 
-  } = useKsaMonitoringData(selectedMonth === "Semua" ? undefined : selectedMonth);
+    lastUpdated,
+    effectiveDisplayMonth 
+  } = useKsaMonitoringData(displayMonth, fetchBehavior);
 
   useEffect(() => {
-    if (!isLoading && !error && dataKsa) {
-      const currentMonthStr = getCurrentMonthString();
-      const previousMonthStr = getPreviousMonthString();
-      if (selectedMonth === currentMonthStr && dataKsa.length === 0 && !hasAttemptedFallback) {
-        setSelectedMonth(previousMonthStr);
-        setHasAttemptedFallback(true);
+    if (fetchBehavior === 'autoFallback' && !isLoading && effectiveDisplayMonth) {
+      if (effectiveDisplayMonth !== displayMonth) {
+        setDisplayMonth(effectiveDisplayMonth);
       }
+      setFetchBehavior('directFetch'); 
     }
-  }, [isLoading, dataKsa, error, selectedMonth, hasAttemptedFallback]);
+  }, [isLoading, effectiveDisplayMonth, fetchBehavior, displayMonth]);
 
   const handleMonthChange = (newMonthValue: string) => {
-    setSelectedMonth(newMonthValue);
-    if (newMonthValue === getCurrentMonthString()) {
-      setHasAttemptedFallback(false);
-    } else {
-      setHasAttemptedFallback(true);
-    }
+    setDisplayMonth(newMonthValue);
+    setFetchBehavior('directFetch'); 
   };
   
   const months = [
@@ -79,86 +71,59 @@ export default function KsaMonitoringClientPage() {
     () => [
       {
         accessorKey: 'kabupaten',
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="w-full flex justify-start items-center px-1 text-left"
-          >
-            Kabupaten/Kota
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
+        // Menghapus Button untuk sorting, header menjadi teks biasa
+        header: () => <div className="text-left pl-2">Kabupaten/Kota</div>, 
         cell: ({ row }) => <div className="text-left pl-2">{row.getValue('kabupaten')}</div>,
         footer: () => <div className="text-left pl-2 font-bold">Kalimantan Barat</div>,
         size: 220, 
+        enableSorting: false, // Menonaktifkan sorting untuk kolom ini
       },
       {
         accessorKey: 'target',
-        header: ({ column }) => (
-          <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="w-full flex justify-center items-center" >
-            Target <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
+        // Menghapus Button untuk sorting, header menjadi teks biasa
+        header: () => <div className="text-center">Target</div>,
         cell: ({ row }) => <div className="text-center">{row.getValue<number>('target').toLocaleString('id-ID')}</div>,
         footer: () => <div className="text-center font-bold">{ksaTotals?.target.toLocaleString('id-ID')}</div>,
         size: 100, 
+        enableSorting: false, // Menonaktifkan sorting untuk kolom ini
       },
       {
         accessorKey: 'realisasi',
-        header: ({ column }) => (
-           <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="w-full flex justify-center items-center" >
-            Realisasi <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
+        // Menghapus Button untuk sorting, header menjadi teks biasa
+        header: () => <div className="text-center">Realisasi</div>,
         cell: ({ row }) => <div className="text-center">{row.getValue<number>('realisasi').toLocaleString('id-ID')}</div>,
         footer: () => <div className="text-center font-bold">{ksaTotals?.realisasi.toLocaleString('id-ID')}</div>,
         size: 100, 
+        enableSorting: false, // Menonaktifkan sorting untuk kolom ini
       },
       {
         accessorKey: 'persentase',
-        header: ({ column }) => (
+        header: ({ column }) => ( 
           <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
             className="w-full flex justify-center items-center" >
             Persentase (%) <ArrowUpDown className="ml-2 h-4 w-4" />
           </Button>
         ),
-        cell: ({ row }) => { // Adaptasi Badge untuk Persentase
+        cell: ({ row }) => {
           const rawValue = row.getValue<string | number>('persentase');
           const value = typeof rawValue === 'string' ? parseFloat(rawValue) : rawValue;
           if (typeof value !== 'number' || isNaN(value)) return <div className="text-center">-</div>;
           const showCheckmark = value >= 100;
-          return (
-            <div className="text-center">
-              <Badge variant={getPercentageBadgeVariant(value)}>
-                {showCheckmark && <CheckCircle2 className="mr-1 h-3 w-3" />} {/* Menyesuaikan ukuran ikon jika perlu */}
-                {value.toFixed(2)}%
-              </Badge>
-            </div>
-          );
+          return ( <div className="text-center"> <Badge variant={getPercentageBadgeVariant(value)}> {showCheckmark && <CheckCircle2 className="mr-1 h-3 w-3" />} {value.toFixed(2)}% </Badge> </div> );
         },
-        footer: () => { // Adaptasi Badge untuk Footer Persentase
+        footer: () => {
           if (!ksaTotals?.persentase) return <div className="text-center font-bold">-</div>;
           const rawValue = ksaTotals.persentase;
           const value = typeof rawValue === 'string' ? parseFloat(rawValue) : rawValue;
           if (typeof value !== 'number' || isNaN(value)) return <div className="text-center font-bold">-</div>;
           const showCheckmark = value >= 100;
-          return (
-            <div className="text-center font-bold">
-              <Badge variant={getPercentageBadgeVariant(value)}>
-                {showCheckmark && <CheckCircle2 className="mr-1 h-3 w-3" />}
-                {value.toFixed(2)}%
-              </Badge>
-            </div>
-          );
+          return ( <div className="text-center font-bold"> <Badge variant={getPercentageBadgeVariant(value)}> {showCheckmark && <CheckCircle2 className="mr-1 h-3 w-3" />} {value.toFixed(2)}% </Badge> </div> );
         },
         size: 130, 
       },
       {
         accessorKey: 'inkonsisten',
-        header: ({ column }) => (
+        header: ({ column }) => ( 
           <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
             className="w-full flex justify-center items-center" >
             Inkonsisten <ArrowUpDown className="ml-2 h-4 w-4" />
@@ -170,7 +135,7 @@ export default function KsaMonitoringClientPage() {
       },
       {
         accessorKey: 'kode_12',
-        header: ({ column }) => (
+        header: ({ column }) => ( 
           <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
             className="w-full flex justify-center items-center" >
             Kode 12 <ArrowUpDown className="ml-2 h-4 w-4" />
@@ -181,61 +146,56 @@ export default function KsaMonitoringClientPage() {
         size: 100, 
       },
     ],
-    [ksaTotals]
+    [ksaTotals, getPercentageBadgeVariant] // Tambahkan getPercentageBadgeVariant ke dependencies jika ia adalah fungsi dari luar scope
   );
 
   const table = useReactTable({
     data: dataKsa || [],
     columns,
-    state: {
-      sorting,
-    },
+    state: { sorting, },
     onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
   });
 
-  // Skeleton columns definition (bisa disesuaikan lebih lanjut jika diperlukan)
-  const skeletonColumns: Partial<ColumnDef<ProcessedKsaData>>[] = useMemo(() => columns.map(col => ({
-    id: col.id ?? (col as any).accessorKey, // Menangani jika id tidak eksplisit
-    size: (col as any).size,
-    minSize: (col as any).minSize,
-  })), [columns]);
-
-
-  if (isLoading && !dataKsa?.length && !hasAttemptedFallback) {
+  if (isLoading) { 
     return (
-      <div className="container mx-auto py-4 md:py-6"> {/* Menggunakan container */}
-        <div className="mb-4 flex flex-col md:flex-row justify-between items-center gap-2"> {/* Menambah mb-4 */}
-          <Skeleton className="h-8 w-full md:w-1/3" />
-          <Skeleton className="h-10 w-full md:w-[180px]" />
+      <div className="container mx-auto py-4 md:py-6">
+        {/* Judul halaman tidak ditampilkan saat loading, atau bisa diganti skeleton */}
+        <div className="mb-4 flex flex-col md:flex-row justify-end items-center gap-2">
+          <Skeleton className="h-10 w-full md:w-[180px]" /> {/* Hanya skeleton untuk filter bulan */}
         </div>
         <Card>
           <CardHeader>
-            <Skeleton className="h-7 w-3/4 mb-2" /> {/* Skeleton untuk CardTitle */}
-            <Skeleton className="h-4 w-1/2" />      {/* Skeleton untuk CardDescription (last updated) */}
+            <Skeleton className="h-7 w-3/4 mb-2" /> 
+            <Skeleton className="h-4 w-1/2" />
           </CardHeader>
           <CardContent>
-            {/* Skeleton Table */}
             <div className="rounded-md border p-4">
                 <Table>
                 <TableHeader>
                     <TableRow>
-                    {skeletonColumns.map((column) => (
-                        <TableHead key={column.id} style={{ width: column.size ? `${column.size}px` : 'auto', minWidth: column.minSize ? `${column.minSize}px` : 'auto' }}>
-                        <Skeleton className="h-5 w-full" />
-                        </TableHead>
-                    ))}
+                    {columns.map((column) => {
+                        const colDef = column as ColumnDef<ProcessedKsaData, any>;
+                        return (
+                            <TableHead key={colDef.id ?? (colDef as any).accessorKey} style={{ width: colDef.size ? `${colDef.size}px` : 'auto', minWidth: colDef.minSize ? `${colDef.minSize}px` : 'auto' }}>
+                            <Skeleton className="h-5 w-full" />
+                            </TableHead>
+                        );
+                    })}
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {Array.from({ length: 5 }).map((_, rowIndex) => (
                     <TableRow key={rowIndex}>
-                        {skeletonColumns.map((column) => (
-                        <TableCell key={column.id} style={{ width: column.size ? `${column.size}px` : 'auto', minWidth: column.minSize ? `${column.minSize}px` : 'auto' }}>
-                            <Skeleton className="h-5 w-full" />
-                        </TableCell>
-                        ))}
+                        {columns.map((column) => {
+                            const colDef = column as ColumnDef<ProcessedKsaData, any>;
+                            return(
+                                <TableCell key={colDef.id ?? (colDef as any).accessorKey} style={{ width: colDef.size ? `${colDef.size}px` : 'auto', minWidth: colDef.minSize ? `${colDef.minSize}px` : 'auto' }}>
+                                <Skeleton className="h-5 w-full" />
+                                </TableCell>
+                            );
+                        })}
                     </TableRow>
                     ))}
                 </TableBody>
@@ -247,24 +207,35 @@ export default function KsaMonitoringClientPage() {
     );
   }
 
-  if (error) {
+  if (error) { 
     return (
-      <div className="container mx-auto py-4 md:py-6"> {/* Menggunakan container */}
+      <div className="container mx-auto py-4 md:py-6">
+        {/* Judul halaman tidak ditampilkan saat error, atau bisa diganti */}
+         <div className="mb-4 flex flex-col md:flex-row justify-end items-center gap-2">
+             <Select onValueChange={handleMonthChange} value={displayMonth || ''}>
+                <SelectTrigger className="w-full md:w-[180px]">
+                    <SelectValue placeholder="Pilih Bulan" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="Semua">Semua Bulan</SelectItem>
+                    {months.map(month => ( <SelectItem key={month.value} value={month.value}> {month.label} </SelectItem> ))}
+                </SelectContent>
+            </Select>
+        </div>
         <Alert variant="destructive" className="m-4">
           <Terminal className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
+          <AlertTitle>Error Memuat Data</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       </div>
     );
   }
   
-  return (
-    // Menggunakan container mx-auto dan padding vertikal
-    <div className="container mx-auto"> 
-      <div className="mb-4 flex flex-col md:flex-row justify-between items-center gap-2"> {/* Menambah mb-4 */}
-        <h1 className="text-2xl font-semibold"></h1>
-        <Select onValueChange={handleMonthChange} value={selectedMonth}>
+  return ( 
+    <div className="container mx-auto py-4 md:py-6"> 
+      {/* Menghapus judul utama "Monitoring KSA (Kerangka Sampel Area)" */}
+      <div className="mb-4 flex flex-col md:flex-row justify-end items-center gap-2"> {/* Filter bulan di kanan atas */}
+        <Select onValueChange={handleMonthChange} value={displayMonth || ''}> 
           <SelectTrigger className="w-full md:w-[180px]">
             <SelectValue placeholder="Pilih Bulan" />
           </SelectTrigger>
@@ -279,20 +250,18 @@ export default function KsaMonitoringClientPage() {
         </Select>
       </div>
 
-      {/* Card Utama untuk tabel KSA */}
       <Card>
         <CardHeader>
+          {/* Mengubah CardTitle */}
           <CardTitle>
             Monitoring KSA Padi
           </CardTitle>
-          {/* Menampilkan lastUpdated di CardDescription */}
           <CardDescription>
             {!isLoading && lastUpdated && <span className="block text-sm text-gray-500 mt-1">Terakhir diperbarui: {lastUpdated}</span>}
-            {isLoading && <Skeleton className="h-4 w-[250px] mt-2" />}
+            {/* Skeleton untuk lastUpdated tidak perlu lagi di sini karena isLoading sudah menangani tampilan loading utama */}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {/* Menggunakan ScrollArea seperti di Ubinan */}
           <ScrollArea className="w-full rounded-md border"> 
             <Table>
               <TableHeader>
@@ -321,11 +290,9 @@ export default function KsaMonitoringClientPage() {
                   <TableRow>
                     <TableCell colSpan={columns.length} className="h-24 text-center">
                       Tidak ada data untuk ditampilkan
-                      {selectedMonth !== "Semua" && months.find(m => m.value === selectedMonth) 
-                        ? ` untuk bulan ${months.find(m => m.value === selectedMonth)?.label}.` 
+                      {displayMonth !== "Semua" && months.find(m => m.value === displayMonth) 
+                        ? ` untuk bulan ${months.find(m => m.value === displayMonth)?.label}.` 
                         : '.'}
-                      {selectedMonth === getPreviousMonthString() && hasAttemptedFallback && 
-                       ` Data bulan ini juga kosong.`}
                     </TableCell>
                   </TableRow>
                 )}
@@ -345,12 +312,11 @@ export default function KsaMonitoringClientPage() {
               )}
             </Table>
           </ScrollArea>
-          {/* Menampilkan pesan jika data benar-benar kosong setelah loading selesai */}
           {!isLoading && !error && (!dataKsa || dataKsa.length === 0) && (
             <p className="text-center text-gray-500 py-4">
-                Tidak ada data KSA ditemukan untuk Tahun {selectedYear}
-                {selectedMonth !== "Semua" && months.find(m => m.value === selectedMonth) 
-                    ? ` dan Bulan ${months.find(m => m.value === selectedMonth)?.label}` 
+                Tidak ada data KSA Padi ditemukan untuk Tahun {selectedYear}
+                {displayMonth !== "Semua" && months.find(m => m.value === displayMonth) 
+                    ? ` dan Bulan ${months.find(m => m.value === displayMonth)?.label}` 
                     : ''}.
             </p>
             )}
