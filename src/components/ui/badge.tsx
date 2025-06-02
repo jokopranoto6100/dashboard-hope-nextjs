@@ -12,16 +12,16 @@ const badgeVariants = cva(
       variant: {
         default:
           "border-transparent bg-primary text-primary-foreground [a&]:hover:bg-primary/90",
-        secondary: // Akan kita gunakan untuk NaN/abu-abu
+        secondary:
           "border-transparent bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90",
-        destructive: // Untuk < 50% (merah)
-          "border-transparent bg-destructive text-destructive-foreground [a&]:hover:bg-destructive/90", // Biasanya text-destructive-foreground adalah putih atau terang
+        destructive:
+          "border-transparent bg-destructive text-white [a&]:hover:bg-destructive/90",
         outline:
           "text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
-        success: // Baru: untuk >= 75% (hijau)
+        success: 
           "border-transparent bg-green-500 text-white [a&]:hover:bg-green-500/90",
-        warning: // Baru: untuk >= 50% && < 75% (kuning)
-          "border-transparent bg-yellow-500 text-yellow-900 [a&]:hover:bg-yellow-500/90", // text-yellow-900 untuk kontras
+        warning: 
+          "border-transparent bg-blue-500 text-white dark:bg-blue-600 [a&]:hover:bg-blue-500/90",
       },
     },
     defaultVariants: {

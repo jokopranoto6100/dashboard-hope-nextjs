@@ -6,16 +6,16 @@ import { createClientComponentSupabaseClient } from '@/lib/supabase';
 // import { toast } from 'sonner';
 import { useYear } from '@/context/YearContext';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'; // Removed unused CardDescription
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { usePadiMonitoringData } from '@/hooks/usePadiMonitoringData';
 import { usePalawijaMonitoringData } from '@/hooks/usePalawijaMonitoringData';
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { getPercentageBadgeVariant } from "@/lib/utils";
-import { CheckCircle2, TrendingUp, AlertTriangle, Info, TrendingDown } from "lucide-react";
+import { CheckCircle2, TrendingUp, AlertTriangle, Info, TrendingDown, PackagePlus } from "lucide-react";
 
 export default function HomePage() {
-  const supabase = createClientComponentSupabaseClient(); // Keep for potential future use or if auth state affects things
+  const supabase = createClientComponentSupabaseClient();
   const { selectedYear } = useYear();
 
   const ubinanSubround = 'all';
@@ -34,21 +34,12 @@ export default function HomePage() {
     lastUpdatePalawija
   } = usePalawijaMonitoringData(selectedYear, ubinanSubround);
 
-  // Komentari atau hapus logika fetchUserData jika tidak digunakan sama sekali
-  // React.useEffect(() => {
-  //   const fetchUserData = async () => { ... };
-  //   ...
-  //   fetchUserData();
-  //   return () => { ... };
-  // }, [supabase]);
-
-
   const getKpiBadge = (value: number | string | undefined, isPercentage = true, isChange = false) => {
     if (value === undefined || value === null || (typeof value === 'string' && value === "N/A")) {
       return { text: "N/A", variant: "default" as const, icon: null };
     }
     const numValue = typeof value === 'string' ? parseFloat(value) : value;
-    if (isNaN(numValue)) return { text: "Error", variant: "destructive" as const, icon: <AlertTriangle className="h-3 w-3" /> };
+    if (isNaN(numValue)) return { text: "Error", variant: "destructive" as const, icon: <AlertTriangle /> };
 
     let text = isPercentage ? `${numValue.toFixed(isChange ? 1 : 2)}%` : numValue.toString();
     let icon = null;
@@ -57,18 +48,18 @@ export default function HomePage() {
     if (isChange) {
       if (numValue > 0) {
         text = `+${text}`;
-        icon = <TrendingUp className="h-3 w-3" />;
+        icon = <TrendingUp />;
         variant = "success";
       } else if (numValue < 0) {
-        icon = <TrendingDown className="h-3 w-3" />;
+        icon = <TrendingDown />;
         variant = "destructive";
       } else {
-         icon = <Info className="h-3 w-3"/>;
+        icon = <Info />;
       }
     } else if (isPercentage) {
       variant = getPercentageBadgeVariant(numValue);
-      if (numValue >= 100) icon = <CheckCircle2 className="h-3 w-3" />;
-      else if (numValue < 70) icon = <AlertTriangle className="h-3 w-3" />;
+      if (numValue >= 100) icon = <CheckCircle2 />;
+      else if (numValue < 70) icon = <AlertTriangle />;
     }
     
     return { text, variant, icon };
@@ -76,18 +67,24 @@ export default function HomePage() {
 
   return (
     <>
-      <div className="grid gap-4 md:grid-cols-2 mb-6">
+      {/* <h1 className="text-3xl md:text-4xl font-bold mb-6">Selamat Datang di Dashboard HOPE!</h1> */}
+      
+      {/* Mengubah md:grid-cols-2 menjadi md:grid-cols-3 */}
+      <div className="grid gap-4 md:grid-cols-3 mb-6"> 
         {/* Card 1: Ringkasan Realisasi Padi */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Ringkasan Realisasi Padi ({selectedYear})</CardTitle>
             {loadingPadi ? <Skeleton className="h-5 w-12" /> :
-              padiTotals ? (
-                <Badge variant={getKpiBadge(padiTotals.persentase).variant} className="text-xs">
-                  {getKpiBadge(padiTotals.persentase).icon}
-                  <span className="ml-1">{getKpiBadge(padiTotals.persentase).text}</span>
-                </Badge>
-              ) : <Badge variant="outline" className="text-xs">N/A</Badge>
+              padiTotals ? (() => {
+                const badgeInfo = getKpiBadge(padiTotals.persentase);
+                return (
+                  <Badge variant={badgeInfo.variant}>
+                    {badgeInfo.icon}
+                    {badgeInfo.text && <span>{badgeInfo.text}</span>}
+                  </Badge>
+                );
+              })() : <Badge variant="outline">N/A</Badge>
             }
           </CardHeader>
           <CardContent>
@@ -95,8 +92,8 @@ export default function HomePage() {
               <>
                 <Skeleton className="h-8 w-3/4 mb-1" />
                 <Skeleton className="h-4 w-full mb-1" />
-                <Skeleton className="h-4 w-1/2 mb-1" />
-                <Skeleton className="h-4 w-1/2 mb-1" />
+                <Skeleton className="h-5 w-1/2 mb-1" />
+                <Skeleton className="h-5 w-1/2 mb-1" />
                 <Skeleton className="h-4 w-2/3 mt-1" />
               </>
             ) : errorPadi ? (
@@ -107,11 +104,17 @@ export default function HomePage() {
                 <p className="text-xs text-muted-foreground">
                   Realisasi: {padiTotals.realisasi} dari {padiTotals.targetUtama} Target Utama
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Total Lewat Panen: <span className="font-semibold">{padiTotals.lewatPanen}</span>
+                <p className="text-xs text-muted-foreground mt-1 flex items-center flex-wrap">
+                  Total Lewat Panen:&nbsp;
+                  <Badge variant="destructive">
+                    {padiTotals.lewatPanen}
+                  </Badge>
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Jumlah Anomali: <span className="font-semibold">{padiTotals.anomali}</span>
+                <p className="text-xs text-muted-foreground mt-1 flex items-center flex-wrap">
+                  Jumlah Anomali:&nbsp;
+                  <Badge variant="destructive">
+                    {padiTotals.anomali}
+                  </Badge>
                 </p>
                 {lastUpdate && <p className="text-xs text-muted-foreground mt-1">Data per: {lastUpdate}</p>}
               </>
@@ -125,21 +128,24 @@ export default function HomePage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Ringkasan Realisasi Palawija ({selectedYear})</CardTitle>
-             {loadingPalawija ? <Skeleton className="h-5 w-12" /> :
-              palawijaTotals ? (
-                <Badge variant={getKpiBadge(parseFloat(palawijaTotals.persentase.toString())).variant} className="text-xs">
-                   {getKpiBadge(parseFloat(palawijaTotals.persentase.toString())).icon}
-                   <span className="ml-1">{getKpiBadge(parseFloat(palawijaTotals.persentase.toString())).text}</span>
-                </Badge>
-              ) : <Badge variant="outline" className="text-xs">N/A</Badge>
+            {loadingPalawija ? <Skeleton className="h-5 w-12" /> :
+              palawijaTotals ? (() => {
+                const badgeInfo = getKpiBadge(parseFloat(palawijaTotals.persentase.toString()));
+                return (
+                  <Badge variant={badgeInfo.variant}>
+                    {badgeInfo.icon}
+                    {badgeInfo.text && <span>{badgeInfo.text}</span>}
+                  </Badge>
+                );
+              })() : <Badge variant="outline">N/A</Badge>
             }
-          </CardHeader> {/* CORRECTED THIS LINE */}
+          </CardHeader>
           <CardContent>
             {loadingPalawija ? (
               <>
                 <Skeleton className="h-8 w-3/4 mb-1" />
                 <Skeleton className="h-4 w-full mb-1" />
-                <Skeleton className="h-4 w-full mb-1" />
+                <Skeleton className="h-5 w-full mb-1" />
                 <Skeleton className="h-4 w-2/3 mt-1" />
               </>
             ) : errorPalawija ? (
@@ -150,9 +156,18 @@ export default function HomePage() {
                 <p className="text-xs text-muted-foreground">
                   Realisasi: {palawijaTotals.realisasi} dari {palawijaTotals.target} Target
                 </p>
-                <p className="text-xs text-muted-foreground mt-1 truncate" title={`Clean: ${palawijaTotals.clean}, Warning: ${palawijaTotals.warning}, Error: ${palawijaTotals.error}`}>
-                  Status Validasi: C:{palawijaTotals.clean}, W:{palawijaTotals.warning}, E:{palawijaTotals.error}
-                </p>
+                <div className="text-xs text-muted-foreground mt-1 flex flex-wrap items-center gap-1">
+                  Status Validasi:&nbsp;
+                  <Badge variant="success">
+                    Clean: {palawijaTotals.clean}
+                  </Badge>
+                  <Badge variant="warning">
+                    Warning: {palawijaTotals.warning}
+                  </Badge>
+                  <Badge variant="destructive">
+                    Error: {palawijaTotals.error}
+                  </Badge>
+                </div>
                 {lastUpdatePalawija && <p className="text-xs text-muted-foreground mt-1">Data per: {lastUpdatePalawija}</p>}
               </>
             ) : (
@@ -160,6 +175,20 @@ export default function HomePage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Card 3: KPI Kosong / Mendatang */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Kegiatan Lainnya</CardTitle>
+            <Badge variant="outline"><PackagePlus /></Badge> 
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-8 w-3/4 mb-1" />
+            <Skeleton className="h-4 w-full mb-1" />
+            <Skeleton className="h-4 w-1/2" />
+          </CardContent>
+        </Card>
+
       </div>
 
       <p className="mt-12 text-gray-600 text-center text-sm">
