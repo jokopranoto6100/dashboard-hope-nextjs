@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 // src/app/(dashboard)/page.tsx
 "use client";
 
@@ -10,11 +9,23 @@ import { useYear } from '@/context/YearContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { usePadiMonitoringData } from '@/hooks/usePadiMonitoringData';
 import { usePalawijaMonitoringData } from '@/hooks/usePalawijaMonitoringData';
-import { useKsaMonitoringData } from '@/hooks/useKsaMonitoringData'; // Impor hook KSA
+import { useKsaMonitoringData } from '@/hooks/useKsaMonitoringData'; // Menggunakan hook KSA yang baru
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { getPercentageBadgeVariant } from "@/lib/utils";
-import { CheckCircle2, TrendingUp, AlertTriangle, Info, TrendingDown, PackagePlus } from "lucide-react"; // Menambahkan BarChart3 untuk KSA
+import { CheckCircle2, TrendingUp, AlertTriangle, Info, TrendingDown, PackagePlus } from "lucide-react";
+
+// Fungsi helper untuk mendapatkan nama bulan dalam Bahasa Indonesia
+const getMonthName = (monthNumberStr: string | undefined): string => {
+  if (!monthNumberStr || monthNumberStr.toLowerCase() === "semua") return "Semua Bulan (Tahunan)";
+  const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", 
+                      "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+  const monthIndex = parseInt(monthNumberStr, 10) - 1;
+  if (monthIndex >= 0 && monthIndex < 12) {
+    return monthNames[monthIndex];
+  }
+  return monthNumberStr; // Fallback jika bukan angka 1-12 atau format tak dikenal
+};
 
 export default function HomePage() {
   const supabase = createClientComponentSupabaseClient();
@@ -36,13 +47,18 @@ export default function HomePage() {
     lastUpdatePalawija
   } = usePalawijaMonitoringData(selectedYear, ubinanSubround);
 
-  // Memanggil hook KSA. selectedMonthParams tidak diisi, akan mengambil data tahunan.
+  // Tentukan bulan saat ini untuk requestedMonth
+  const currentJsMonth = new Date().getMonth(); // 0-11
+  const currentMonthParam = String(currentJsMonth + 1); // Konversi ke string "1"-"12"
+
   const { 
-    totals: ksaTotals, 
+    districtTotals: ksaTotals, 
     isLoading: loadingKsa, 
     error: errorKsa, 
-    lastUpdated: lastUpdatedKsa 
-  } = useKsaMonitoringData();
+    lastUpdated: lastUpdatedKsa,
+    effectiveDisplayMonth, // Ambil dari hook
+    uniqueStatusNames // Ambil dari hook
+  } = useKsaMonitoringData(currentMonthParam, 'autoFallback'); // Gunakan bulan saat ini dan behavior autoFallback
 
   const getKpiBadge = (value: number | string | undefined, isPercentage = true, isChange = false) => {
     if (value === undefined || value === null || (typeof value === 'string' && value === "N/A")) {
@@ -79,8 +95,8 @@ export default function HomePage() {
     <>
       {/* <h1 className="text-3xl md:text-4xl font-bold mb-6">Selamat Datang di Dashboard HOPE!</h1> */}
       
-      <div className="grid gap-4 md:grid-cols-3 mb-6"> {/* Tetap menggunakan md:grid-cols-4 */}
-        {/* Card 1: Ringkasan Realisasi Padi */}
+      <div className="grid gap-4 md:grid-cols-3 mb-6">
+        {/* Card 1: Ubinan Padi */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Ubinan Padi ({selectedYear})</CardTitle>
@@ -133,7 +149,7 @@ export default function HomePage() {
           </CardContent>
         </Card>
 
-        {/* Card 2: Ringkasan Realisasi Palawija */}
+        {/* Card 2: Ubinan Palawija */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Ubinan Palawija ({selectedYear})</CardTitle>
@@ -185,10 +201,12 @@ export default function HomePage() {
           </CardContent>
         </Card>
 
-        {/* Card 3: Ringkasan KSA */}
+        {/* Card 3: KSA Padi */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">KSA Padi ({selectedYear})</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              KSA Padi ({selectedYear}) - {getMonthName(effectiveDisplayMonth)}
+            </CardTitle>
             {loadingKsa ? <Skeleton className="h-5 w-12" /> :
               ksaTotals ? (() => {
                 const badgeInfo = getKpiBadge(ksaTotals.persentase);
@@ -205,10 +223,12 @@ export default function HomePage() {
             {loadingKsa ? (
               <>
                 <Skeleton className="h-8 w-3/4 mb-1" />
-                <Skeleton className="h-4 w-full mb-1" /> {/* Realisasi dari Target */}
-                <Skeleton className="h-5 w-1/2 mb-1" /> {/* Inkonsisten */}
-                <Skeleton className="h-4 w-1/2 mb-1" /> {/* Kode 12 */}
-                <Skeleton className="h-4 w-2/3 mt-1" /> {/* Data per */}
+                <Skeleton className="h-4 w-full mb-1" />
+                <Skeleton className="h-5 w-1/2 mb-1" />
+                <Skeleton className="h-4 w-1/2 mb-1" />
+                <Skeleton className="h-4 w-full mt-2 pt-2 border-t" /> {/* Skeleton for Detail Status title */}
+                <Skeleton className="h-5 w-3/4 mt-1" /> {/* Skeleton for status badges line */}
+                <Skeleton className="h-4 w-2/3 mt-1" />
               </>
             ) : errorKsa ? (
               <p className="text-xs text-red-500">Error: {errorKsa}</p>
@@ -231,6 +251,35 @@ export default function HomePage() {
                 <p className="text-xs text-muted-foreground mt-1">
                   Total Kode 12: <span className="font-semibold">{ksaTotals.kode_12}</span>
                 </p>
+                
+                {ksaTotals.statuses && uniqueStatusNames && uniqueStatusNames.length > 0 && (
+                  <div className="text-xs text-muted-foreground mt-2 pt-2 border-t">
+                    <h4 className="font-semibold mb-1 text-foreground">Detail Status KSA:</h4>
+                    <div className="flex flex-wrap gap-1">
+                      {uniqueStatusNames.map(statusName => {
+                        const statusData = ksaTotals.statuses?.[statusName];
+                        if (statusData) {
+                          // Tentukan varian badge berdasarkan nama status jika diinginkan
+                          // Contoh sederhana:
+                          let statusVariant: "default" | "secondary" | "destructive" | "success" | "warning" = "secondary";
+                          if (statusName.toLowerCase().includes("selesai") || statusName.toLowerCase().includes("panen")) statusVariant = "success";
+                          if (statusName.toLowerCase().includes("belum") || statusName.toLowerCase().includes("kosong")) statusVariant = "default";
+
+
+                          return (
+                            <Badge key={statusName} variant={statusVariant}>
+                              {statusName}: {statusData.count} 
+                              {/* Menampilkan persentase jika relevan, misalnya jika totalEntriesWithStatus ada di KsaDistrictTotals dan > 0 */}
+                              {/* ({statusData.percentage.toFixed(1)}%) */}
+                            </Badge>
+                          );
+                        }
+                        return null;
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 {lastUpdatedKsa && <p className="text-xs text-muted-foreground mt-1">Data per: {lastUpdatedKsa}</p>}
               </>
             ) : (
