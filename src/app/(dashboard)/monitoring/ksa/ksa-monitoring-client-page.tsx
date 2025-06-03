@@ -396,8 +396,8 @@ export default function KsaMonitoringClientPage() {
     );
   }
   
-  const renderTable = (
-    tableInstance: any, // Adjust type for ReactTable instance
+const renderTable = (
+    tableInstance: any, 
     dataArray: any[], 
     columnsArray: ColumnDef<any,any>[], 
     viewType: ViewMode,
@@ -420,15 +420,17 @@ export default function KsaMonitoringClientPage() {
                   data-state={row.getIsSelected() && "selected"}
                   onClick={viewType === 'district' ? () => handleDistrictRowClick(row.original as ProcessedKsaDistrictData) : undefined}
                   className={viewType === 'district' ? "cursor-pointer hover:bg-muted/50" : ""}
-                >
+                >{/* Ensure no newline/whitespace before this curly brace */}
                   {row.getVisibleCells().map((cell:any) => (
                     <TableCell key={cell.id} style={{ width: cell.column.getSize(), minWidth: cell.column.columnDef.minSize ? `${cell.column.columnDef.minSize}px` : undefined }} className="p-2">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
-                </TableRow>
+                </TableRow>/* Ensure no newline/whitespace after the closing curly brace and before this closing tag */
                 ))
-            ) : ( <TableRow> <TableCell colSpan={columnsArray.length} className="h-24 text-center"> Tidak ada data untuk ditampilkan {displayMonth !== "Semua" && months.find(m => m.value === displayMonth) ? ` untuk bulan ${months.find(m => m.value === displayMonth)?.label}.` : '.'} </TableCell> </TableRow> )}
+            ) : ( /* Corrected structure for empty data row as well */
+                <TableRow><TableCell colSpan={columnsArray.length} className="h-24 text-center"> Tidak ada data untuk ditampilkan {displayMonth !== "Semua" && months.find(m => m.value === displayMonth) ? ` untuk bulan ${months.find(m => m.value === displayMonth)?.label}.` : '.'} </TableCell></TableRow> 
+            )}
             </TableBody>
             {totalsData && dataArray && dataArray.length > 0 && (
             <tfoot className="bg-muted/50 font-semibold">
