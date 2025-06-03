@@ -401,12 +401,16 @@ export default function KsaMonitoringClientPage() {
             {tableInstance.getRowModel().rows?.length ? (
                 tableInstance.getRowModel().rows.map((row:any) => (
                 <TableRow 
-                    key={row.id} 
-                    data-state={row.getIsSelected() && "selected"}
-                    onClick={viewType === 'district' ? () => handleDistrictRowClick(row.original as ProcessedKsaDistrictData) : undefined}
-                    className={viewType === 'district' ? "cursor-pointer hover:bg-muted/50" : ""}
+                  key={row.id} 
+                  data-state={row.getIsSelected() && "selected"}
+                  onClick={viewType === 'district' ? () => handleDistrictRowClick(row.original as ProcessedKsaDistrictData) : undefined}
+                  className={viewType === 'district' ? "cursor-pointer hover:bg-muted/50" : ""}
                 >
-                    {row.getVisibleCells().map((cell:any) => ( <TableCell key={cell.id} style={{ width: cell.column.getSize(), minWidth: cell.column.columnDef.minSize ? `${cell.column.columnDef.minSize}px` : undefined }} className="p-2"> {flexRender(cell.column.columnDef.cell, cell.getContext())} </TableCell> ))}
+                  {row.getVisibleCells().map((cell:any) => (
+                    <TableCell key={cell.id} style={{ width: cell.column.getSize(), minWidth: cell.column.columnDef.minSize ? `${cell.column.columnDef.minSize}px` : undefined }} className="p-2">
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
                 </TableRow>
                 ))
             ) : ( <TableRow> <TableCell colSpan={columnsArray.length} className="h-24 text-center"> Tidak ada data untuk ditampilkan {displayMonth !== "Semua" && months.find(m => m.value === displayMonth) ? ` untuk bulan ${months.find(m => m.value === displayMonth)?.label}.` : '.'} </TableCell> </TableRow> )}
