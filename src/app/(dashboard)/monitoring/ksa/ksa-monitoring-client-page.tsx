@@ -25,10 +25,8 @@ import {
 
 import { 
     useKsaMonitoringData, 
-    ProcessedKsaDistrictData, // Updated interface name
-    // KsaDistrictTotals, // Interface for district totals (implicitly used via ksaTotals)
-    ProcessedKsaNamaData,    // New interface for nama data
-    // KsaNamaTotals, // Interface for nama totals (implicitly used via namaLevelTotals)
+    ProcessedKsaDistrictData,
+    ProcessedKsaNamaData,
     StatusValue 
 } from '@/hooks/useKsaMonitoringData';
 
@@ -193,7 +191,7 @@ export default function KsaMonitoringClientPage() {
     const fixedStartCols: ColumnDef<ProcessedKsaNamaData, any>[] = [
       {
         accessorKey: 'nama', // Grouped by 'nama'
-        header: () => <div className="text-left pl-2">Nama Responden/Segmen</div>, 
+        header: () => <div className="text-left pl-2">Nama Petugas</div>, 
         cell: ({ row }) => <div className="text-left pl-2">{row.original.nama}</div>,
         footer: () => <div className="text-left pl-2 font-bold">Total {selectedKabupatenDetail?.kabupaten || ''}</div>,
         size: 200, minSize: 180, enableSorting: false,

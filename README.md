@@ -114,30 +114,36 @@ Migrasi ini berfokus pada arsitektur yang lebih modern, performa, skalabilitas, 
     * **Revalidasi Data**: `revalidatePath('/pengguna')` digunakan di Server Actions untuk memastikan data di halaman diperbarui setelah aksi.
 
 8.  **Monitoring KSA (Halaman `/monitoring/ksa`):**
-    * **Nama Halaman & Judul Kartu:** Halaman didedikasikan untuk "Monitoring KSA Padi".
-    * **Data Fetching Modular:** Menggunakan *custom hook* baru `useKsaMonitoringData.ts` untuk pengambilan dan pemrosesan data dari tabel `ksa_amatan` di Supabase. Mengimplementasikan logika paginasi untuk mengambil semua record.
+    * **Nama Halaman & Judul Kartu Dinamis:** Judul halaman dan kartu berubah secara dinamis, menampilkan "Monitoring KSA Padi" untuk tampilan level kabupaten, dan "Detail KSA Padi - \[Nama Kabupaten]" saat melihat detail per `nama` dalam suatu kabupaten.
+    * **Data Fetching Modular:** Menggunakan *custom hook* `useKsaMonitoringData.ts` untuk pengambilan dan pemrosesan data dari tabel `ksa_amatan` di Supabase. Hook ini sekarang mengelola data untuk dua level tampilan (kabupaten dan detail per `nama`). Mengimplementasikan logika paginasi untuk mengambil semua record.
     * **Filtering Data:**
         * Terintegrasi dengan filter `YearContext` global.
-        * Filter Bulan lokal menggunakan komponen `Select` (`shadcn/ui`), diposisikan di kanan atas kartu tabel.
-        * **Logika Default Bulan Cerdas:** Filter bulan secara otomatis memprioritaskan bulan berjalan. Jika data bulan berjalan kosong, hook secara internal akan mengambil dan menampilkan data bulan sebelumnya untuk pengalaman pengguna yang lebih baik tanpa "glitch" tabel kosong.
-    * **Tampilan Tabel Interaktif (TanStack Table & shadcn/ui):**
-        * Menampilkan data KSA dalam tabel yang responsif dan dapat di-*scroll* (menggunakan `ScrollArea`).
-        * **Kolom Utama:** Kabupaten/Kota (rata kiri), Target, Realisasi, Persentase (%), Inkonsisten, dan Kode 12 (rata tengah).
-        * **Pengurutan Kolom (Sorting):**
-            * Dinonaktifkan untuk kolom "Kabupaten/Kota", "Target", dan "Realisasi".
-            * Diaktifkan untuk kolom "Persentase (%)", "Inkonsisten", dan "Kode 12".
-        * **Pengelompokan & Pengurutan Data:** Data dikelompokkan berdasarkan `kabupaten` dan diurutkan berdasarkan `kode_kab`.
-        * **Perhitungan Kolom Spesifik:**
-            * `Target`: Dihitung dari jumlah baris yang memiliki isian pada kolom `subsegmen`.
-            * `Realisasi`: Dihitung dari jumlah baris yang memiliki isian pada kolom `n`.
-            * `Persentase (%)`: Dihitung sebagai `(Realisasi / Target) * 100` dan divisualisasikan menggunakan komponen `Badge` (`shadcn/ui`) dengan warna dan ikon ceklis (`CheckCircle2`) yang dinamis berdasarkan nilai (menggunakan utilitas `getPercentageBadgeVariant`).
-            * `Inkonsisten`: Dihitung dari jumlah baris di mana kolom `evaluasi` bernilai `'inkonsisten'`.
-            * `Kode 12`: Dihitung dari penjumlahan baris dengan `n = 12` dan baris yang memiliki isian pada `flag_kode_12`.
-        * **Baris Total Keseluruhan:** Menampilkan label "Kalimantan Barat" di kolom pertama dan nilai agregat total untuk semua kolom numerik.
-        * **Informasi "Terakhir Diperbarui":** Menampilkan *timestamp* dari kolom `tanggal` maksimum data yang ditampilkan, diletakkan di `CardDescription` untuk konsistensi.
-    * **Layout & Styling:** Mengikuti konsistensi desain dengan halaman Monitoring Ubinan, termasuk struktur `Card`, `CardHeader`, `CardTitle`, `CardDescription`, dan `CardContent`.
-
-
+        * Filter Bulan lokal menggunakan komponen `Select` (`shadcn/ui`), diposisikan di kanan atas kartu tabel. Filter ini berlaku untuk tampilan level kabupaten. Perubahan bulan akan mengembalikan tampilan ke level kabupaten.
+        * **Logika Default Bulan Cerdas:** Filter bulan secara otomatis memprioritaskan bulan berjalan. Jika data bulan berjalan kosong, hook secara internal akan mengambil dan menampilkan data bulan sebelumnya.
+    * **Tampilan Tabel Interaktif Dua Level (TanStack Table & shadcn/ui):**
+        * **Level Kabupaten/Kota (Tampilan Awal):**
+            * Menampilkan data KSA yang dikelompokkan berdasarkan `kabupaten` dalam tabel yang responsif dan dapat di-*scroll*.
+            * **Kolom Utama:** Kabupaten/Kota (rata kiri), Target, Realisasi, Persentase (%), Kolom Status Dinamis (berdasarkan data `status` yang ada, misal "Selesai", "Belum Selesai", dll., menampilkan jumlah dan persentase), Inkonsisten, dan Kode 12 (rata tengah).
+            * **Baris Dapat Diklik:** Setiap baris Kabupaten/Kota dapat diklik untuk melihat detail data yang dikelompokkan berdasarkan kolom `nama` untuk kabupaten tersebut.
+            * **Pengurutan Kolom (Sorting):** Diaktifkan untuk kolom "Persentase (%)", kolom status dinamis, "Inkonsisten", dan "Kode 12". Dinonaktifkan untuk "Kabupaten/Kota", "Target", dan "Realisasi".
+            * **Pengurutan Data:** Data diurutkan berdasarkan `kode_kab`.
+            * **Perhitungan Kolom Spesifik:**
+                * `Target`: Dihitung dari jumlah baris yang memiliki isian pada kolom `subsegmen`.
+                * `Realisasi`: Dihitung dari jumlah baris yang memiliki isian pada kolom `n`.
+                * `Persentase (%)`: Dihitung sebagai `(Realisasi / Target) * 100` dan divisualisasikan menggunakan komponen `Badge` (`shadcn/ui`) dengan warna dan ikon ceklis (`CheckCircle2`) yang dinamis.
+                * `Kolom Status Dinamis`: Untuk setiap status unik yang ditemukan (misalnya, "Selesai", "Proses"), menampilkan jumlah entri dan persentasenya relatif terhadap total entri yang memiliki status di kabupaten tersebut.
+                * `Inkonsisten`: Dihitung dari jumlah baris di mana kolom `evaluasi` bernilai `'Inkonsisten'`.
+                * `Kode 12`: Dihitung dari penjumlahan baris dengan `n = 12` dan baris yang memiliki isian pada `flag_kode_12`.
+            * **Baris Total Keseluruhan:** Menampilkan label "Kalimantan Barat" dan nilai agregat total untuk semua kolom numerik dan status.
+        * **Level Detail per `nama` (Setelah Klik Kabupaten):**
+            * Menampilkan data KSA untuk kabupaten yang dipilih, dikelompokkan berdasarkan kolom `nama` (misalnya, nama responden atau segmen).
+            * **Tombol Navigasi "Kembali":** Tersedia tombol untuk kembali ke tampilan level Kabupaten/Kota.
+            * **Kolom Utama:** Nama (rata kiri), Target, Realisasi, Persentase (%), Kolom Status Dinamis, Inkonsisten, dan Kode 12, dengan perhitungan yang sama seperti level kabupaten tetapi diagregasi per `nama` dalam kabupaten tersebut.
+            * **Pengurutan Kolom (Sorting):** Serupa dengan level kabupaten, berlaku untuk kolom yang relevan.
+            * **Pengurutan Data:** Data diurutkan berdasarkan `nama`.
+            * **Baris Total untuk Kabupaten Terpilih:** Menampilkan label "Total \[Nama Kabupaten]" dan nilai agregat untuk semua kolom numerik dan status di level `nama`.
+    * **Informasi "Terakhir Diperbarui":** Menampilkan *timestamp* dari kolom `tanggal` maksimum data yang ditampilkan, diletakkan di `CardDescription`.
+    * **Layout & Styling:** Mengikuti konsistensi desain dengan halaman Monitoring Ubinan.
 ## 📁 Struktur Folder Proyek
 Dashboard Pertanian/
 ├── .next/                         # Cache Next.js (dihapus saat debugging)
