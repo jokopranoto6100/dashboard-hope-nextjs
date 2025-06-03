@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/app/(dashboard)/monitoring/ksa/ksa-monitoring-client-page.tsx
 "use client";
 
@@ -97,7 +98,7 @@ export default function KsaMonitoringClientPage() {
   ];
 
   // Columns for District Level Table
-  const districtColumns = useMemo<ColumnDef<ProcessedKsaDistrictData, any>[]>(() => {
+  const districtColumns = useMemo<ColumnDef<ProcessedKsaDistrictData, never>[]>(() => {
     const fixedStartCols: ColumnDef<ProcessedKsaDistrictData, any>[] = [
       {
         accessorKey: 'kabupaten',
@@ -329,26 +330,40 @@ export default function KsaMonitoringClientPage() {
           </CardHeader>
           <CardContent>
             <div className="rounded-md border">
-                <Table>
+              <Table>
                 <TableHeader>
-                    <TableRow>
+                  <TableRow>
                     {currentSkeletonColumnsConfig.map((col) => (
-                        <TableHead key={col.id} style={{ width: col.size ? `${col.size}px` : 'auto', minWidth: col.minSize ? `${col.minSize}px` : 'auto' }}>
+                      <TableHead
+                        key={col.id}
+                        style={{
+                          width: col.size ? `${col.size}px` : 'auto',
+                          minWidth: col.minSize ? `${col.minSize}px` : 'auto',
+                        }}
+                      >
                         <Skeleton className="h-5 w-full" />
-                        </TableHead>
+                      </TableHead>
                     ))}
-                    </TableRow>
+                  </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {Array.from({ length: 5 }).map((_, rowIndex) => (
-                    <TableRow key={rowIndex}>
-                        {currentSkeletonColumnsConfig.map((col) => (
-                            <TableCell key={col.id} style={{ width: col.size ? `${col.size}px` : 'auto', minWidth: col.minSize ? `${col.minSize}px` : 'auto' }}>
-                            <Skeleton className="h-5 w-full" />
-                            </TableCell>
-                        ))}
-                    </TableRow>
-                    ))}
+                  {Array.from({ length: 5 }).map((_, rowIndex) => (
+                    <TableRow
+                      key={rowIndex}
+                      data-slot="table-row"
+                      className="hover:bg-muted/50 data-[state=selected]:bg-muted border-b transition-colors"
+                    >{currentSkeletonColumnsConfig.map((col) => (
+                        <TableCell
+                          key={col.id}
+                          style={{
+                            width: col.size ? `${col.size}px` : 'auto',
+                            minWidth: col.minSize ? `${col.minSize}px` : 'auto',
+                          }}
+                        >
+                          <Skeleton className="h-5 w-full" />
+                        </TableCell>
+                      ))}</TableRow> // <-- tanpa spasi/newline di dalam <TableRow>
+                  ))}
                 </TableBody>
                 </Table>
             </div>
