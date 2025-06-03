@@ -32,7 +32,7 @@ async function getUsersForAdmin(): Promise<ManagedUser[]> {
 }
 
 export default async function ManajemenPenggunaPage() {
-  const cookieStore = cookies();
+  const cookieStore = await cookies(); // ✅ Perbaiki di sini
   const supabase = createServerComponentSupabaseClient(cookieStore);
 
   const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser();
@@ -50,7 +50,6 @@ export default async function ManajemenPenggunaPage() {
 
   let users: ManagedUser[] = [];
   let fetchError: string | null = null;
-  // console.log("ManajemenPenggunaPage: Rendering page, will call getUsersForAdmin."); // Dihapus
 
   try {
     users = await getUsersForAdmin();

@@ -7,7 +7,7 @@ import { createServerComponentSupabaseClient } from '@/lib/supabase';
 import { supabaseServer } from '@/lib/supabase-server';
 
 async function verifySuperAdmin() {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const supabase = createServerComponentSupabaseClient(cookieStore);
   const { data: { user }, error: getUserError } = await supabase.auth.getUser();
 
