@@ -144,6 +144,36 @@ Migrasi ini berfokus pada arsitektur yang lebih modern, performa, skalabilitas, 
             * **Baris Total untuk Kabupaten Terpilih:** Menampilkan label "Total \[Nama Kabupaten]" dan nilai agregat untuk semua kolom numerik dan status di level `nama`.
     * **Informasi "Terakhir Diperbarui":** Menampilkan *timestamp* dari kolom `tanggal` maksimum data yang ditampilkan, diletakkan di `CardDescription`.
     * **Layout & Styling:** Mengikuti konsistensi desain dengan halaman Monitoring Ubinan.
+
+9.  **Evaluasi Ubinan (Halaman `/evaluasi/ubinan`) - (Fitur Baru):**
+    * **Tujuan Halaman**: Menyajikan analisis statistik deskriptif dari data ubinan mentah (`ubinan_raw`).
+    * **Struktur Komponen**:
+        * **`src/app/(dashboard)/evaluasi/ubinan/page.tsx`**: Server component sebagai entry point, menyediakan provider context filter halaman.
+        * **`src/app/(dashboard)/evaluasi/ubinan/evaluasi-ubinan-client.tsx`**: Client component utama untuk menampilkan UI interaktif (filter dan tabel).
+        * **`src/context/UbinanEvaluasiFilterContext.tsx`**: React Context untuk mengelola filter spesifik halaman evaluasi ubinan (Subround dan Komoditas). Mengambil opsi filter unik dari database dengan paginasi untuk memastikan semua opsi termuat.
+        * **`src/hooks/useUbinanDescriptiveStatsData.ts`**: Custom hook untuk:
+            * Mengambil data dari tabel `ubinan_raw` berdasarkan filter global tahun (dari `YearContext`) dan filter halaman (Subround, Komoditas dari `UbinanEvaluasiFilterContext`).
+            * Hanya memproses record di mana `r701` (hasil ubinan) tidak null.
+            * Menerapkan faktor konversi pada `r701` jika unit diubah melalui UI.
+            * Menghitung statistik deskriptif (Jumlah Sampel, Rata-rata, Median, Min, Max, Standar Deviasi, Kuartil 1, Kuartil 3) untuk `r701` per kabupaten/kota.
+            * Menghitung statistik deskriptif agregat untuk "Kalimantan Barat".
+            * Mengelola paginasi internal untuk mengambil semua record yang relevan dari Supabase.
+        * **`src/app/(dashboard)/evaluasi/ubinan/descriptive-stats-columns.tsx`**: Definisi kolom untuk `TanStack Table`, termasuk rendering data statistik dan informasi footer untuk agregat "Kalimantan Barat". Kolom dibuat rata tengah.
+    * **Fitur Interaktif**:
+        * **Filter Halaman**:
+            * Filter **Subround** (`Select` dari `shadcn/ui`): Memungkinkan pengguna memilih subround tertentu atau "Semua Subround".
+            * Filter **Komoditas** (`Select` dari `shadcn/ui`): Memungkinkan pengguna memilih komoditas. Default ke komoditas pertama yang tersedia, tidak ada opsi "Semua Komoditas".
+            * Filter diposisikan di kanan atas, di luar kartu tabel.
+        * **Tabel Statistik Deskriptif**:
+            * Menampilkan statistik untuk `r701` yang dikelompokkan berdasarkan Kabupaten/Kota. Nama kabupaten diambil menggunakan pemetaan dari `src/lib/utils.ts`.
+            * Semua kolom data dan header di tabel rata tengah.
+            * **Tombol Switch Unit**: Komponen `Switch` (`shadcn/ui`) di pojok kanan atas kartu tabel untuk mengubah satuan `r701` antara "kg/plot" (default) dan "kuintal/hektar" (nilai `r701` dikalikan 16). Perubahan unit ini akan memicu perhitungan ulang statistik pada tabel. Header kolom yang relevan juga menampilkan unit yang aktif.
+            * **Baris Footer "Kalimantan Barat"**: Menampilkan nilai agregat statistik deskriptif untuk seluruh Provinsi Kalimantan Barat berdasarkan data yang terfilter.
+        * Data tabel dapat diurutkan.
+    * **Modularitas**: Mengikuti pola modular dengan pemisahan komponen, hook, dan context untuk kemudahan pemeliharaan.
+
+
+    
 ## 📁 Struktur Folder Proyek
 Dashboard Pertanian/
 ├── .next/                         # Cache Next.js (dihapus saat debugging)
@@ -165,6 +195,11 @@ Dashboard Pertanian/
 │   │   │   │   ├── ksa/
 │   │   │   │   │   ├── page.tsx                       # Halaman Monitoring KSA (Server Component)
 │   │   │   │   │   └── ksa-monitoring-client-page.tsx # Komponen Klien untuk tabel KSA
+│   │   │   ├── evaluasi/                          # Folder Baru
+│   │   │   │   └── ubinan/                        # Halaman Evaluasi Ubinan
+│   │   │   │       ├── page.tsx                   # Server Component Evaluasi Ubinan
+│   │   │   │       ├── evaluasi-ubinan-client.tsx # Client Component Evaluasi Ubinan
+│   │   │   │       └── descriptive-stats-columns.tsx # Definisi Kolom Tabel Statistik
 │   │   │   ├── pengguna/
 │   │   │   │   └── _action.ts
 │   │   │   │   ├── page.tsx
@@ -211,17 +246,20 @@ Dashboard Pertanian/
 │   │   │   ├── tooltip.tsx
 │   │   └── ... (komponen umum lainnya)
 │   ├── context/
-│   │   ├── YearContext.tsx             # Context untuk filter tahun global
-│   │   └── AuthContext.tsx
+│   │   ├── YearContext.tsx             
+│   │   ├── AuthContext.tsx
+│   │   └── UbinanEvaluasiFilterContext.tsx # Context Baru
 │   ├── hooks/
 │   │   ├── usePadiMonitoringData.ts     # Hook untuk fetching & processing data Padi
 │   │   └── usePalawijaMonitoringData.ts # Hook untuk fetching & processing data Palawija
 │   │   └── useKsaMonitoringData.ts    # Hook untuk fetching & processing data KSA
+│   │   └── useUbinanDescriptiveStatsData.ts # Hook untuk fetching data deskriptive ubinan
 │   ├── lib/
 │   │   ├── sidebar-data.ts 
 │   │   ├── supabase-server.ts 
 │   │   ├── supabase.ts              # Konfigurasi Supabase client
 │   │   ├── utils.ts                 # Utility functions (misal: cn, getPercentageBadgeVariant)
+│   │   └── database.types.ts 
 │   ├── middleware.ts                # Middleware Next.js untuk otentikasi
 ├── .env.local                       # Variabel lingkungan
 ├── next.config.js                   # Konfigurasi Next.js
@@ -296,7 +334,6 @@ Dashboard Pertanian/
     supabase link --project-ref your-project-id # Ganti dengan ID proyek Anda
     supabase gen types typescript --project-id "your-project-id" --schema public > src/lib/database.types.ts
     ```
-   
 
 7.  **Pembersihan Cache & Mulai Aplikasi:**
     ```bash
@@ -308,29 +345,18 @@ Dashboard Pertanian/
     Aplikasi akan berjalan di `http://localhost:3000`. Anda akan diarahkan ke halaman login jika rute awal dilindungi.
 
 ## 🌐 Daftar Route Penting
+* `/`: Dashboard Utama
+* `/auth/login`: Halaman Login
+* `/auth/register`: Halaman Registrasi
+* `/monitoring/ubinan`: Monitoring Ubinan Padi & Palawija
+* `/monitoring/ksa`: Monitoring KSA Padi
+* `/pengguna`: Halaman Manajemen Pengguna (hanya untuk `super_admin`)
+* `/evaluasi/ubinan`: Halaman Evaluasi Statistik Deskriptif Ubinan (Baru)
 
-/: Dashboard Utama
-/auth/login: Halaman Login
-/auth/register: Halaman Registrasi
-/monitoring/ubinan: Monitoring Ubinan Padi & Palawija
-/monitoring/ksa: Monitoring KSA Padi
-/pengguna: Halaman Manajemen Pengguna (baru, hanya untuk super_admin)
-/api/users: Contoh endpoint API untuk pengguna (status tidak berubah).
-
----
 🚧 TODO & Isu yang Perlu Diperhatikan
-Error cookies() di Server Components/Actions:
-Masih muncul pesan Error: Route "/pengguna" used cookies().get(...). cookies() should be awaited before using its value. di log server. Meskipun fungsionalitas utama berjalan, ini perlu diinvestigasi lebih lanjut untuk memastikan stabilitas dan praktik terbaik Next.js. Mungkin terkait versi Next.js atau @supabase/ssr.
-Fitur "Edit Pengguna":
-UI Dialog dan form untuk edit pengguna sudah ada di UserManagementClientPage.tsx.
-Server Action editUserAction sudah ada kerangkanya di _actions.ts. Perlu pengujian menyeluruh untuk memastikan semua field (email, password opsional, username kustom, role kustom, dan user_metadata) terupdate dengan benar.
-Fitur "Lihat Detail Pengguna":
-Masih TODO. Bisa berupa dialog read-only yang menampilkan semua informasi relevan pengguna.
-Penyempurnaan UI/UX Manajemen Pengguna:
-Pesan error/sukses yang lebih spesifik dari Server Actions.
-Mungkin perlu validasi yang lebih kompleks untuk form.
-RLS (Row Level Security):
-Sempat ada error "Gagal mengambil informasi peran user. Pastikan RLS diizinkan" saat login ulang setelah peran diubah. Ini perlu dipantau. Jika muncul lagi, periksa kebijakan RLS di tabel auth.users dan public.users. Idealnya, pengguna harus bisa membaca data mereka sendiri yang relevan untuk sesi.
-Konsistensi username: Pastikan username di public.users selalu sinkron dengan user_metadata.username jika keduanya digunakan. Server Actions saat ini sudah mencoba mengupdate keduanya.
+* **Fitur "Edit Pengguna"**: Memerlukan pengujian menyeluruh.
+* **Fitur "Lihat Detail Pengguna"**: Masih TODO.
+* **Penyempurnaan UI/UX Manajemen Pengguna**.
+* **RLS (Row Level Security)**: Perlu dipantau.
 
 Jika ada kendala atau permintaan fitur baru, silakan hubungi pengelola proyek.
