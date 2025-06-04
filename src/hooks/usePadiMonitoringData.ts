@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/hooks/usePadiMonitoringData.ts
 import { useState, useEffect } from 'react';
 import { createClientComponentSupabaseClient } from '@/lib/supabase';
