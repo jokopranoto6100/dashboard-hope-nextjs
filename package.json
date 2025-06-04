@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "gen:types": "supabase gen types typescript --project-id xxhlqjgdqikkvmmxingn --schema public > src/lib/database.types.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.0.1",
@@ -60,4 +61,5 @@
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.33.0"
   }
+  
 }
