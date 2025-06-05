@@ -256,9 +256,40 @@ Migrasi ini berfokus pada arsitektur yang lebih modern, performa, skalabilitas, 
             * Komponen `<Pagination>` penuh untuk navigasi antar halaman data detail.
             * Skeleton loading ditampilkan pada baris-baris tabel (`TableBody`) saat data sedang di-refresh (misalnya, saat sorting, pindah halaman, atau perubahan ukuran halaman).
 
+10.  **Update Data Ubinan - (Fitur Baru):**
+    *  **UI Halaman Unggah (`/update-data/ubinan`):**
+        * Dibuat menggunakan Next.js Server Component (`page.tsx`) dan Client Component (`uploader-client-component.tsx`) untuk interaksi.
+        * Menggunakan komponen `Card`, `Input type="file"`, `Button`, `Alert`, dan ikon dari `shadcn/ui` dan `lucide-react` untuk tampilan yang konsisten dan informatif.
+        * Validasi tipe file CSV di sisi klien.
+        * Menampilkan notifikasi proses dan hasil menggunakan `Sonner`.
+        * **Riwayat Pembaruan Terakhir**: Menampilkan informasi pengguna dan waktu pembaruan data terakhir di tabel `ubinan_raw` langsung di halaman unggah. Data ini diambil secara dinamis di Server Component.
 
+    *  **Logika Backend (Next.js Server Action - `_actions.ts`):**
+        * **Otentikasi & Otorisasi**: Memastikan hanya `super_admin` yang dapat menjalankan aksi, dan mengambil `username` untuk logging.
+        * **Penerimaan & Parsing File**: Menerima `FormData` berisi file CSV, mem-parsing konten CSV menggunakan library `csv-parse`.
+        * **Validasi Header & Data**:
+            * Memvalidasi keberadaan header kolom wajib (`tahun`, `subround`, `kab`, `komoditas`).
+            * Melakukan konversi tipe data untuk setiap kolom dari CSV ke tipe data yang sesuai di tabel `ubinan_raw` (merujuk pada `ubinanRawSchema` internal).
+            * Menangani nilai kosong/null dan validasi untuk kolom yang `NOT NULL`.
+        * **Proses Database dalam Transaksi (via Fungsi RPC PostgreSQL):**
+            * **Identifikasi Scope Penghapusan**: Mengidentifikasi kombinasi unik dari `tahun`, `subround`, dan `kab` dari data CSV.
+            * **Pemanggilan Fungsi RPC `process_ubinan_raw_upload`**:
+                * Fungsi RPC ini menerima scope penghapusan dan array data baru.
+                * Di dalam PostgreSQL, fungsi ini pertama-tama melakukan `DELETE` dari `ubinan_raw` berdasarkan `tahun`, `subround`, dan `kab`.
+                * Kemudian, melakukan `INSERT` (bulk) data baru dari CSV ke `ubinan_raw`. Setiap baris baru mendapatkan `id` UUID yang di-generate server, `uploaded_at` (timestamp saat ini), dan `uploaded_by_username`.
+                * Seluruh operasi `DELETE` dan `INSERT` di dalam fungsi RPC ini dibungkus dalam satu transaksi atomik (jika ada error, semua di-rollback).
+            * **Pemanggilan Fungsi RPC `refresh_materialized_view_ubinan_dashboard`**: Setelah data berhasil diimpor ke `ubinan_raw`, fungsi RPC ini dipanggil untuk me-refresh `materialized view` `ubinan_dashboard`.
+        * **Revalidasi Path**: Melakukan `revalidatePath` untuk halaman terkait (`/update-data/ubinan`, `/monitoring/ubinan`, `/evaluasi/ubinan`, `/`) agar data yang ditampilkan di UI selalu terbaru.
 
-    
+    *  **Persiapan Database (PostgreSQL - Supabase):**
+        * Penambahan kolom `uploaded_by_username TEXT` pada tabel `ubinan_raw`.
+        * Pembuatan dua fungsi RPC PostgreSQL:
+            * `process_ubinan_raw_upload(deletion_scopes jsonb[], insert_data jsonb[])`: Untuk menangani logika `DELETE` dan `INSERT` secara transaksional.
+            * `refresh_materialized_view_ubinan_dashboard()`: Untuk me-refresh materialized view.
+
+    *  **Konfigurasi Client Supabase di Next.js (`src/lib/supabase-server.ts`):**
+        * Memastikan adanya `supabaseServer` (client dengan `service_role_key` untuk operasi backend penuh seperti memanggil RPC) dan fungsi `createSupabaseServerClientWithUserContext` (client yang menggunakan `anon_key` dan `cookies` untuk mendapatkan konteks pengguna di Server Components/Actions).
+
 ## 📁 Struktur Folder Proyek
 Dashboard Pertanian/
 ├── .next/                            # Cache Next.js (dihapus saat debugging)
