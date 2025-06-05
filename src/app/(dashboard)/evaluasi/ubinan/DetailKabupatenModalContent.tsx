@@ -12,7 +12,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Skeleton } from "@/components/ui/skeleton"; // Impor Skeleton
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import {
   Pagination,
   PaginationContent,
@@ -29,7 +37,7 @@ import {
   SortingState,
 } from "@tanstack/react-table";
 
-const ITEMS_PER_PAGE = 20;
+const INITIAL_PAGE_SIZE = 15; // Konstanta untuk ukuran halaman awal
 
 interface DetailKabupatenModalContentProps {
   kabCode: number;
@@ -50,9 +58,10 @@ export function DetailKabupatenModalContent({
   const [error, setError] = useState<string | null>(null);
   const [totalRecords, setTotalRecords] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(INITIAL_PAGE_SIZE); // State untuk ukuran halaman
   const [sorting, setSorting] = React.useState<SortingState>([]);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (pageToFetch: number, currentSize: number) => {
     if (!selectedYear || !selectedKomoditas) {
       setProcessedData([]);
       setTotalRecords(0);
@@ -69,8 +78,8 @@ export function DetailKabupatenModalContent({
       subround_filter: selectedSubround === 'all' ? 'all' : String(selectedSubround),
       sort_column_key: 'r111', 
       sort_direction_val: 'ASC',
-      page_limit_val: ITEMS_PER_PAGE,
-      page_offset_val: (currentPage - 1) * ITEMS_PER_PAGE,
+      page_limit_val: currentSize, // Menggunakan currentSize dari argumen
+      page_offset_val: (pageToFetch - 1) * currentSize, // Menggunakan pageToFetch dan currentSize
     };
 
     if (sorting.length > 0) {
@@ -90,7 +99,7 @@ export function DetailKabupatenModalContent({
       setProcessedData(resultData);
       if (resultData.length > 0 && resultData[0].total_records !== undefined) {
         setTotalRecords(resultData[0].total_records); 
-      } else {
+      } else if (!rpcError) { // Hanya set 0 jika tidak ada error tapi data kosong
         setTotalRecords(0);
       }
 
@@ -102,23 +111,34 @@ export function DetailKabupatenModalContent({
     } finally {
       setIsLoading(false);
     }
-  }, [kabCode, selectedYear, selectedSubround, selectedKomoditas, currentPage, supabase, sorting]);
+  }, [kabCode, selectedYear, selectedSubround, selectedKomoditas, supabase, sorting]); // Hapus currentPage & pageSize dari sini
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    // Fetch data ketika filter utama berubah, atau sorting, atau pageSize, atau currentPage
+    fetchData(currentPage, pageSize);
+  }, [fetchData, currentPage, pageSize]); // Tambahkan currentPage & pageSize sebagai trigger fetch
 
+
+  // Reset currentPage ke 1 jika sorting atau pageSize berubah
   useEffect(() => {
-    if (sorting.length > 0) { 
+    // Jangan reset jika hanya currentPage yang berubah (itu akan dihandle oleh fetchData di atas)
+    // Atau jika ini adalah render awal dengan initial sorting/pageSize
+    if (currentPage !== 1) { // Hanya reset jika bukan sudah di halaman 1
         setCurrentPage(1);
     }
-  }, [sorting]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sorting, pageSize]); // Jangan tambahkan currentPage di sini untuk menghindari loop
 
 
-  const pageCount = Math.ceil(totalRecords / ITEMS_PER_PAGE);
+  const pageCount = Math.ceil(totalRecords / pageSize);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+  };
+
+  const handlePageSizeChange = (value: string) => {
+    setPageSize(Number(value));
+    // setCurrentPage(1); // Sudah dihandle oleh useEffect di atas
   };
 
   const columns = useMemo(() => detailRecordColumns, []);
@@ -133,15 +153,78 @@ export function DetailKabupatenModalContent({
     manualSorting: true,
   });
 
-  if (isLoading && processedData.length === 0) { 
-    return ( <div className="space-y-2 p-4">{[...Array(Math.floor(ITEMS_PER_PAGE / 4))].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</div> );
+  // Skeleton untuk loading awal sebelum ada data sama sekali
+  if (isLoading && processedData.length === 0 && totalRecords === 0 && !error) { 
+    return ( 
+      <div className="p-0 md:p-2 space-y-4">
+        <div className="flex justify-end items-center mb-2">
+          <Label htmlFor="pageSizeSelect" className="mr-2 text-sm">Baris per halaman:</Label>
+          <Skeleton className="h-10 w-[80px]" />
+        </div>
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                {columns.map(column => (
+                  <TableHead key={column.id || Math.random().toString()} style={{ textAlign: column.id === 'r111' ? 'left' : 'center' }}>
+                    <Skeleton className="h-5 w-full" />
+                  </TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {[...Array(INITIAL_PAGE_SIZE)].map((_, i) => (
+                <TableRow key={`skeleton-initial-${i}`}>
+                  {columns.map(column => (
+                    <TableCell key={column.id || Math.random().toString()} className="whitespace-nowrap py-2 px-3">
+                      <Skeleton className="h-5 w-full" />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+    );
   }
+  
   if (error) { return <p className="text-red-500 text-center p-4">Error: {error}</p>; }
-  if (processedData.length === 0 && !isLoading) { return <p className="text-center p-4">Tidak ada data detail untuk ditampilkan (Nama responden tidak kosong).</p>; }
+  
+  // Kondisi untuk "tidak ada data" setelah fetch selesai dan tidak loading
+  if (processedData.length === 0 && !isLoading) { 
+    return (
+      <div className="p-0 md:p-2 space-y-4">
+         <div className="flex justify-end items-center mb-2">
+            <Label htmlFor="pageSizeSelect" className="mr-2 text-sm">Baris per halaman:</Label>
+            <Select value={String(pageSize)} onValueChange={handlePageSizeChange} >
+              <SelectTrigger id="pageSizeSelect" className="w-[80px]"><SelectValue placeholder={pageSize} /></SelectTrigger>
+              <SelectContent>{[10, 15, 20, 50, 100].map(size => (<SelectItem key={size} value={String(size)}>{size}</SelectItem>))}</SelectContent>
+            </Select>
+          </div>
+        <p className="text-center p-4">Tidak ada data detail untuk ditampilkan (Nama responden tidak kosong).</p>
+      </div>
+    ); 
+  }
 
   return (
     <div className="p-0 md:p-2 space-y-4">
-      {isLoading && <div className="absolute inset-0 bg-white/50 dark:bg-black/50 flex items-center justify-center z-50"><p>Memuat...</p></div>}
+      <div className="flex justify-end items-center mb-2">
+        <Label htmlFor="pageSizeSelect" className="mr-2 text-sm">Baris per halaman:</Label>
+        <Select
+          value={String(pageSize)}
+          onValueChange={handlePageSizeChange}
+        >
+          <SelectTrigger id="pageSizeSelect" className="w-[80px]">
+            <SelectValue placeholder={pageSize} />
+          </SelectTrigger>
+          <SelectContent>
+            {[10, 15, 20, 50, 100].map(size => (
+              <SelectItem key={size} value={String(size)}>{size}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
       <div className="rounded-md border overflow-x-auto">
         <Table>
           <TableHeader>
@@ -166,20 +249,37 @@ export function DetailKabupatenModalContent({
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows.map(row => (
-              <TableRow key={row.id}>
-                {row.getVisibleCells().map(cell => (
-                  <TableCell key={cell.id} className="whitespace-nowrap py-2 px-3" style={{ textAlign: cell.column.id === 'r111' ? 'left' : 'center' }}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))}
+            {isLoading ? (
+              [...Array(pageSize)].map((_, i) => (
+                <TableRow key={`skeleton-refresh-${i}`}>
+                  {columns.map(column => (
+                      <TableCell 
+                          key={column.id || `sk-cell-${i}-${Math.random()}`} 
+                          className="whitespace-nowrap py-2 px-3"
+                          style={{ textAlign: column.id === 'r111' ? 'left' : 'center' }}
+                      >
+                        <Skeleton className="h-5 w-full" />
+                      </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              table.getRowModel().rows.map(row => (
+                <TableRow key={row.id}>
+                  {row.getVisibleCells().map(cell => (
+                    <TableCell key={cell.id} className="whitespace-nowrap py-2 px-3" style={{ textAlign: cell.column.id === 'r111' ? 'left' : 'center' }}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>
-      {pageCount > 1 && (
+      {pageCount > 1 && !isLoading && ( // Sembunyikan pagination saat loading data baru untuk menghindari klik ganda
         <Pagination>
+          {/* ... (Komponen Pagination tetap sama, pastikan isActive dan onClick tidak error saat pageCount 0) ... */}
           <PaginationContent>
             <PaginationItem>
               <PaginationPrevious href="#" onClick={(e) => { e.preventDefault(); if (currentPage > 1) handlePageChange(currentPage - 1); }} aria-disabled={currentPage <= 1} tabIndex={currentPage <= 1 ? -1 : undefined} className={currentPage <=1 ? "pointer-events-none opacity-50" : undefined}/>
@@ -188,7 +288,7 @@ export function DetailKabupatenModalContent({
                 const pageNumbers = [];
                 const MAX_VISIBLE_PAGES = 5;
 
-                if (pageCount <= MAX_VISIBLE_PAGES + 2) { // Jika total halaman sedikit, tampilkan semua
+                if (pageCount <= MAX_VISIBLE_PAGES + 2) {
                     for (let i = 1; i <= pageCount; i++) {
                         pageNumbers.push(
                             <PaginationItem key={i}>
@@ -197,33 +297,20 @@ export function DetailKabupatenModalContent({
                         );
                     }
                 } else {
-                    // Tampilkan halaman pertama
                     pageNumbers.push( <PaginationItem key={1}> <PaginationLink href="#" onClick={(e) => { e.preventDefault(); handlePageChange(1); }} isActive={currentPage === 1}>1</PaginationLink> </PaginationItem> );
+                    let startPage = Math.max(2, currentPage - Math.floor((MAX_VISIBLE_PAGES - 3) / 2));
+                    let endPage = Math.min(pageCount - 1, currentPage + Math.floor((MAX_VISIBLE_PAGES - 3) / 2));
                     
-                    // Hitung rentang halaman tengah
-                    let rangeStart = Math.max(2, currentPage - Math.floor((MAX_VISIBLE_PAGES - 3) / 2));
-                    let rangeEnd = Math.min(pageCount - 1, currentPage + Math.floor((MAX_VISIBLE_PAGES - 3) / 2));
+                    if (currentPage < MAX_VISIBLE_PAGES -1 ) endPage = MAX_VISIBLE_PAGES-1;
+                    if (currentPage > pageCount - (MAX_VISIBLE_PAGES-2)) startPage = pageCount - (MAX_VISIBLE_PAGES-2)
 
-                    // Koreksi jika rentang terlalu dekat ke awal atau akhir
-                    if (rangeEnd - rangeStart + 1 < MAX_VISIBLE_PAGES - 2) {
-                        if (currentPage < pageCount / 2) {
-                            rangeEnd = Math.min(pageCount - 1, rangeStart + MAX_VISIBLE_PAGES - 3);
-                        } else {
-                            rangeStart = Math.max(2, rangeEnd - MAX_VISIBLE_PAGES + 3);
-                        }
-                    }
-                    
-                    if (rangeStart > 2) pageNumbers.push(<PaginationEllipsis key="start-ellipsis" />);
-                    
-                    for (let i = rangeStart; i <= rangeEnd; i++) {
-                        if (i > 1 && i < pageCount) { // Pastikan tidak duplikat dengan hal 1 atau terakhir jika rentangnya menyentuh
+                    if (startPage > 2) pageNumbers.push(<PaginationEllipsis key="start-ellipsis" />);
+                    for (let i = startPage; i <= endPage; i++) {
+                        if (i > 1 && i < pageCount) {
                            pageNumbers.push( <PaginationItem key={i}> <PaginationLink href="#" onClick={(e) => { e.preventDefault(); handlePageChange(i); }} isActive={currentPage === i}>{i}</PaginationLink> </PaginationItem> );
                         }
                     }
-                    
-                    if (rangeEnd < pageCount - 1) pageNumbers.push(<PaginationEllipsis key="end-ellipsis" />);
-                    
-                    // Tampilkan halaman terakhir
+                    if (endPage < pageCount - 1) pageNumbers.push(<PaginationEllipsis key="end-ellipsis" />);
                     pageNumbers.push( <PaginationItem key={pageCount}> <PaginationLink href="#" onClick={(e) => { e.preventDefault(); handlePageChange(pageCount); }} isActive={currentPage === pageCount}>{pageCount}</PaginationLink> </PaginationItem> );
                 }
                 return pageNumbers;

@@ -46,7 +46,6 @@ export function DetailKabupatenModal({
         <div className="flex-grow overflow-y-auto"> {/* Membuat konten bisa di-scroll jika melebihi tinggi */}
           <DetailKabupatenModalContent
             kabCode={kabCode}
-            namaKabupaten={namaKabupaten} // Mungkin tidak perlu lagi di sini, sudah di title
             selectedYear={selectedYear}
             selectedSubround={selectedSubround}
             selectedKomoditas={selectedKomoditas}
