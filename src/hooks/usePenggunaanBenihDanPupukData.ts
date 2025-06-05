@@ -1,27 +1,29 @@
 // src/hooks/usePenggunaanBenihDanPupukData.ts
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { createClientComponentSupabaseClient } from '@/lib/supabase';
-import { useYear } from '@/context/YearContext';
-import { useUbinanEvaluasiFilter } from '@/context/UbinanEvaluasiFilterContext';
-import { Tables } from '@/lib/database.types';
+import { createClientComponentSupabaseClient } from '@/lib/supabase'; //
+import { useYear } from '@/context/YearContext'; //
+import { useUbinanEvaluasiFilter } from '@/context/UbinanEvaluasiFilterContext'; //
+import { Tables } from '@/lib/database.types'; //
 import { getNamaKabupaten } from '@/lib/utils'; // Asumsi dari lib/utils
 
-// Interface untuk Output (bisa juga di-ekspor dari file types terpusat jika digunakan di banyak tempat)
-export interface BenihRow {
-  kab?: number;
-  namaKabupaten: string;
-  avgR604_m2: number | null; // Rata-rata Luas Tanam (m²)
-  avgBenihPerHa_kg_ha: number | null; // Rata-rata Penggunaan Benih per Hektar (Kg/Ha)
-}
+// Interface BenihRow tidak lagi diperlukan secara terpisah
+// export interface BenihRow {
+//   kab?: number;
+//   namaKabupaten: string;
+//   avgR604_m2: number | null;
+//   avgBenihPerHa_kg_ha: number | null;
+// }
 
-export interface PupukRow {
+// Modifikasi PupukRow untuk menyertakan data benih
+export interface PupukDanBenihRow { // Ganti nama interface agar lebih jelas
   kab?: number;
   namaKabupaten: string;
   avgR604_m2: number | null; // Rata-rata Luas Tanam (m²)
+  avgBenihPerHa_kg_ha: number | null; // TAMBAHKAN INI: Rata-rata Penggunaan Benih per Hektar (Kg/Ha)
   avgUreaPerHa_kg_ha: number | null;
   avgTSPerHa_kg_ha: number | null;
   avgKCLperHa_kg_ha: number | null;
-  avgNPKperHa_kg_ha: number | null;
+  avgNPKPerHa_kg_ha: number | null;
   avgKomposPerHa_kg_ha: number | null;
   avgOrganikCairPerHa_liter_ha: number | null;
   avgZAPerHa_kg_ha: number | null;
@@ -50,9 +52,9 @@ const getAverage = (arr: (number | null | undefined)[]): number | null => {
 };
 
 export const usePenggunaanBenihDanPupukData = () => {
-  const supabase = createClientComponentSupabaseClient();
-  const { selectedYear } = useYear();
-  const { selectedSubround, selectedKomoditas, isLoadingFilters } = useUbinanEvaluasiFilter();
+  const supabase = createClientComponentSupabaseClient(); //
+  const { selectedYear } = useYear(); //
+  const { selectedSubround, selectedKomoditas, isLoadingFilters } = useUbinanEvaluasiFilter(); //
 
   const [allFetchedData, setAllFetchedData] = useState<UbinanRawBenihPupuk[]>([]);
   const [isLoadingData, setIsLoadingData] = useState<boolean>(false);
@@ -69,13 +71,13 @@ export const usePenggunaanBenihDanPupukData = () => {
       let fetchedDataAccumulator: UbinanRawBenihPupuk[] = [];
       let currentPage = 0;
       let hasMoreData = true;
-      const columnsToSelect = 'kab, r604, r608, r610_1, r610_2, r610_3, r610_4, r610_5, r610_6, r610_7';
+      const columnsToSelect = 'kab, r604, r608, r610_1, r610_2, r610_3, r610_4, r610_5, r610_6, r610_7'; //
       while (hasMoreData) {
         const { from, to } = { from: currentPage * ITEMS_PER_PAGE, to: (currentPage + 1) * ITEMS_PER_PAGE - 1 };
         let query = supabase.from('ubinan_raw').select(columnsToSelect)
           .eq('tahun', selectedYear)
-          .eq('komoditas', selectedKomoditas);
-        if (selectedSubround !== 'all') query = query.eq('subround', selectedSubround);
+          .eq('komoditas', selectedKomoditas); //
+        if (selectedSubround !== 'all') query = query.eq('subround', selectedSubround); //
         const { data: pageData, error: pageError } = await query.range(from, to);
         if (pageError) throw pageError;
         if (pageData && pageData.length > 0) fetchedDataAccumulator.push(...pageData as UbinanRawBenihPupuk[]);
@@ -99,10 +101,10 @@ export const usePenggunaanBenihDanPupukData = () => {
   const processedData = useMemo(() => {
     if (allFetchedData.length === 0) {
       return {
-        benihPerKab: [],
-        pupukPerKab: [],
-        kalimantanBaratBenih: null,
-        kalimantanBaratPupuk: null,
+        // benihPerKab: [], // Hapus
+        pupukDanBenihPerKab: [], // Ganti nama
+        // kalimantanBaratBenih: null, // Hapus
+        kalimantanBaratPupukDanBenih: null, // Ganti nama
       };
     }
 
@@ -113,14 +115,14 @@ export const usePenggunaanBenihDanPupukData = () => {
         return {
           kab: d.kab,
           r604: d.r604, // Simpan r604 asli untuk AVG(r604)
-          benih_per_ha_record: typeof d.r608 === 'number' ? d.r608 / luasHa : null,
-          urea_per_ha_record: typeof d.r610_1 === 'number' ? d.r610_1 / luasHa : null,
-          tsp_per_ha_record: typeof d.r610_2 === 'number' ? d.r610_2 / luasHa : null,
-          kcl_per_ha_record: typeof d.r610_3 === 'number' ? d.r610_3 / luasHa : null,
-          npk_per_ha_record: typeof d.r610_4 === 'number' ? d.r610_4 / luasHa : null,
-          kompos_per_ha_record: typeof d.r610_5 === 'number' ? d.r610_5 / luasHa : null,
-          organikcair_per_ha_record: typeof d.r610_6 === 'number' ? d.r610_6 / luasHa : null,
-          za_per_ha_record: typeof d.r610_7 === 'number' ? d.r610_7 / luasHa : null,
+          benih_per_ha_record: typeof d.r608 === 'number' ? d.r608 / luasHa : null, //
+          urea_per_ha_record: typeof d.r610_1 === 'number' ? d.r610_1 / luasHa : null, //
+          tsp_per_ha_record: typeof d.r610_2 === 'number' ? d.r610_2 / luasHa : null, //
+          kcl_per_ha_record: typeof d.r610_3 === 'number' ? d.r610_3 / luasHa : null, //
+          npk_per_ha_record: typeof d.r610_4 === 'number' ? d.r610_4 / luasHa : null, //
+          kompos_per_ha_record: typeof d.r610_5 === 'number' ? d.r610_5 / luasHa : null, //
+          organikcair_per_ha_record: typeof d.r610_6 === 'number' ? d.r610_6 / luasHa : null, //
+          za_per_ha_record: typeof d.r610_7 === 'number' ? d.r610_7 / luasHa : null, //
         };
       });
 
@@ -131,34 +133,29 @@ export const usePenggunaanBenihDanPupukData = () => {
       return acc;
     }, {} as Record<string, typeof dataForProcessing>);
 
-    const benihPerKabArr: BenihRow[] = [];
-    const pupukPerKabArr: PupukRow[] = [];
+    // const benihPerKabArr: BenihRow[] = []; // Hapus
+    const pupukDanBenihPerKabArr: PupukDanBenihRow[] = []; // Ganti nama
     
-    const uniqueKabs = new Set(dataForProcessing.map(d => d.kab).filter(k => k !== null && k !== undefined) as number[]);
+    const uniqueKabs = new Set(dataForProcessing.map(d => d.kab).filter(k => k !== null && k !== undefined) as number[]); //
 
     uniqueKabs.forEach(kabCode => {
       const kabNum = Number(kabCode);
-      const namaKab = getNamaKabupaten(kabNum) || `Kode ${kabNum}`;
+      const namaKab = getNamaKabupaten(kabNum) || `Kode ${kabNum}`; //
       const kabData = groupedByKab[String(kabCode)] || [];
 
       if (kabData.length > 0) {
         const avgR604_m2_kab = getAverage(kabData.map(d => d.r604));
         
-        benihPerKabArr.push({
+        // Data benih sekarang digabung ke sini
+        pupukDanBenihPerKabArr.push({
           kab: kabNum,
           namaKabupaten: namaKab,
           avgR604_m2: avgR604_m2_kab,
-          avgBenihPerHa_kg_ha: getAverage(kabData.map(d => d.benih_per_ha_record)),
-        });
-
-        pupukPerKabArr.push({
-          kab: kabNum,
-          namaKabupaten: namaKab,
-          avgR604_m2: avgR604_m2_kab,
+          avgBenihPerHa_kg_ha: getAverage(kabData.map(d => d.benih_per_ha_record)), // Tambahkan ini
           avgUreaPerHa_kg_ha: getAverage(kabData.map(d => d.urea_per_ha_record)),
           avgTSPerHa_kg_ha: getAverage(kabData.map(d => d.tsp_per_ha_record)),
           avgKCLperHa_kg_ha: getAverage(kabData.map(d => d.kcl_per_ha_record)),
-          avgNPKperHa_kg_ha: getAverage(kabData.map(d => d.npk_per_ha_record)),
+          avgNPKPerHa_kg_ha: getAverage(kabData.map(d => d.npk_per_ha_record)),
           avgKomposPerHa_kg_ha: getAverage(kabData.map(d => d.kompos_per_ha_record)),
           avgOrganikCairPerHa_liter_ha: getAverage(kabData.map(d => d.organikcair_per_ha_record)),
           avgZAPerHa_kg_ha: getAverage(kabData.map(d => d.za_per_ha_record)),
@@ -166,26 +163,23 @@ export const usePenggunaanBenihDanPupukData = () => {
       }
     });
 
-    benihPerKabArr.sort((a, b) => (a.kab || 0) - (b.kab || 0));
-    pupukPerKabArr.sort((a, b) => (a.kab || 0) - (b.kab || 0));
+    // benihPerKabArr.sort((a, b) => (a.kab || 0) - (b.kab || 0)); // Hapus
+    pupukDanBenihPerKabArr.sort((a, b) => (a.kab || 0) - (b.kab || 0)); // Ganti nama array
 
-    let kalBarBenih: BenihRow | null = null;
-    let kalBarPupuk: PupukRow | null = null;
+    // let kalBarBenih: BenihRow | null = null; // Hapus
+    let kalBarPupukDanBenih: PupukDanBenihRow | null = null; // Ganti nama
 
     if (dataForProcessing.length > 0) {
       const avgR604Kalbar = getAverage(dataForProcessing.map(d => d.r604));
-      kalBarBenih = {
+      // Data benih untuk Kalimantan Barat digabung ke sini
+      kalBarPupukDanBenih = {
         namaKabupaten: "Kalimantan Barat",
         avgR604_m2: avgR604Kalbar,
-        avgBenihPerHa_kg_ha: getAverage(dataForProcessing.map(d => d.benih_per_ha_record)),
-      };
-      kalBarPupuk = {
-        namaKabupaten: "Kalimantan Barat",
-        avgR604_m2: avgR604Kalbar,
+        avgBenihPerHa_kg_ha: getAverage(dataForProcessing.map(d => d.benih_per_ha_record)), // Tambahkan ini
         avgUreaPerHa_kg_ha: getAverage(dataForProcessing.map(d => d.urea_per_ha_record)),
         avgTSPerHa_kg_ha: getAverage(dataForProcessing.map(d => d.tsp_per_ha_record)),
         avgKCLperHa_kg_ha: getAverage(dataForProcessing.map(d => d.kcl_per_ha_record)),
-        avgNPKperHa_kg_ha: getAverage(dataForProcessing.map(d => d.npk_per_ha_record)),
+        avgNPKPerHa_kg_ha: getAverage(dataForProcessing.map(d => d.npk_per_ha_record)),
         avgKomposPerHa_kg_ha: getAverage(dataForProcessing.map(d => d.kompos_per_ha_record)),
         avgOrganikCairPerHa_liter_ha: getAverage(dataForProcessing.map(d => d.organikcair_per_ha_record)),
         avgZAPerHa_kg_ha: getAverage(dataForProcessing.map(d => d.za_per_ha_record)),
@@ -193,17 +187,17 @@ export const usePenggunaanBenihDanPupukData = () => {
     }
 
     return {
-      benihPerKab: benihPerKabArr,
-      pupukPerKab: pupukPerKabArr,
-      kalimantanBaratBenih: kalBarBenih,
-      kalimantanBaratPupuk: kalBarPupuk,
+      // benihPerKab: benihPerKabArr, // Hapus
+      pupukDanBenihPerKab: pupukDanBenihPerKabArr, // Ganti nama
+      // kalimantanBaratBenih: kalBarBenih, // Hapus
+      kalimantanBaratPupukDanBenih: kalBarPupukDanBenih, // Ganti nama
     };
   }, [allFetchedData]);
 
   return {
-    dataBenihPupuk: processedData, // Ganti nama agar lebih jelas
-    isLoadingBenihPupuk: isLoadingData || isLoadingFilters, // Ganti nama
-    errorBenihPupuk: error, // Ganti nama
-    refreshBenihPupukData: fetchData, // Ganti nama
+    dataBenihDanPupuk: processedData, // Ganti nama agar lebih jelas
+    isLoadingBenihPupuk: isLoadingData || isLoadingFilters,
+    errorBenihPupuk: error,
+    refreshBenihPupukData: fetchData,
   };
 };

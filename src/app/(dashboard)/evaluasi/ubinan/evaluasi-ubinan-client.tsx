@@ -30,29 +30,28 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useUbinanEvaluasiFilter } from '@/context/UbinanEvaluasiFilterContext';
 import { useUbinanDescriptiveStatsData, DescriptiveStatsRow } from '@/hooks/useUbinanDescriptiveStatsData';
-import { usePenggunaanBenihDanPupukData, BenihRow, PupukRow } from '@/hooks/usePenggunaanBenihDanPupukData';
+// Impor interface dan hook yang sudah digabung
+import { usePenggunaanBenihDanPupukData, PupukDanBenihRow } from '@/hooks/usePenggunaanBenihDanPupukData'; //
 import { columns as descriptiveStatsTableColumns } from './descriptive-stats-columns';
-import { benihColumns } from './penggunaan-benih-columns';
-import { pupukColumns } from './penggunaan-pupuk-columns';
+// Impor kolom gabungan (pastikan nama file dan ekspornya sesuai)
+import { benihDanPupukColumns } from './penggunaan-benih-dan-pupuk-columns'; // Atau './penggunaan-benih-dan-pupuk-columns'
 import {
   useReactTable,
   getCoreRowModel,
   getSortedRowModel,
   flexRender,
   SortingState,
-  RowData, // Ditambahkan untuk tipe generic
+  RowData,
 } from "@tanstack/react-table";
 
-// Impor DetailKabupatenModal (pastikan path ini benar dan file akan dibuat)
 import { DetailKabupatenModal } from './DetailKabupatenModal';
-// Ambil selectedYear dari useYear (atau pastikan sudah ada di useUbinanEvaluasiFilter)
 import { useYear } from '@/context/YearContext';
 
 declare module '@tanstack/react-table' {
   interface TableMeta<TData extends unknown> {
     kalimantanBaratData?: DescriptiveStatsRow | null;
-    kalimantanBaratBenih?: BenihRow | null;
-    kalimantanBaratPupuk?: PupukRow | null;
+    // kalimantanBaratBenih?: BenihRow | null; // Hapus
+    kalimantanBaratPupukDanBenih?: PupukDanBenihRow | null; // Ganti nama
     currentUnit?: string;
   }
 }
@@ -67,18 +66,20 @@ export function EvaluasiUbinanClient() {
     availableKomoditas,
     isLoadingFilters,
   } = useUbinanEvaluasiFilter();
-  const { selectedYear } = useYear(); // Ambil selectedYear
+  const { selectedYear } = useYear();
 
   const [useKuHa, setUseKuHa] = useState(false);
   const conversionFactor = useKuHa ? 16 : 1;
   const currentUnit = useKuHa ? 'ku/ha' : 'kg/plot';
   const [sortingStats, setSortingStats] = React.useState<SortingState>([]);
-  const [sortingBenih, setSortingBenih] = React.useState<SortingState>([]);
-  const [sortingPupuk, setSortingPupuk] = React.useState<SortingState>([]);
+  // const [sortingBenih, setSortingBenih] = React.useState<SortingState>([]); // Hapus
+  const [sortingBenihDanPupuk, setSortingBenihDanPupuk] = React.useState<SortingState>([]); // Ganti nama state sorting
 
   // State untuk modal detail
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [selectedKabForDetail, setSelectedKabForDetail] = useState<{ code: number; name: string; tableType: 'benih' | 'pupuk' } | null>(null);
+  // Tipe untuk selectedKabForDetail sekarang bisa lebih generik atau spesifik ke PupukDanBenihRow jika hanya dari tabel itu
+  const [selectedKabForDetail, setSelectedKabForDetail] = useState<{ code: number; name: string; } | null>(null);
+
 
   const {
     data: statsDataPerKab,
@@ -87,13 +88,15 @@ export function EvaluasiUbinanClient() {
     error: statsDataError,
   } = useUbinanDescriptiveStatsData(conversionFactor);
 
+  // Menggunakan hook yang sudah dimodifikasi
   const {
-    dataBenihPupuk,
+    dataBenihDanPupuk, // Nama variabel disesuaikan dengan output hook
     isLoadingBenihPupuk,
     errorBenihPupuk,
   } = usePenggunaanBenihDanPupukData();
 
-  const { benihPerKab, pupukPerKab, kalimantanBaratBenih, kalimantanBaratPupuk } = dataBenihPupuk;
+  // Destrukturisasi data gabungan
+  const { pupukDanBenihPerKab, kalimantanBaratPupukDanBenih } = dataBenihDanPupuk;
 
   const memoizedStatsColumns = useMemo(() => descriptiveStatsTableColumns, []);
   const memoizedStatsData = useMemo(() => statsDataPerKab, [statsDataPerKab]);
@@ -109,33 +112,36 @@ export function EvaluasiUbinanClient() {
     meta: { kalimantanBaratData: kalbarStatsData, currentUnit },
   });
 
-  const memoizedBenihColumns = useMemo(() => benihColumns, []);
-  const memoizedBenihData = useMemo(() => benihPerKab, [benihPerKab]);
+  // Logika untuk tabel benih yang terpisah dihapus
+  // const memoizedBenihColumns = useMemo(() => benihColumns, []); // Hapus
+  // const memoizedBenihData = useMemo(() => benihPerKab, [benihPerKab]); // Hapus (benihPerKab tidak ada lagi)
 
-  const benihTable = useReactTable({
-    data: memoizedBenihData,
-    columns: memoizedBenihColumns,
-    state: { sorting: sortingBenih },
-    onSortingChange: setSortingBenih,
+  // const benihTable = useReactTable({ // Hapus
+  //   data: memoizedBenihData,
+  //   columns: memoizedBenihColumns,
+  //   state: { sorting: sortingBenih },
+  //   onSortingChange: setSortingBenih,
+  //   getCoreRowModel: getCoreRowModel(),
+  //   getSortedRowModel: getSortedRowModel(),
+  //   manualPagination: false,
+  //   meta: { kalimantanBaratBenih }, // kalimantanBaratBenih tidak ada lagi
+  // });
+
+  // Setup untuk tabel gabungan benih dan pupuk
+  const memoizedBenihDanPupukColumns = useMemo(() => benihDanPupukColumns, []); // Gunakan kolom gabungan
+  const memoizedBenihDanPupukData = useMemo(() => pupukDanBenihPerKab, [pupukDanBenihPerKab]); // Gunakan data gabungan
+
+  const benihDanPupukTable = useReactTable({ // Ganti nama instance tabel
+    data: memoizedBenihDanPupukData,
+    columns: memoizedBenihDanPupukColumns,
+    state: { sorting: sortingBenihDanPupuk }, // Gunakan state sorting yang baru
+    onSortingChange: setSortingBenihDanPupuk,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     manualPagination: false,
-    meta: { kalimantanBaratBenih },
+    meta: { kalimantanBaratPupukDanBenih }, // Gunakan data Kalimantan Barat yang gabungan
   });
 
-  const memoizedPupukColumns = useMemo(() => pupukColumns, []);
-  const memoizedPupukData = useMemo(() => pupukPerKab, [pupukPerKab]);
-
-  const pupukTable = useReactTable({
-    data: memoizedPupukData,
-    columns: memoizedPupukColumns,
-    state: { sorting: sortingPupuk },
-    onSortingChange: setSortingPupuk,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    manualPagination: false,
-    meta: { kalimantanBaratPupuk },
-  });
 
   const handleSubroundChange = (value: string) => {
     setSelectedSubround(value === 'all' ? 'all' : Number(value));
@@ -147,12 +153,10 @@ export function EvaluasiUbinanClient() {
   
   const isKomoditasDisabled = isLoadingFilters || availableKomoditas.length === 0;
 
-  // Fungsi untuk menangani klik baris dan membuka modal
-  const handleOpenDetailModal = (rowData: RowData, type: 'benih' | 'pupuk') => {
-    // Pastikan rowData adalah tipe yang benar (BenihRow atau PupukRow)
-    const kabData = rowData as BenihRow | PupukRow; // Type assertion
+  const handleOpenDetailModal = (rowData: RowData) => { // Parameter type tidak lagi krusial jika hanya ada satu jenis tabel detail
+    const kabData = rowData as PupukDanBenihRow; // Asumsikan rowData dari tabel gabungan
     if (kabData.kab !== undefined && kabData.kab !== null) {
-      setSelectedKabForDetail({ code: kabData.kab, name: kabData.namaKabupaten, tableType: type });
+      setSelectedKabForDetail({ code: kabData.kab, name: kabData.namaKabupaten });
       setIsDetailModalOpen(true);
     }
   };
@@ -162,13 +166,16 @@ export function EvaluasiUbinanClient() {
     title: string,
     description: string,
     isLoading: boolean,
-    errorMsg: string | null, // Ganti nama parameter agar tidak konflik
+    errorMsg: string | null,
     showUnitSwitcher: boolean = false,
-    footerData?: BenihRow | PupukRow | DescriptiveStatsRow | null,
-    onRowClickHandler?: (rowData: RowData) => void // Tambahkan parameter onRowClickHandler
+    // Tipe footerData disesuaikan
+    footerData?: PupukDanBenihRow | DescriptiveStatsRow | null,
+    onRowClickHandler?: (rowData: RowData) => void
   ) => {
     const noData = !isLoading && !errorMsg && tableInstance.getRowModel().rows.length === 0;
+    // Tipe footerData disesuaikan di sini juga jika perlu validasi lebih ketat
     const hasFooter = footerData && tableInstance.getRowModel().rows.length > 0;
+
 
     return (
       <Card className="mt-6">
@@ -265,25 +272,20 @@ export function EvaluasiUbinanClient() {
       </div>
 
       {renderTable(statsTable, "Tabel Statistik Deskriptif Ubinan (R701)", `Pilih tahun melalui filter global di header. Data pada tabel di bawah ini difilter berdasarkan subround dan komoditas yang dipilih di atas. Statistik mencakup entri R701 yang tidak kosong. Ubah satuan menggunakan tombol di pojok kanan atas kartu ini.`, isLoadingStatsData, statsDataError, true, kalbarStatsData)}
+      
+      {/* Hapus renderTable untuk tabel benih yang terpisah */}
+      {/* {renderTable(benihTable, "Tabel Rata-Rata Penggunaan Benih", ..., handleOpenDetailModal(data, 'benih'))} */}
+
+      {/* Render tabel gabungan benih dan pupuk */}
       {renderTable(
-        benihTable, 
-        "Tabel Rata-Rata Penggunaan Benih", 
-        `Data pada tabel di bawah ini menampilkan rata-rata penggunaan benih per hektar (Kg/Ha) dan rata-rata luas tanam (m²) per kabupaten, berdasarkan filter tahun, subround, dan komoditas yang dipilih. Klik baris untuk melihat detail per record.`, 
+        benihDanPupukTable, // Gunakan instance tabel gabungan
+        "Tabel Rata-Rata Penggunaan Benih dan Pupuk", // Judul baru
+        `Data pada tabel di bawah ini menampilkan rata-rata penggunaan benih dan berbagai jenis pupuk per hektar, serta rata-rata luas tanam (m²) per kabupaten. Data difilter berdasarkan tahun, subround, dan komoditas yang dipilih. Klik baris untuk melihat detail per record.`, // Deskripsi baru
         isLoadingBenihPupuk, 
         errorBenihPupuk, 
         false, 
-        kalimantanBaratBenih,
-        (data) => handleOpenDetailModal(data, 'benih') // Tambahkan handler
-      )}
-      {renderTable(
-        pupukTable, 
-        "Tabel Rata-Rata Penggunaan Pupuk", 
-        `Data pada tabel di bawah ini menampilkan rata-rata penggunaan berbagai jenis pupuk per hektar dan rata-rata luas tanam (m²) per kabupaten, berdasarkan filter tahun, subround, dan komoditas yang dipilih. Satuan pupuk dalam Kg/Ha, kecuali organik cair dalam Liter/Ha. Klik baris untuk melihat detail per record.`, 
-        isLoadingBenihPupuk, 
-        errorBenihPupuk, 
-        false, 
-        kalimantanBaratPupuk,
-        (data) => handleOpenDetailModal(data, 'pupuk') // Tambahkan handler
+        kalimantanBaratPupukDanBenih, // Gunakan data footer gabungan
+        handleOpenDetailModal // Handler tetap sama, tipe data di handleOpenDetailModal sudah PupukDanBenihRow
       )}
 
       {/* Render Modal Detail */}

@@ -33,8 +33,8 @@ const formatNumber = (value: number | null | undefined, decimalPlaces: number = 
 };
 
 const AMBANG_BATAS = {
-  BENIH_KG_HA: 100, UREA_KG_HA: 300, TSP_KG_HA: 300, KCL_KG_HA: 300,
-  NPK_KG_HA: 300, ZA_KG_HA: 300, KOMPOS_KG_HA: 1000, ORGANIK_CAIR_LITER_HA: 20,
+  BENIH_KG_HA: 100, UREA_KG_HA: 250, TSP_KG_HA: 250, KCL_KG_HA: 250,
+  NPK_KG_HA: 250, ZA_KG_HA: 250, KOMPOS_KG_HA: 1000, ORGANIK_CAIR_LITER_HA: 20,
 };
 
 const createPerHaColumnWithIcon = (
