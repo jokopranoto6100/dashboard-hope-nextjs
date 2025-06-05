@@ -1,7 +1,7 @@
 // src/app/(dashboard)/evaluasi/ubinan/descriptive-stats-columns.tsx
 "use client";
 
-import { ColumnDef } from "@tanstack/react-table";
+import { ColumnDef, Table as TanstackTable } from "@tanstack/react-table"; // Impor Table sebagai TanstackTable
 import { DescriptiveStatsRow } from "@/hooks/useUbinanDescriptiveStatsData"; 
 
 const formatNumber = (value: number | null | undefined, decimalPlaces: number = 2): string => {
@@ -11,10 +11,19 @@ const formatNumber = (value: number | null | undefined, decimalPlaces: number = 
   return value.toFixed(decimalPlaces);
 };
 
-// Fungsi untuk mendapatkan unit dari meta tabel
-const getUnitSuffix = (table: any): string => {
-  const unit = table.options.meta?.currentUnit as string || 'kg/plot';
-  return `(${unit})`;
+// Fungsi untuk mendapatkan unit dari meta tabel, sekarang hanya mengembalikan unitnya saja
+const getUnit = (table: TanstackTable<DescriptiveStatsRow>): string => { // Perjelas tipe generic untuk table
+  return table.options.meta?.currentUnit as string || 'kg/plot';
+};
+
+// Helper function untuk membuat header dua baris, menerima table untuk mendapatkan unit
+const createTwoLineHeaderWithUnit = (line1: string) => {
+  return ({ table }: { table: TanstackTable<DescriptiveStatsRow> }) => ( // Akses table dari context header
+    <div className="text-center">
+      <div>{line1}</div>
+      <div className="text-xs font-normal text-muted-foreground">({getUnit(table)})</div> {/* Panggil getUnit di sini */}
+    </div>
+  );
 };
 
 export const columns: ColumnDef<DescriptiveStatsRow>[] = [
@@ -22,7 +31,7 @@ export const columns: ColumnDef<DescriptiveStatsRow>[] = [
     accessorKey: "namaKabupaten",
     header: () => <div className="text-center">Nama Kabupaten/Kota</div>,
     cell: ({ row }) => <div className="text-start">{row.original.namaKabupaten}</div>,
-    footer: ({ table }) => { /* ... (footer namaKabupaten tetap) ... */
+    footer: ({ table }) => {
         const kalbarData = table.options.meta?.kalimantanBaratData as DescriptiveStatsRow | null;
         return <div className="text-center font-bold">{kalbarData?.namaKabupaten || "Kalimantan Barat"}</div>;
     },
@@ -31,70 +40,70 @@ export const columns: ColumnDef<DescriptiveStatsRow>[] = [
     accessorKey: "count",
     header: () => <div className="text-center">Jumlah Sampel</div>, // Unit tidak berlaku untuk count
     cell: ({ row }) => <div className="text-center">{row.original.count}</div>,
-    footer: ({ table }) => { /* ... (footer count tetap) ... */
+    footer: ({ table }) => {
         const kalbarData = table.options.meta?.kalimantanBaratData as DescriptiveStatsRow | null;
         return <div className="text-center font-bold">{kalbarData?.count ?? "-"}</div>;
     },
   },
   {
     accessorKey: "mean",
-    header: ({ table }) => <div className="text-center">Rata-rata (Mean) {getUnitSuffix(table)}</div>,
+    header: createTwoLineHeaderWithUnit("Rata-rata (Mean)"), // Menggunakan helper baru
     cell: ({ row }) => <div className="text-center">{formatNumber(row.original.mean)}</div>,
-    footer: ({ table }) => { /* ... (footer mean tetap, unit sudah di header) ... */
+    footer: ({ table }) => {
         const kalbarData = table.options.meta?.kalimantanBaratData as DescriptiveStatsRow | null;
         return <div className="text-center font-bold">{formatNumber(kalbarData?.mean)}</div>;
     },
   },
   {
     accessorKey: "median",
-    header: ({ table }) => <div className="text-center">Median {getUnitSuffix(table)}</div>,
+    header: createTwoLineHeaderWithUnit("Median"), // Menggunakan helper baru
     cell: ({ row }) => <div className="text-center">{formatNumber(row.original.median)}</div>,
-    footer: ({ table }) => { /* ... (footer median tetap) ... */
+    footer: ({ table }) => {
         const kalbarData = table.options.meta?.kalimantanBaratData as DescriptiveStatsRow | null;
         return <div className="text-center font-bold">{formatNumber(kalbarData?.median)}</div>;
     },
   },
   {
     accessorKey: "min",
-    header: ({ table }) => <div className="text-center">Min {getUnitSuffix(table)}</div>,
+    header: createTwoLineHeaderWithUnit("Min"), // Menggunakan helper baru
     cell: ({ row }) => <div className="text-center">{formatNumber(row.original.min)}</div>,
-    footer: ({ table }) => { /* ... (footer min tetap) ... */
+    footer: ({ table }) => {
         const kalbarData = table.options.meta?.kalimantanBaratData as DescriptiveStatsRow | null;
         return <div className="text-center font-bold">{formatNumber(kalbarData?.min)}</div>;
     },
   },
   {
     accessorKey: "max",
-    header: ({ table }) => <div className="text-center">Max {getUnitSuffix(table)}</div>,
+    header: createTwoLineHeaderWithUnit("Max"), // Menggunakan helper baru
     cell: ({ row }) => <div className="text-center">{formatNumber(row.original.max)}</div>,
-    footer: ({ table }) => { /* ... (footer max tetap) ... */
+    footer: ({ table }) => {
         const kalbarData = table.options.meta?.kalimantanBaratData as DescriptiveStatsRow | null;
         return <div className="text-center font-bold">{formatNumber(kalbarData?.max)}</div>;
     },
   },
   {
     accessorKey: "stdDev",
-    header: ({ table }) => <div className="text-center">Standar Deviasi {getUnitSuffix(table)}</div>,
+    header: createTwoLineHeaderWithUnit("Standar Deviasi"), // Menggunakan helper baru
     cell: ({ row }) => <div className="text-center">{formatNumber(row.original.stdDev)}</div>,
-    footer: ({ table }) => { /* ... (footer stdDev tetap) ... */
+    footer: ({ table }) => {
         const kalbarData = table.options.meta?.kalimantanBaratData as DescriptiveStatsRow | null;
         return <div className="text-center font-bold">{formatNumber(kalbarData?.stdDev)}</div>;
     },
   },
   {
     accessorKey: "q1",
-    header: ({ table }) => <div className="text-center">Kuartil 1 (Q1) {getUnitSuffix(table)}</div>,
+    header: createTwoLineHeaderWithUnit("Kuartil 1 (Q1)"), // Menggunakan helper baru
     cell: ({ row }) => <div className="text-center">{formatNumber(row.original.q1)}</div>,
-    footer: ({ table }) => { /* ... (footer q1 tetap) ... */
+    footer: ({ table }) => {
         const kalbarData = table.options.meta?.kalimantanBaratData as DescriptiveStatsRow | null;
         return <div className="text-center font-bold">{formatNumber(kalbarData?.q1)}</div>;
     },
   },
   {
     accessorKey: "q3",
-    header: ({ table }) => <div className="text-center">Kuartil 3 (Q3) {getUnitSuffix(table)}</div>,
+    header: createTwoLineHeaderWithUnit("Kuartil 3 (Q3)"), // Menggunakan helper baru
     cell: ({ row }) => <div className="text-center">{formatNumber(row.original.q3)}</div>,
-    footer: ({ table }) => { /* ... (footer q3 tetap) ... */
+    footer: ({ table }) => {
         const kalbarData = table.options.meta?.kalimantanBaratData as DescriptiveStatsRow | null;
         return <div className="text-center font-bold">{formatNumber(kalbarData?.q3)}</div>;
     },
