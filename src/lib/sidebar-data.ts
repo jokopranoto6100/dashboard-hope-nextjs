@@ -97,24 +97,9 @@ import {
         isActive: (currentPath) => currentPath.startsWith("/update"),
         items: [
           {
-            title: "Update Ubinan",
-            url: "/update/ubinan-raw",
+            title: "Ubinan",
+            url: "/update/ubinan",
             isActive: (currentPath) => currentPath === "/update/ubinan-raw",
-          },
-          {
-            title: "Update Master Sampel",
-            url: "/update/master-sampel",
-            isActive: (currentPath) => currentPath === "/update/master-sampel",
-          },
-          {
-            title: "Generate Anomali Ubinan",
-            url: "/update/generate-anomali",
-            isActive: (currentPath) => currentPath === "/update/generate-anomali",
-          },
-          {
-            title: "Generate Gabungan Ubinan",
-            url: "/update/generate-gabung",
-            isActive: (currentPath) => currentPath === "/update/generate-gabung",
           },
           {
             title: "Upload Data KSA",
@@ -127,6 +112,12 @@ import {
             isActive: (currentPath) => currentPath === "/update/atap",
           },
         ],
+      },
+            {
+        title: "Analisis Data",
+        url: "/analisis-data",
+        icon: FlaskConical,
+        isActive: (currentPath) => currentPath === "/produksi-statistik",
       },
     ];
   

@@ -2,7 +2,7 @@
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
-import { CircleX } from 'lucide-react';
+import { ShieldAlert } from 'lucide-react';
 
 // Tipe ini HARUS SESUAI dengan struktur yang dikembalikan oleh RPC get_ubinan_detail_sorted_paginated
 export interface DetailRecordRowProcessed {
@@ -33,8 +33,8 @@ const formatNumber = (value: number | null | undefined, decimalPlaces: number = 
 };
 
 const AMBANG_BATAS = {
-  BENIH_KG_HA: 100, UREA_KG_HA: 200, TSP_KG_HA: 100, KCL_KG_HA: 100,
-  NPK_KG_HA: 200, ZA_KG_HA: 100, KOMPOS_KG_HA: 1000, ORGANIK_CAIR_LITER_HA: 20,
+  BENIH_KG_HA: 100, UREA_KG_HA: 300, TSP_KG_HA: 300, KCL_KG_HA: 300,
+  NPK_KG_HA: 300, ZA_KG_HA: 300, KOMPOS_KG_HA: 1000, ORGANIK_CAIR_LITER_HA: 20,
 };
 
 const createPerHaColumnWithIcon = (
@@ -58,7 +58,7 @@ const createPerHaColumnWithIcon = (
         <div className="text-center flex items-center justify-center">
           <span>{formatNumber(nilaiPerHa, decimalPlacesRender)}</span>
           {nilaiPerHa !== null && nilaiPerHa > ambangBatasPerHa && (
-            <CircleX className="ml-2 h-4 w-4 text-destructive" />
+            <ShieldAlert className="ml-2 h-4 w-4 text-destructive" />
           )}
         </div>
       );
