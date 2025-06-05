@@ -98,17 +98,17 @@ import {
         items: [
           {
             title: "Ubinan",
-            url: "/update/ubinan",
+            url: "/update-data/ubinan",
             isActive: (currentPath) => currentPath === "/update/ubinan-raw",
           },
           {
             title: "Upload Data KSA",
-            url: "/update/ksa",
+            url: "/update-data/ksa",
             isActive: (currentPath) => currentPath === "/update/ksa",
           },
           {
             title: "Upload & Edit ATAP",
-            url: "/update/atap",
+            url: "/update-data/atap",
             isActive: (currentPath) => currentPath === "/update/atap",
           },
         ],
