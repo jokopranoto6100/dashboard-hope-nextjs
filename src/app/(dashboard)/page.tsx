@@ -210,13 +210,13 @@ export default function HomePage() {
                 <div className="text-xs text-muted-foreground mt-1 flex flex-wrap items-center gap-1">
                   Status Validasi:&nbsp;
                   <Badge variant="success">
-                    C: {palawijaTotals.clean}
+                    Clean: {palawijaTotals.clean}
                   </Badge>
                   <Badge variant="warning">
-                    W: {palawijaTotals.warning}
+                    Warning: {palawijaTotals.warning}
                   </Badge>
                   <Badge variant="destructive">
-                    E: {palawijaTotals.error}
+                    Error: {palawijaTotals.error}
                   </Badge>
                 </div>
                 {lastUpdatePalawija && <p className="text-xs text-muted-foreground mt-1">Data per: {lastUpdatePalawija}</p>}
