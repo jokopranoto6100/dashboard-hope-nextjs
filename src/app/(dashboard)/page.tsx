@@ -82,7 +82,11 @@ export default function HomePage() {
         icon = <Info />;
       }
     } else if (isPercentage) {
-      variant = getPercentageBadgeVariant(numValue);
+      const badgeVariant = getPercentageBadgeVariant(numValue);
+      // Fallback to "default" if the returned variant is not allowed
+      variant = (["default", "destructive", "success", "warning"].includes(badgeVariant as string) 
+        ? badgeVariant 
+        : "default") as "default" | "destructive" | "success" | "warning";
       if (numValue >= 100) icon = <CheckCircle2 />;
       else if (numValue < 70) icon = <AlertTriangle />;
     }
