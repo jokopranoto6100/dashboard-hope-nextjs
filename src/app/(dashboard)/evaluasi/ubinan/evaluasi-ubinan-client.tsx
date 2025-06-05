@@ -40,7 +40,13 @@ import {
   getSortedRowModel,
   flexRender,
   SortingState,
+  RowData, // Ditambahkan untuk tipe generic
 } from "@tanstack/react-table";
+
+// Impor DetailKabupatenModal (pastikan path ini benar dan file akan dibuat)
+import { DetailKabupatenModal } from './DetailKabupatenModal';
+// Ambil selectedYear dari useYear (atau pastikan sudah ada di useUbinanEvaluasiFilter)
+import { useYear } from '@/context/YearContext';
 
 declare module '@tanstack/react-table' {
   interface TableMeta<TData extends unknown> {
@@ -61,6 +67,7 @@ export function EvaluasiUbinanClient() {
     availableKomoditas,
     isLoadingFilters,
   } = useUbinanEvaluasiFilter();
+  const { selectedYear } = useYear(); // Ambil selectedYear
 
   const [useKuHa, setUseKuHa] = useState(false);
   const conversionFactor = useKuHa ? 16 : 1;
@@ -68,6 +75,10 @@ export function EvaluasiUbinanClient() {
   const [sortingStats, setSortingStats] = React.useState<SortingState>([]);
   const [sortingBenih, setSortingBenih] = React.useState<SortingState>([]);
   const [sortingPupuk, setSortingPupuk] = React.useState<SortingState>([]);
+
+  // State untuk modal detail
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedKabForDetail, setSelectedKabForDetail] = useState<{ code: number; name: string; tableType: 'benih' | 'pupuk' } | null>(null);
 
   const {
     data: statsDataPerKab,
@@ -136,16 +147,27 @@ export function EvaluasiUbinanClient() {
   
   const isKomoditasDisabled = isLoadingFilters || availableKomoditas.length === 0;
 
+  // Fungsi untuk menangani klik baris dan membuka modal
+  const handleOpenDetailModal = (rowData: RowData, type: 'benih' | 'pupuk') => {
+    // Pastikan rowData adalah tipe yang benar (BenihRow atau PupukRow)
+    const kabData = rowData as BenihRow | PupukRow; // Type assertion
+    if (kabData.kab !== undefined && kabData.kab !== null) {
+      setSelectedKabForDetail({ code: kabData.kab, name: kabData.namaKabupaten, tableType: type });
+      setIsDetailModalOpen(true);
+    }
+  };
+
   const renderTable = (
     tableInstance: any,
     title: string,
     description: string,
     isLoading: boolean,
-    error: string | null,
+    errorMsg: string | null, // Ganti nama parameter agar tidak konflik
     showUnitSwitcher: boolean = false,
-    footerData?: BenihRow | PupukRow | DescriptiveStatsRow | null
+    footerData?: BenihRow | PupukRow | DescriptiveStatsRow | null,
+    onRowClickHandler?: (rowData: RowData) => void // Tambahkan parameter onRowClickHandler
   ) => {
-    const noData = !isLoading && !error && tableInstance.getRowModel().rows.length === 0;
+    const noData = !isLoading && !errorMsg && tableInstance.getRowModel().rows.length === 0;
     const hasFooter = footerData && tableInstance.getRowModel().rows.length > 0;
 
     return (
@@ -162,9 +184,9 @@ export function EvaluasiUbinanClient() {
         </CardHeader>
         <CardContent>
           {isLoading && (<div className="space-y-2">{[...Array(3)].map((_, i) => (<Skeleton key={i} className="h-12 w-full" />))}</div>)}
-          {!isLoading && error && (<p className="text-red-600 dark:text-red-400 text-center py-4">Error: {error}</p>)}
+          {!isLoading && errorMsg && (<p className="text-red-600 dark:text-red-400 text-center py-4">Error: {errorMsg}</p>)}
           {noData && (<p className="text-center text-gray-500 dark:text-gray-400 py-4">Tidak ada data untuk ditampilkan dengan filter yang dipilih.</p>)}
-          {!isLoading && !error && tableInstance.getRowModel().rows.length > 0 && (
+          {!isLoading && !errorMsg && tableInstance.getRowModel().rows.length > 0 && (
             <div className="rounded-md border overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -181,7 +203,12 @@ export function EvaluasiUbinanClient() {
                 </TableHeader>
                 <TableBody>
                   {tableInstance.getRowModel().rows.map((row: any) => (
-                    <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+                    <TableRow 
+                      key={row.id} 
+                      data-state={row.getIsSelected() && "selected"}
+                      onClick={onRowClickHandler ? () => onRowClickHandler(row.original) : undefined}
+                      className={onRowClickHandler ? "cursor-pointer hover:bg-muted/50 dark:hover:bg-muted/30" : ""}
+                    >
                       {row.getVisibleCells().map((cell: any) => (
                         <TableCell key={cell.id} style={{ textAlign: 'center' }} className="whitespace-nowrap">
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -238,8 +265,39 @@ export function EvaluasiUbinanClient() {
       </div>
 
       {renderTable(statsTable, "Tabel Statistik Deskriptif Ubinan (R701)", `Pilih tahun melalui filter global di header. Data pada tabel di bawah ini difilter berdasarkan subround dan komoditas yang dipilih di atas. Statistik mencakup entri R701 yang tidak kosong. Ubah satuan menggunakan tombol di pojok kanan atas kartu ini.`, isLoadingStatsData, statsDataError, true, kalbarStatsData)}
-      {renderTable(benihTable, "Tabel Rata-Rata Penggunaan Benih", `Data pada tabel di bawah ini menampilkan rata-rata penggunaan benih per hektar (Kg/Ha) dan rata-rata luas tanam (m²) per kabupaten, berdasarkan filter tahun, subround, dan komoditas yang dipilih.`, isLoadingBenihPupuk, errorBenihPupuk, false, kalimantanBaratBenih)}
-      {renderTable(pupukTable, "Tabel Rata-Rata Penggunaan Pupuk", `Data pada tabel di bawah ini menampilkan rata-rata penggunaan berbagai jenis pupuk per hektar dan rata-rata luas tanam (m²) per kabupaten, berdasarkan filter tahun, subround, dan komoditas yang dipilih. Satuan pupuk dalam Kg/Ha, kecuali organik cair dalam Liter/Ha.`, isLoadingBenihPupuk, errorBenihPupuk, false, kalimantanBaratPupuk)}
+      {renderTable(
+        benihTable, 
+        "Tabel Rata-Rata Penggunaan Benih", 
+        `Data pada tabel di bawah ini menampilkan rata-rata penggunaan benih per hektar (Kg/Ha) dan rata-rata luas tanam (m²) per kabupaten, berdasarkan filter tahun, subround, dan komoditas yang dipilih. Klik baris untuk melihat detail per record.`, 
+        isLoadingBenihPupuk, 
+        errorBenihPupuk, 
+        false, 
+        kalimantanBaratBenih,
+        (data) => handleOpenDetailModal(data, 'benih') // Tambahkan handler
+      )}
+      {renderTable(
+        pupukTable, 
+        "Tabel Rata-Rata Penggunaan Pupuk", 
+        `Data pada tabel di bawah ini menampilkan rata-rata penggunaan berbagai jenis pupuk per hektar dan rata-rata luas tanam (m²) per kabupaten, berdasarkan filter tahun, subround, dan komoditas yang dipilih. Satuan pupuk dalam Kg/Ha, kecuali organik cair dalam Liter/Ha. Klik baris untuk melihat detail per record.`, 
+        isLoadingBenihPupuk, 
+        errorBenihPupuk, 
+        false, 
+        kalimantanBaratPupuk,
+        (data) => handleOpenDetailModal(data, 'pupuk') // Tambahkan handler
+      )}
+
+      {/* Render Modal Detail */}
+      {selectedKabForDetail && (
+        <DetailKabupatenModal
+          isOpen={isDetailModalOpen}
+          onClose={() => { setIsDetailModalOpen(false); setSelectedKabForDetail(null); }}
+          kabCode={selectedKabForDetail.code}
+          namaKabupaten={selectedKabForDetail.name}
+          selectedYear={selectedYear}
+          selectedSubround={selectedSubround}
+          selectedKomoditas={selectedKomoditas}
+        />
+      )}
     </div>
   );
 }
