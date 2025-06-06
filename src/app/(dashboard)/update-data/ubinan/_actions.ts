@@ -6,6 +6,8 @@ import { supabaseServer, createSupabaseServerClientWithUserContext } from "@/lib
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { parse } from "csv-parse/sync";
+import * as xlsx from 'xlsx';
+
 
 // Pastikan ubinanRawSchema dan getColumnSchemaInfo didefinisikan di sini atau diimpor
 // Contoh:
@@ -365,5 +367,134 @@ export async function uploadUbinanRawAction(formData: FormData): Promise<ActionR
         errorMessage = error;
     }
     return { success: false, message: errorMessage, errorDetails: error.toString() };
+  }
+}
+
+// --- MULAI KODE BARU DI SINI ---
+
+// Helper untuk mapping nama bulan ke angka (text)
+const monthMap: { [key: string]: string } = {
+  'januari': '1',
+  'februari': '2',
+  'maret': '3',
+  'april': '4',
+  'mei': '5',
+  'juni': '6',
+  'juli': '7',
+  'agustus': '8',
+  'september': '9',
+  'oktober': '10',
+  'november': '11',
+  'desember': '12',
+};
+
+export async function uploadMasterSampleAction(formData: FormData): Promise<ActionResult> {
+  const cookieStore = await cookies();
+  const supabaseUserContext = await createSupabaseServerClientWithUserContext(cookieStore);
+
+  const { data: { user } } = await supabaseUserContext.auth.getUser();
+  if (user?.user_metadata?.role !== "super_admin") {
+    return { success: false, message: "Akses ditolak." };
+  }
+  const username = user.user_metadata?.username || user.email || 'tidak_diketahui';
+
+  const files = formData.getAll("files") as File[];
+  if (!files || files.length === 0) {
+    return { success: false, message: "Tidak ada file." };
+  }
+
+  let allRowsToUpsert: any[] = [];
+  const uploadedAt = new Date().toISOString();
+  let skippedRowCount = 0;
+
+  try {
+    for (const file of files) {
+      const buffer = await file.arrayBuffer();
+      const workbook = xlsx.read(buffer, { type: "buffer", cellDates: true });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const jsonData = xlsx.utils.sheet_to_json(sheet) as any[];
+
+      for (const record of jsonData) {
+        const monthName = record.bulan?.toString().trim().toLowerCase();
+        const monthNumber = monthMap[monthName];
+
+        if (!monthNumber) {
+           console.warn(`Melewatkan baris karena nama bulan tidak valid: "${record.bulan}"`, record);
+           skippedRowCount++;
+           continue;
+        }
+
+        if (!record.tahun || !record.subround || !record.idsegmen || !record.subsegmen) {
+           console.warn(`Melewatkan baris karena kolom kunci (tahun/subround/idsegmen/subsegmen) kosong:`, record);
+           skippedRowCount++;
+           continue; 
+        }
+
+        const newRow = {
+          kab: record.kab,
+          nmkab: record.nmkab,
+          kec: record.kec,
+          nmkec: record.nmkec,
+          namalok: record.namalok,
+          jenis_sampel: record.jenis_sampel,
+          Utama: record.Utama,
+          Cadangan: record.Cadangan,
+          idsegmen: record.idsegmen,
+          rilis: record.rilis, 
+          x: record.x,
+          y: record.y,
+          subsegmen: record.subsegmen,
+          tahun: parseInt(record.tahun),
+          subround: parseInt(record.subround),
+          bulan: monthNumber,
+          uploaded_at: uploadedAt,
+          uploaded_by_username: username,
+        };
+        allRowsToUpsert.push(newRow);
+      }
+    }
+    
+    if (allRowsToUpsert.length === 0) {
+        return { success: false, message: "Tidak ada baris data yang valid untuk diimpor." };
+    }
+
+    const { error: upsertError } = await supabaseServer
+      .from('master_sampel_ubinan')
+      .upsert(allRowsToUpsert, { 
+        onConflict: 'tahun,subround,bulan,idsegmen,subsegmen'
+      });
+
+    if (upsertError) {
+      console.error("Upsert Error:", upsertError);
+      return { success: false, message: "Gagal menyimpan data ke database.", errorDetails: upsertError.message };
+    }
+
+    // --- AWAL PATCH ---
+    // Menambahkan refresh untuk materialized view ubinan_dashboard
+    const { error: mvError } = await supabaseServer.rpc('refresh_materialized_view_ubinan_dashboard');
+    if (mvError) {
+        console.warn("Gagal me-refresh materialized view ubinan_dashboard:", mvError);
+        // Proses utama tetap dianggap sukses, namun beri peringatan
+    }
+    // --- AKHIR PATCH ---
+
+    revalidatePath("/update-data/ubinan");
+    revalidatePath("/monitoring/ubinan"); // Tambahkan revalidate untuk halaman yang terpengaruh
+    revalidatePath("/evaluasi/ubinan");   // Tambahkan revalidate untuk halaman yang terpengaruh
+
+    let successMessage = `Berhasil memproses ${files.length} file dan menyimpan/memperbarui ${allRowsToUpsert.length} baris.`;
+    if (skippedRowCount > 0) {
+        successMessage += ` Ada ${skippedRowCount} baris yang dilewati karena data tidak lengkap.`;
+    }
+    if (mvError) { // Tambahkan peringatan jika refresh gagal
+        successMessage += ` Peringatan: Gagal me-refresh data dashboard ubinan.`;
+    }
+
+    return { success: true, message: successMessage };
+
+  } catch (error: any) {
+    console.error("Upload Master Sample Error:", error);
+    return { success: false, message: "Terjadi kesalahan saat mem-parsing file Excel.", errorDetails: error.toString() };
   }
 }

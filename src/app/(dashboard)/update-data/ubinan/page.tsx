@@ -1,114 +1,113 @@
 // src/app/(dashboard)/update-data/ubinan/page.tsx
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { UploaderClientComponent } from "./uploader-client-component";
+import { MasterSampleUploader } from "./master-sample-uploader"; 
 import { createSupabaseServerClientWithUserContext } from "@/lib/supabase-server";
 import { cookies } from "next/headers";
-import { notFound } from "next/navigation";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // BARU
-import { Terminal, UserCircle, CalendarClock, Info } from "lucide-react"; // BARU: Ikon
+import { Terminal } from "lucide-react";
 
-// Fungsi untuk mengambil informasi pembaruan terakhir
-async function getLastUpdateInfo() {
+// Fungsi generik untuk mengambil informasi pembaruan terakhir dari tabel manapun
+async function getLastUpdateInfo(tableName: 'ubinan_raw' | 'master_sampel_ubinan') {
   const cookieStore = await cookies();
   const supabase = await createSupabaseServerClientWithUserContext(cookieStore);
 
   const { data, error } = await supabase
-    .from('ubinan_raw')
+    .from(tableName)
     .select('uploaded_at, uploaded_by_username')
     .order('uploaded_at', { ascending: false })
     .limit(1)
     .maybeSingle();
 
   if (error) {
-    console.error("Error fetching last update info:", error.message);
+    console.error(`Error fetching last update info for ${tableName}:`, error.message);
     return null;
   }
   return data;
 }
 
-export default async function UpdateUbinanRawPage() {
-  const cookieStore = await cookies();
-  const supabaseAuth = await createSupabaseServerClientWithUserContext(cookieStore);
-  const { data: { user } } = await supabaseAuth.auth.getUser();
+// Helper untuk format tanggal
+function formatUpdateText(updateData: { uploaded_at: string | null; uploaded_by_username: string | null; } | null): string {
+    if (!updateData || !updateData.uploaded_at) {
+        return 'Belum ada riwayat pembaruan.';
+    }
+    try {
+        const date = new Date(updateData.uploaded_at);
+        const formattedDate = date.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+        const formattedTime = date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false });
+        return `Diperbarui oleh ${updateData.uploaded_by_username || 'Tidak diketahui'} pada ${formattedDate}, pukul ${formattedTime} WIB.`;
+    } catch (e) {
+        return "Gagal memformat tanggal.";
+    }
+}
 
-  if (user?.user_metadata?.role !== 'super_admin') {
-    // console.warn("Akses ditolak untuk UpdateUbinanRawPage, pengguna bukan super_admin.");
-    // notFound();
-    // Atau tampilkan komponen 'Unauthorized'
-    // Untuk pengembangan, kita bisa biarkan lolos sementara atau return pesan
-    // return <p>Akses ditolak. Hanya Super Admin.</p>;
-  }
+export default async function UpdateDataPage() {
+  // Ambil riwayat pembaruan untuk kedua tabel secara paralel
+  const [lastUpdateRaw, lastUpdateMaster] = await Promise.all([
+    getLastUpdateInfo('ubinan_raw'),
+    getLastUpdateInfo('master_sampel_ubinan')
+  ]);
 
-  const lastUpdate = await getLastUpdateInfo();
+  // ... (Anda bisa menambahkan proteksi peran super_admin di sini jika perlu)
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-4 md:gap-8 md:p-8"> {/* Sedikit penyesuaian gap */}
-      <Card className="shadow-lg">
-        <CardHeader>
-          <CardTitle className="text-2xl">Update Data Ubinan (Raw)</CardTitle> {/* Ukuran font sedikit lebih besar */}
-          <CardDescription>
-            Unggah file CSV untuk memperbarui data mentah ubinan. Pastikan format file CSV Anda sudah sesuai.
-            Data yang ada dengan Tahun, Subround, dan Kabupaten/Kota yang sama akan dihapus dan digantikan dengan data dari file ini.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <UploaderClientComponent />
-        </CardContent>
-      </Card>
+    <div className="flex flex-1 flex-col gap-6 p-4 md:gap-8 md:p-8">
+      <Tabs defaultValue="data_raw" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 shadow-sm">
+          <TabsTrigger value="data_raw">Import Data Transaksi (Raw)</TabsTrigger>
+          <TabsTrigger value="master_sampel">Import Master Sampel</TabsTrigger>
+        </TabsList>
+        
+        {/* Konten untuk Tab 1: Import Data Ubinan Raw (yang sudah ada) */}
+        <TabsContent value="data_raw" className="mt-4">
+          <Card className="shadow-lg">
+            <CardHeader>
+              <CardTitle className="text-2xl">Update Data Ubinan (Raw)</CardTitle>
+              <CardDescription>
+                Unggah file CSV untuk memperbarui data mentah ubinan. Proses ini akan menghapus data lama berdasarkan Tahun, Subround, dan Kabupaten/Kota.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <UploaderClientComponent />
+              
+              <div className="mt-8 border-t pt-6">
+                <h4 className="text-md flex items-center font-semibold text-muted-foreground">
+                    <Terminal className="mr-2 h-5 w-5" />
+                    Riwayat Pembaruan Terakhir (Data Raw)
+                </h4>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
+                  {formatUpdateText(lastUpdateRaw)}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-      <Card className="shadow-lg">
-        <CardHeader>
-          <CardTitle className="text-xl flex items-center"> {/* Ukuran font & flex untuk ikon */}
-            <Terminal className="mr-2 h-6 w-6 text-primary" /> {/* Ikon Terminal */}
-            Riwayat Pembaruan Terakhir
-          </CardTitle>
-          <CardDescription>
-            Informasi mengenai unggahan data terakhir ke tabel ubinan mentah.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {lastUpdate && lastUpdate.uploaded_at ? (
-            <Alert variant="default" className="bg-slate-50 dark:bg-slate-800"> {/* Menggunakan Alert untuk tampilan berbeda */}
-              {/* <Info className="h-4 w-4" /> */}
-              {/* <AlertTitle className="font-semibold">Detail Pembaruan</AlertTitle> */}
-              <AlertDescription className="space-y-2 text-sm">
-                <div className="flex items-center">
-                  <UserCircle className="mr-2 h-5 w-5 text-sky-600" />
-                  <span>
-                    Diperbarui oleh: <strong className="font-medium">{lastUpdate.uploaded_by_username || 'Tidak diketahui'}</strong>
-                  </span>
-                </div>
-                <div className="flex items-center">
-                  <CalendarClock className="mr-2 h-5 w-5 text-sky-600" />
-                  <span>
-                    Pada tanggal: <strong className="font-medium">
-                      {new Date(lastUpdate.uploaded_at).toLocaleDateString('id-ID', {
-                        day: '2-digit',
-                        month: 'long',
-                        year: 'numeric',
-                      })}
-                    </strong>, pukul <strong className="font-medium">
-                      {new Date(lastUpdate.uploaded_at).toLocaleTimeString('id-ID', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        hour12: false,
-                      })} WIB
-                    </strong>
-                  </span>
-                </div>
-              </AlertDescription>
-            </Alert>
-          ) : (
-            <Alert variant="destructive" className="bg-yellow-50 border-yellow-300 dark:bg-yellow-900/30 dark:border-yellow-700"> {/* Alert untuk info belum ada data */}
-              <Info className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
-              <AlertTitle className="font-semibold text-yellow-700 dark:text-yellow-300">Informasi</AlertTitle>
-              <AlertDescription className="text-yellow-700 dark:text-yellow-500">
-                Belum ada riwayat pembaruan data yang tercatat.
-              </AlertDescription>
-            </Alert>
-          )}
-        </CardContent>
-      </Card>
+        {/* Konten untuk Tab 2: Import Master Sampel (yang baru) */}
+        <TabsContent value="master_sampel" className="mt-4">
+          <Card className="shadow-lg">
+            <CardHeader>
+              <CardTitle className="text-2xl">Update Master Sampel Ubinan</CardTitle>
+              <CardDescription>
+                Unggah satu atau beberapa file Excel (.xlsx) berisi data master sampel. Proses ini akan menambahkan data baru atau memperbarui data yang sudah ada (upsert).
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <MasterSampleUploader /> {/* Komponen baru kita */}
+
+               <div className="mt-8 border-t pt-6">
+                <h4 className="text-md flex items-center font-semibold text-muted-foreground">
+                    <Terminal className="mr-2 h-5 w-5" />
+                    Riwayat Pembaruan Terakhir (Master Sampel)
+                </h4>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
+                  {formatUpdateText(lastUpdateMaster)}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
