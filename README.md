@@ -256,39 +256,33 @@ Migrasi ini berfokus pada arsitektur yang lebih modern, performa, skalabilitas, 
             * Komponen `<Pagination>` penuh untuk navigasi antar halaman data detail.
             * Skeleton loading ditampilkan pada baris-baris tabel (`TableBody`) saat data sedang di-refresh (misalnya, saat sorting, pindah halaman, atau perubahan ukuran halaman).
 
-10.  **Update Data Ubinan - (Fitur Baru):**
-    *  **UI Halaman Unggah (`/update-data/ubinan`):**
-        * Dibuat menggunakan Next.js Server Component (`page.tsx`) dan Client Component (`uploader-client-component.tsx`) untuk interaksi.
-        * Menggunakan komponen `Card`, `Input type="file"`, `Button`, `Alert`, dan ikon dari `shadcn/ui` dan `lucide-react` untuk tampilan yang konsisten dan informatif.
-        * Validasi tipe file CSV di sisi klien.
-        * Menampilkan notifikasi proses dan hasil menggunakan `Sonner`.
-        * **Riwayat Pembaruan Terakhir**: Menampilkan informasi pengguna dan waktu pembaruan data terakhir di tabel `ubinan_raw` langsung di halaman unggah. Data ini diambil secara dinamis di Server Component.
+10. **Halaman Update Data (`/update-data/ubinan`) - (Fitur Baru & Diperluas):**
+    * **Struktur Halaman dengan Tabs**: Halaman ini sekarang menggunakan komponen `Tabs` dari `shadcn/ui` untuk memisahkan dua fungsi impor yang berbeda: "Import Data Transaksi (Raw)" dan "Import Master Sampel".
+    * **Riwayat Pembaruan Terakhir**: Setiap tab kini menampilkan riwayat pembaruan terakhir untuk tabelnya masing-masing (`ubinan_raw` dan `master_sampel_ubinan`), yang diambil secara dinamis menggunakan Server Component.
 
-    *  **Logika Backend (Next.js Server Action - `_actions.ts`):**
-        * **Otentikasi & Otorisasi**: Memastikan hanya `super_admin` yang dapat menjalankan aksi, dan mengambil `username` untuk logging.
-        * **Penerimaan & Parsing File**: Menerima `FormData` berisi file CSV, mem-parsing konten CSV menggunakan library `csv-parse`.
-        * **Validasi Header & Data**:
-            * Memvalidasi keberadaan header kolom wajib (`tahun`, `subround`, `kab`, `komoditas`).
-            * Melakukan konversi tipe data untuk setiap kolom dari CSV ke tipe data yang sesuai di tabel `ubinan_raw` (merujuk pada `ubinanRawSchema` internal).
-            * Menangani nilai kosong/null dan validasi untuk kolom yang `NOT NULL`.
-        * **Proses Database dalam Transaksi (via Fungsi RPC PostgreSQL):**
-            * **Identifikasi Scope Penghapusan**: Mengidentifikasi kombinasi unik dari `tahun`, `subround`, dan `kab` dari data CSV.
-            * **Pemanggilan Fungsi RPC `process_ubinan_raw_upload`**:
-                * Fungsi RPC ini menerima scope penghapusan dan array data baru.
-                * Di dalam PostgreSQL, fungsi ini pertama-tama melakukan `DELETE` dari `ubinan_raw` berdasarkan `tahun`, `subround`, dan `kab`.
-                * Kemudian, melakukan `INSERT` (bulk) data baru dari CSV ke `ubinan_raw`. Setiap baris baru mendapatkan `id` UUID yang di-generate server, `uploaded_at` (timestamp saat ini), dan `uploaded_by_username`.
-                * Seluruh operasi `DELETE` dan `INSERT` di dalam fungsi RPC ini dibungkus dalam satu transaksi atomik (jika ada error, semua di-rollback).
-            * **Pemanggilan Fungsi RPC `refresh_materialized_view_ubinan_dashboard`**: Setelah data berhasil diimpor ke `ubinan_raw`, fungsi RPC ini dipanggil untuk me-refresh `materialized view` `ubinan_dashboard`.
-        * **Revalidasi Path**: Melakukan `revalidatePath` untuk halaman terkait (`/update-data/ubinan`, `/monitoring/ubinan`, `/evaluasi/ubinan`, `/`) agar data yang ditampilkan di UI selalu terbaru.
+    * **Fitur A: Import Data Ubinan (Raw)**
+        * **UI & Logika**: Menggunakan komponen uploader khusus (`UploaderClientComponent`) untuk mengunggah satu file **CSV**.
+        * **Backend (Server Action `uploadUbinanRawAction`)**:
+            * Melakukan validasi, parsing, dan konversi tipe data dari file CSV.
+            * Menggunakan logika **"Hapus dan Ganti"**: Menghapus data yang ada di tabel `ubinan_raw` berdasarkan kombinasi unik dari `tahun`, `subround`, dan `kab` sebelum mengimpor data baru.
+            * Seluruh proses `DELETE` dan `INSERT` dibungkus dalam satu transaksi atomik melalui fungsi RPC PostgreSQL `process_ubinan_raw_upload`.
+            * Setelah impor berhasil, secara otomatis memanggil fungsi RPC untuk me-refresh `materialized view` `ubinan_anomali` dan `ubinan_dashboard` secara berurutan.
 
-    *  **Persiapan Database (PostgreSQL - Supabase):**
-        * Penambahan kolom `uploaded_by_username TEXT` pada tabel `ubinan_raw`.
-        * Pembuatan dua fungsi RPC PostgreSQL:
-            * `process_ubinan_raw_upload(deletion_scopes jsonb[], insert_data jsonb[])`: Untuk menangani logika `DELETE` dan `INSERT` secara transaksional.
-            * `refresh_materialized_view_ubinan_dashboard()`: Untuk me-refresh materialized view.
+    * **Fitur B: Import Master Sampel Ubinan (Tambahan Baru)**
+        * **UI & Logika**: Menggunakan komponen uploader kedua (`MasterSampleUploader`) yang dirancang untuk mengunggah **satu atau beberapa file Excel (.xlsx, .xls)** sekaligus. Tampilannya diseragamkan dengan form upload data raw untuk konsistensi.
+        * **Backend (Server Action `uploadMasterSampleAction`)**:
+            * Menggunakan library **`xlsx` (SheetJS)** untuk mem-parsing file Excel di sisi server.
+            * **Konversi Data**: Secara otomatis mengonversi nama bulan dari format teks (misal: "Agustus") menjadi format angka ("8") sesuai kebutuhan tabel target.
+            * Menggunakan logika **UPSERT** (Update jika ada, Insert jika baru) ke tabel `master_sampel_ubinan`.
+            * Keunikan data ditentukan oleh kombinasi 5 kolom: `tahun`, `subround`, `bulan`, `idsegmen`, dan `subsegmen`.
+            * Setelah `upsert` data master sampel berhasil, secara otomatis memanggil fungsi RPC untuk me-refresh `materialized view` `ubinan_dashboard` untuk memastikan data tetap sinkron.
+        * **Persiapan Database untuk Master Sampel**:
+            * Penambahan kolom audit (`uploaded_at`, `uploaded_by_username`) ke tabel `master_sampel_ubinan`.
+            * Pembuatan `UNIQUE INDEX` pada 5 kolom kunci untuk mengoptimalkan performa `UPSERT`.
 
-    *  **Konfigurasi Client Supabase di Next.js (`src/lib/supabase-server.ts`):**
-        * Memastikan adanya `supabaseServer` (client dengan `service_role_key` untuk operasi backend penuh seperti memanggil RPC) dan fungsi `createSupabaseServerClientWithUserContext` (client yang menggunakan `anon_key` dan `cookies` untuk mendapatkan konteks pengguna di Server Components/Actions).
+    * **Peningkatan Lainnya**:
+        * **Konfigurasi Batas Ukuran File**: Batas ukuran body untuk Server Action telah dinaikkan menjadi **25MB** melalui `next.config.js` untuk mengakomodasi file impor yang besar.
+        * **Penanganan Error**: Validasi dan penanganan error di sisi Server Action ditingkatkan untuk memberikan umpan balik yang lebih jelas kepada pengguna jika ada data yang tidak valid atau kosong di file sumber.
 
 ## 📁 Struktur Folder Proyek
 Dashboard Pertanian/
