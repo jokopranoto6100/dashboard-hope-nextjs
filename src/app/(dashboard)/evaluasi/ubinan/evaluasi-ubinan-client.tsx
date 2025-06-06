@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/app/(dashboard)/evaluasi/ubinan/evaluasi-ubinan-client.tsx
 "use client";
 

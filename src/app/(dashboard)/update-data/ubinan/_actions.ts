@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/app/(dashboard)/update-data/ubinan/_actions.ts
 "use server";
 
@@ -318,13 +319,35 @@ export async function uploadUbinanRawAction(formData: FormData): Promise<ActionR
         console.error("Supabase RPC error:", rpcError);
         return { success: false, message: "Gagal memproses data di database.", errorDetails: rpcError.message };
     }
+    // --- AWAL PATCH ---
 
-    // 5. Refresh Materialized View
-    const { error: mvError } = await supabaseServer.rpc('refresh_materialized_view_ubinan_dashboard');
-    if (mvError) {
-        console.warn("Gagal me-refresh materialized view:", mvError);
-        return { success: true, message: `Data berhasil diimpor (${dataToInsert.length} baris), tetapi materialized view gagal di-refresh. Error: ${mvError.message}`, importedCount: dataToInsert.length };
+    // 5. Refresh Materialized Views (Urutan penting)
+    // Pertama, refresh ubinan_anomali
+    const { error: anomaliMvError } = await supabaseServer.rpc('refresh_materialized_view_ubinan_anomali');
+    if (anomaliMvError) {
+        console.error("Gagal me-refresh materialized view ubinan_anomali:", anomaliMvError);
+        // Data utama sudah berhasil masuk, jadi kita bisa return sukses tapi dengan pesan peringatan.
+        return { 
+            success: true, 
+            message: `Data berhasil diimpor (${dataToInsert.length} baris), tetapi proses refresh data anomali gagal. Coba refresh manual.`, 
+            importedCount: dataToInsert.length,
+            errorDetails: anomaliMvError.message 
+        };
     }
+
+    // Kedua, refresh ubinan_dashboard (jika anomali sukses)
+    const { error: dashboardMvError } = await supabaseServer.rpc('refresh_materialized_view_ubinan_dashboard');
+    if (dashboardMvError) {
+        console.warn("Gagal me-refresh materialized view ubinan_dashboard:", dashboardMvError);
+        return { 
+            success: true, 
+            message: `Data berhasil diimpor (${dataToInsert.length} baris), tetapi materialized view dashboard gagal di-refresh. Coba refresh manual.`,
+            importedCount: dataToInsert.length,
+            errorDetails: dashboardMvError.message
+        };
+    }
+
+    // --- AKHIR PATCH ---
 
     revalidatePath("/update-data/ubinan");
     revalidatePath("/monitoring/ubinan");
