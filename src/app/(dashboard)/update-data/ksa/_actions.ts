@@ -98,7 +98,7 @@ export async function uploadKsaAction(formData: FormData): Promise<ActionResult>
           status: record.status,
           evaluasi: record.evaluasi,
           tanggal: tanggal.toISOString(),
-          flag_kode_12: record.flag_kode_12,
+          flag_kode_12: record['flag kode 12'],
           note: record.note,
           kode_kab: kode_kab,
           kode_kec: kode_kec,

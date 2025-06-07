@@ -11,10 +11,14 @@ async function getLastKsaUpdateInfo() {
   const cookieStore = await cookies();
   const supabase = await createSupabaseServerClientWithUserContext(cookieStore);
 
-  const { data, error } = await supabase
-    .from('ksa_amatan') // Query ke tabel ksa_amatan
+// Kode yang sudah diperbaiki
+const { data, error } = await supabase
+    .from('ksa_amatan')
     .select('uploaded_at, uploaded_by_username')
-    .order('uploaded_at', { ascending: false })
+    // Filter baris yang uploaded_at nya TIDAK NULL
+    .not('uploaded_at', 'is', null) 
+    // Urutkan sisanya secara menurun
+    .order('uploaded_at', { ascending: false }) 
     .limit(1)
     .maybeSingle();
 
@@ -41,8 +45,10 @@ function formatUpdateText(updateData: { uploaded_at: string | null; uploaded_by_
 }
 
 export default async function KsaUpdatePage() {
-  const lastUpdate = await getLastKsaUpdateInfo();
-
+    console.log("Rendering KsaUpdatePage at:", new Date().toLocaleTimeString()); // Tambahkan log ini
+    const lastUpdate = await getLastKsaUpdateInfo();
+    console.log("Last update data fetched:", lastUpdate); // Tambahkan log ini
+  
   // Proteksi peran super_admin bisa ditambahkan di sini jika perlu,
   // tapi idealnya sudah ditangani oleh middleware.
 

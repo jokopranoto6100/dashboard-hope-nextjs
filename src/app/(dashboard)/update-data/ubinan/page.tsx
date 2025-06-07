@@ -12,10 +12,14 @@ async function getLastUpdateInfo(tableName: 'ubinan_raw' | 'master_sampel_ubinan
   const cookieStore = await cookies();
   const supabase = await createSupabaseServerClientWithUserContext(cookieStore);
 
-  const { data, error } = await supabase
+// Kode yang sudah diperbaiki
+const { data, error } = await supabase
     .from(tableName)
     .select('uploaded_at, uploaded_by_username')
-    .order('uploaded_at', { ascending: false })
+    // Filter baris yang uploaded_at nya TIDAK NULL
+    .not('uploaded_at', 'is', null) 
+    // Urutkan sisanya secara menurun
+    .order('uploaded_at', { ascending: false }) 
     .limit(1)
     .maybeSingle();
 
