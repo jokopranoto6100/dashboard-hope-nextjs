@@ -229,7 +229,7 @@ export function UploaderClientComponent() {
                     <div key={dbCol} className="grid grid-cols-2 items-center gap-4 p-2 border border-amber-300 rounded-md">
                       <Label htmlFor={`map-${dbCol}`} className="text-right font-bold">{dbCol}</Label>
                       <Select onValueChange={(val) => handleMappingChange(dbCol, val)}>
-                        <SelectTrigger><SelectValue placeholder="Pilih header dari file Anda..." /></SelectTrigger>
+                        <SelectTrigger><SelectValue placeholder="Pilih Kolom Mapping" /></SelectTrigger>
                         <SelectContent>
                           {analysisResult.unexpectedCsvHeaders.map(csvHeader => (
                             <SelectItem key={csvHeader} value={csvHeader}>{csvHeader}</SelectItem>

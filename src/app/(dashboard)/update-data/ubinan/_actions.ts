@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Lokasi File: src/app/(dashboard)/update-data/ubinan/_actions.ts
 "use server";
 
