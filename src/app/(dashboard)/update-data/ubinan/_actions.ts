@@ -1,20 +1,65 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-// src/app/(dashboard)/update-data/ubinan/_actions.ts
+// Lokasi File: src/app/(dashboard)/update-data/ubinan/_actions.ts
 "use server";
 
-import { supabaseServer, createSupabaseServerClientWithUserContext } from "@/lib/supabase-server";
+import { createSupabaseServerClientWithUserContext, supabaseServer } from "@/lib/supabase-server";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { parse } from "csv-parse/sync";
 import * as xlsx from 'xlsx';
 
+// ===================================================================================
+// TIPE DATA & INTERFACE BERSAMA
+// ===================================================================================
+interface ActionResult {
+  success: boolean;
+  message: string;
+  importedCount?: number;
+  errorDetails?: string;
+}
 
-// Pastikan ubinanRawSchema dan getColumnSchemaInfo didefinisikan di sini atau diimpor
-// Contoh:
-// import { ubinanRawSchema, getColumnSchemaInfo } from './schema-helpers'; // Jika di file terpisah
+type AnalysisResult = {
+  matchedHeaders: { dbCol: string; csvHeader: string }[];
+  unmappedDbCols: string[];
+  unexpectedCsvHeaders: string[];
+};
 
-// --- AWAL PASTE DARI SINI JIKA ANDA MENYIMPAN SKEMA DI FILE INI ---
+
+// ===================================================================================
+// BAGIAN 1: LOGIKA UNTUK UPLOAD UBINAN RAW (DENGAN HEADER MAPPING)
+// ===================================================================================
+
+// --- KONSTANTA & HELPER UNTUK UBINAN RAW ---
+
+const REQUIRED_UBINAN_RAW_COLS = [
+  'subround', 'prov', 'kab', 'kec', 'des/seg', 'bs/sseg', 'r111', 'url', 
+  'status', 'validasi', 'date_modified', 'komoditas', 'bulan_panen', 'r101', 
+  'r102', 'r103', 'r104', 'r110_palawija', 'r111a_label', 'r111a_lain', 
+  'r111a_value', 'r112', 'r112a_label', 'r112a_value', 'r113', 'r201_palawija', 
+  'r303a', 'r303b', 'r304_accuracy', 'r304_latitude', 'r304_longitude', 
+  'r401a', 'r401b', 'r501_label', 'r501_value', 'r501a', 'r501b', 'r502a', 
+  'r502b', 'r601_label', 'r601_value', 'r602_label', 'r602_value', 'r603', 
+  'r604', 'r605_label', 'r605_value', 'r606a_label', 'r606a_value', 
+  'r606b_label', 'r606b_value', 'r607_label', 'r607_value', 'r608', 
+  'r609_label', 'r609_value', 'r610_1', 'r610_2', 'r610_3', 'r610_4', 
+  'r610_5', 'r610_6', 'r610_7', 'r611_label', 'r611_value', 'r701', 'r702', 
+  'r801a_label', 'r801a_value', 'r801b_label', 'r801b_lain', 'r801b_value', 
+  'r801c_label', 'r801c_value', 'r801d_label', 'r801d_value', 'r801e_label', 
+  'r801e_value', 'r802a_label', 'r802a_value', 'r802b_label', 'r802b_lain', 
+  'r802b_value', 'r802c_label', 'r802c_value', 'r803a_label', 'r803a_value', 
+  'r803b_label', 'r803b_value', 'r803c_1', 'r803c_2', 'r803c_3', 'r803c_4', 
+  'r803c_lain', 'r803di_label', 'r803di_value', 'r804a_label', 'r804a_value', 
+  'r804b_label', 'r804b_value', 'r805a_label', 'r805a_value', 'r805b_label', 
+  'r805b_value', 'r806a_label', 'r806a_value', 'r806b_label', 'r806b_value', 
+  'r807a_label', 'r807a_value', 'r807b_label', 'r807b_value', 'r808a_label', 
+  'r808a_value', 'r808b_label', 'r808b_value', 'r809a_label', 'r809a_value', 
+  'r809b_label', 'r809b_value', 'r901', 'prioritas', 'fasetanam', 
+  'bulanmaster', 'tahun', 'nks', 'lat', 'long'
+];
+
 const ubinanRawSchema: { [key: string]: { data_type: string; udt_name: string; is_nullable: boolean } } = {
+  "id": { data_type: "uuid", udt_name: "uuid", is_nullable: false },
+  "uploaded_at": { data_type: "timestamp with time zone", udt_name: "timestamptz", is_nullable: true },
+  "uploaded_by_username": { data_type: "text", udt_name: "text", is_nullable: true },
   "subround": { data_type: "integer", udt_name: "int4", is_nullable: true },
   "prov": { data_type: "integer", udt_name: "int4", is_nullable: true },
   "kab": { data_type: "integer", udt_name: "int4", is_nullable: true },
@@ -142,52 +187,22 @@ const ubinanRawSchema: { [key: string]: { data_type: string; udt_name: string; i
   "tahun": { data_type: "integer", udt_name: "int4", is_nullable: true },
   "nks": { data_type: "text", udt_name: "text", is_nullable: true },
   "lat": { data_type: "numeric", udt_name: "numeric", is_nullable: true },
-  "long": { data_type: "numeric", udt_name: "numeric", is_nullable: true },
-  "id": { data_type: "uuid", udt_name: "uuid", is_nullable: false },
-  "uploaded_at": { data_type: "timestamp with time zone", udt_name: "timestamptz", is_nullable: true },
-  "uploaded_by_username": { data_type: "text", udt_name: "text", is_nullable: true },
+  "long": { data_type: "numeric", udt_name: "numeric", is_nullable: true }
 };
 
 function getColumnSchemaInfo(columnName: string): { data_type: string; udt_name: string; is_nullable: boolean } {
-  const schema = ubinanRawSchema[columnName] || ubinanRawSchema[columnName.toLowerCase()]; // Coba normalisasi jika tidak ketemu
-  if (schema) {
-    return schema;
-  }
-  console.warn(`Kolom "${columnName}" tidak ditemukan di ubinanRawSchema. Menggunakan default (text, nullable).`);
-  return { data_type: "text", udt_name: "text", is_nullable: true };
+  return ubinanRawSchema[columnName] || { data_type: "text", udt_name: "text", is_nullable: true };
 }
-// --- AKHIR PASTE SKEMA ---
 
-interface ActionResult {
+// --- SERVER ACTIONS UNTUK UBINAN RAW ---
+
+export async function analyzeCsvHeadersAction(formData: FormData): Promise<{
   success: boolean;
-  message: string;
-  importedCount?: number;
-  errorDetails?: string;
-}
-
-export async function uploadUbinanRawAction(formData: FormData): Promise<ActionResult> {
-  const cookieStore = cookies(); // cookies() is synchronous and returns the correct type
-  const supabaseUserContext = createSupabaseServerClientWithUserContext(await cookieStore);
-
-  // 1. Otentikasi & Otorisasi menggunakan client yang sadar sesi
-  // PATCH: Hapus await kedua pada (await supabaseUserContext).auth.getUser()
-  const { data: { user }, error: userError } = await (await supabaseUserContext).auth.getUser();
-  if (userError || !user) {
-    return { success: false, message: "Akses tidak sah: Tidak dapat mengambil data pengguna." };
-  }
-  if (user.user_metadata?.role !== "super_admin") {
-    return { success: false, message: "Akses ditolak: Anda bukan super admin." };
-  }
-  const username = user.user_metadata?.username || user.email || 'tidak_diketahui';
-
-  // 2. Penerimaan dan Validasi File
+  message?: string;
+  analysis?: AnalysisResult;
+}> {
   const file = formData.get("file") as File | null;
-  if (!file) {
-    return { success: false, message: "File tidak ditemukan dalam form data." };
-  }
-  if (file.type !== "text/csv") {
-    return { success: false, message: "Format file tidak valid. Hanya file CSV yang diperbolehkan." };
-  }
+  if (!file) return { success: false, message: "File tidak ditemukan." };
 
   try {
     const fileContent = await file.text();
@@ -195,213 +210,181 @@ export async function uploadUbinanRawAction(formData: FormData): Promise<ActionR
       columns: true,
       skip_empty_lines: true,
       trim: true,
+      to_line: 2,
     });
 
     if (records.length === 0) {
-      return { success: false, message: "File CSV kosong atau tidak ada data yang bisa diproses." };
+      return { success: false, message: "File CSV kosong atau tidak memiliki header." };
     }
-
-    // Validasi Header
-    // PATCH: Sesuaikan expectedHeaders jika perlu, atau buat lebih dinamis.
-    // Untuk saat ini, kita pastikan kolom kunci untuk delete dan komoditas ada.
-    const expectedHeadersMinimal = [ "tahun", "subround", "kab", "komoditas"];
-    const actualHeaders = Object.keys(records[0]);
-    for (const header of expectedHeadersMinimal) {
-      if (!actualHeaders.includes(header)) {
-        return { success: false, message: `Header kolom wajib "${header}" tidak ditemukan di file CSV.` };
-      }
-    }
-    // Anda bisa menambahkan validasi agar SEMUA header dari ubinanRawSchema ada jika diinginkan.
-
-    // Identifikasi Scope Penghapusan dan Persiapan Data untuk Insert
-    const uniqueDeletionScopes = new Map<string, { tahun: number; subround: number; kab: number }>(); // Komoditas dihapus dari scope delete
-    const dataToInsert: any[] = [];
-    const uploadedAt = new Date().toISOString();
-
-    for (const record of records) {
-      const tahun = parseInt(record.tahun, 10);
-      const subround = parseInt(record.subround, 10);
-      const kab = parseInt(record.kab, 10);
-      const komoditas = record.komoditas?.toString().trim(); // Tetap ambil komoditas untuk data insert
-
-      // Validasi kunci untuk PENGHAPUSAN
-      if (isNaN(tahun) || isNaN(subround) || isNaN(kab)) {
-        return {
-          success: false,
-          message: `Data kunci untuk penghapusan (tahun, subround, kab) tidak valid atau kosong pada baris: ${JSON.stringify(record)}`,
-        };
-      }
-      // Validasi komoditas untuk DATA INSERT jika kolom komoditas di DB NOT NULL
-      const komoditasSchema = getColumnSchemaInfo("komoditas");
-      if (!komoditas && !komoditasSchema.is_nullable) {
-          return { success: false, message: `Kolom wajib 'komoditas' kosong pada baris: ${JSON.stringify(record)}` };
-      }
-
-
-      const scopeKey = `${tahun}-${subround}-${kab}`; // Kunci tanpa komoditas
-      if (!uniqueDeletionScopes.has(scopeKey)) {
-        uniqueDeletionScopes.set(scopeKey, { tahun, subround, kab }); // Simpan tanpa komoditas
-      }
-
-      const newRow: { [key: string]: any } = {
-        uploaded_at: uploadedAt,
-        uploaded_by_username: username,
-        // id akan di-generate oleh RPC/DB
-      };
-
-      for (const header of actualHeaders) {
-        if (header === 'id') continue; // Abaikan 'id' dari CSV
-
-        const dbColumnInfo = getColumnSchemaInfo(header);
-        let value = record[header];
-
-        if (value === "" || value === undefined || value === null) {
-            if (dbColumnInfo.is_nullable) {
-                newRow[header] = null;
-            } else {
-                // Jika ini adalah salah satu kunci delete (tahun, subround, kab), error sudah ditangani.
-                // Jika ini komoditas dan !komoditas, error sudah ditangani.
-                // Untuk kolom lain yang NOT NULL dan kosong:
-                if (header !== 'tahun' && header !== 'subround' && header !== 'kab' && header !== 'komoditas' && !dbColumnInfo.is_nullable) {
-                   return { success: false, message: `Kolom wajib '${header}' kosong namun dibutuhkan pada baris: ${JSON.stringify(record)}` };
-                }
-                newRow[header] = null; // Untuk kasus di mana validasi di atas tidak menangkap (misal, komoditas nullable tapi kosong)
-            }
-        } else {
-            // Konversi tipe data
-            const valStr = value.toString(); // Ambil sebagai string dulu untuk parsing
-            switch (dbColumnInfo.udt_name) {
-                case 'int4':
-                case 'integer':
-                    const parsedInt = parseInt(valStr, 10);
-                    if (isNaN(parsedInt)) {
-                        if (dbColumnInfo.is_nullable && (valStr.trim() === '' || valStr.toLowerCase() === 'null')) newRow[header] = null;
-                        else return { success: false, message: `Nilai '${value}' tidak valid untuk kolom integer '${header}' pada baris: ${JSON.stringify(record)}` };
-                    } else {
-                        newRow[header] = parsedInt;
-                    }
-                    break;
-                case 'numeric':
-                    const parsedFloat = parseFloat(valStr);
-                    if (isNaN(parsedFloat)) {
-                        if (dbColumnInfo.is_nullable && (valStr.trim() === '' || valStr.toLowerCase() === 'null')) newRow[header] = null;
-                        else return { success: false, message: `Nilai '${value}' tidak valid untuk kolom numeric '${header}' pada baris: ${JSON.stringify(record)}` };
-                    } else {
-                        newRow[header] = parsedFloat;
-                    }
-                    break;
-                case 'timestamptz':
-                    const dateVal = new Date(valStr);
-                    if (isNaN(dateVal.getTime())) {
-                        if (dbColumnInfo.is_nullable && (valStr.trim() === '' || valStr.toLowerCase() === 'null')) newRow[header] = null;
-                        else return { success: false, message: `Nilai '${value}' tidak valid untuk kolom tanggal '${header}' pada baris: ${JSON.stringify(record)}` };
-                    } else {
-                        newRow[header] = dateVal.toISOString();
-                    }
-                    break;
-                case 'uuid': // Jika ada kolom UUID lain dari CSV yang ingin dipertahankan (selain 'id' utama)
-                    // Validasi format UUID jika perlu
-                    newRow[header] = valStr.trim();
-                    break;
-                default: // text
-                    newRow[header] = valStr.trim();
-            }
-        }
-      }
-      dataToInsert.push(newRow);
-    }
-
-    // 4. Operasi Database dalam Transaksi
-    const { error: rpcError } = await supabaseServer.rpc('process_ubinan_raw_upload', {
-        deletion_scopes: Array.from(uniqueDeletionScopes.values()),
-        insert_data: dataToInsert,
-    });
-
-    if (rpcError) {
-        console.error("Supabase RPC error:", rpcError);
-        return { success: false, message: "Gagal memproses data di database.", errorDetails: rpcError.message };
-    }
+    
     // --- AWAL PATCH ---
 
-    // 5. Refresh Materialized Views (Urutan penting)
-    // Pertama, refresh ubinan_anomali
-    const { error: anomaliMvError } = await supabaseServer.rpc('refresh_materialized_view_ubinan_anomali');
-    if (anomaliMvError) {
-        console.error("Gagal me-refresh materialized view ubinan_anomali:", anomaliMvError);
-        // Data utama sudah berhasil masuk, jadi kita bisa return sukses tapi dengan pesan peringatan.
-        return { 
-            success: true, 
-            message: `Data berhasil diimpor (${dataToInsert.length} baris), tetapi proses refresh data anomali gagal. Coba refresh manual.`, 
-            importedCount: dataToInsert.length,
-            errorDetails: anomaliMvError.message 
-        };
-    }
+    const csvHeadersRaw = Object.keys(records[0]);
 
-    // Kedua, refresh ubinan_dashboard (jika anomali sukses)
-    const { error: dashboardMvError } = await supabaseServer.rpc('refresh_materialized_view_ubinan_dashboard');
-    if (dashboardMvError) {
-        console.warn("Gagal me-refresh materialized view ubinan_dashboard:", dashboardMvError);
-        return { 
-            success: true, 
-            message: `Data berhasil diimpor (${dataToInsert.length} baris), tetapi materialized view dashboard gagal di-refresh. Coba refresh manual.`,
-            importedCount: dataToInsert.length,
-            errorDetails: dashboardMvError.message
-        };
-    }
+    // Fungsi untuk membersihkan dan menormalisasi header
+    // Ini akan menghapus BOM, spasi berlebih, dan mengubah ke huruf kecil
+    const normalizeHeader = (header: string) => {
+        // Hapus karakter BOM (\uFEFF) dan karakter non-ASCII lainnya, lalu trim dan ubah ke lowercase
+        return header.replace(/[\uFEFF\s]/g, '').toLowerCase();
+    };
+
+    // Buat peta dari header yang sudah dinormalisasi ke header asli dari file
+    const normalizedToRawHeaderMap = new Map<string, string>();
+    csvHeadersRaw.forEach(rawHeader => {
+        normalizedToRawHeaderMap.set(normalizeHeader(rawHeader), rawHeader);
+    });
+
+    const analysis: AnalysisResult = {
+      matchedHeaders: [],
+      unmappedDbCols: [],
+      unexpectedCsvHeaders: [...csvHeadersRaw] // Mulai dengan semua header asli
+    };
+
+    // Lakukan auto-matching menggunakan header yang sudah dinormalisasi
+    REQUIRED_UBINAN_RAW_COLS.forEach(dbCol => {
+      const normalizedDbCol = normalizeHeader(dbCol);
+      
+      if (normalizedToRawHeaderMap.has(normalizedDbCol)) {
+        const originalCsvHeader = normalizedToRawHeaderMap.get(normalizedDbCol)!;
+        analysis.matchedHeaders.push({ dbCol, csvHeader: originalCsvHeader });
+        // Hapus header yang sudah cocok dari daftar tak terduga
+        analysis.unexpectedCsvHeaders = analysis.unexpectedCsvHeaders.filter(h => h !== originalCsvHeader);
+      } else {
+        analysis.unmappedDbCols.push(dbCol);
+      }
+    });
 
     // --- AKHIR PATCH ---
 
+    return { success: true, analysis };
+  } catch (error) {
+    console.error("Header analysis error:", error);
+    return { success: false, message: "Gagal membaca header file CSV." };
+  }
+}
+
+export async function uploadUbinanRawAction(formData: FormData): Promise<ActionResult> {
+  const mappingConfigStr = formData.get("mappingConfig") as string | null;
+  if (!mappingConfigStr) return { success: false, message: "Konfigurasi pemetaan kolom tidak ditemukan." };
+  
+  const mappingConfig = JSON.parse(mappingConfigStr);
+  const cookieStore = await cookies();
+  const supabaseUserContext = await createSupabaseServerClientWithUserContext(cookieStore);
+  const { data: { user } } = await supabaseUserContext.auth.getUser();
+  if (user?.user_metadata?.role !== "super_admin") return { success: false, message: "Akses ditolak." };
+  
+  const username = user.user_metadata?.username || user.email || 'tidak_diketahui';
+  const file = formData.get("file") as File | null;
+  if (!file) return { success: false, message: "File tidak ditemukan." };
+  
+  try {
+    const fileContent = await file.text();
+    const records: any[] = parse(fileContent, { columns: true, skip_empty_lines: true, trim: true });
+    if (records.length === 0) return { success: false, message: "Tidak ada data untuk diimpor." };
+    
+    let allRowsToInsert: any[] = [];
+    let uniqueDeletionScopesSet = new Set<string>();
+    const uploadedAt = new Date().toISOString();
+    let skippedRowCount = 0;
+
+    for (const record of records) {
+      const tahun = parseInt(record[mappingConfig['tahun']], 10);
+      const subround = parseInt(record[mappingConfig['subround']], 10);
+      const kab = parseInt(record[mappingConfig['kab']], 10);
+      
+      if (isNaN(tahun) || isNaN(subround) || isNaN(kab)) {
+        skippedRowCount++;
+        continue;
+      }
+
+      uniqueDeletionScopesSet.add(`${tahun}-${subround}-${kab}`);
+
+      const newRow: { [key: string]: any } = { uploaded_at: uploadedAt, uploaded_by_username: username };
+
+      for (const dbCol in mappingConfig) {
+        const csvHeader = mappingConfig[dbCol];
+        const value = record[csvHeader];
+        const dbColumnInfo = getColumnSchemaInfo(dbCol);
+
+        if (value === "" || value === undefined || value === null) {
+          newRow[dbCol] = null;
+        } else {
+            const valStr = value.toString();
+            switch (dbColumnInfo.udt_name) {
+                case 'int4': case 'integer':
+                    const parsedInt = parseInt(valStr, 10);
+                    newRow[dbCol] = isNaN(parsedInt) ? null : parsedInt;
+                    break;
+                case 'numeric': case 'float4': case 'float8':
+                    const parsedFloat = parseFloat(valStr);
+                    newRow[dbCol] = isNaN(parsedFloat) ? null : parsedFloat;
+                    break;
+                case 'timestamptz': case 'timestamp':
+                    const dateVal = new Date(valStr);
+                    newRow[dbCol] = isNaN(dateVal.getTime()) ? null : dateVal.toISOString();
+                    break;
+                default:
+                    newRow[dbCol] = valStr.trim();
+            }
+        }
+      }
+      allRowsToInsert.push(newRow);
+    }
+    
+    if (allRowsToInsert.length === 0) return { success: false, message: "Tidak ada baris data yang valid untuk diimpor." };
+
+    const deletion_scopes = Array.from(uniqueDeletionScopesSet).map(key => {
+        const [tahun, subround, kab] = key.split('-');
+        return { tahun: parseInt(tahun), subround: parseInt(subround), kab: parseInt(kab) };
+    });
+
+    const { error: rpcError } = await supabaseServer.rpc('process_ubinan_raw_upload', {
+        deletion_scopes: deletion_scopes, insert_data: allRowsToInsert
+    });
+    if (rpcError) throw rpcError;
+
+    await supabaseServer.rpc('refresh_materialized_view_ubinan_anomali');
+    await supabaseServer.rpc('refresh_materialized_view_ubinan_dashboard');
+    
     revalidatePath("/update-data/ubinan");
     revalidatePath("/monitoring/ubinan");
     revalidatePath("/evaluasi/ubinan");
     revalidatePath("/");
 
-    return { success: true, message: `Data ubinan berhasil diimpor (${dataToInsert.length} baris).`, importedCount: dataToInsert.length };
+    let successMessage = `Berhasil menyimpan ${allRowsToInsert.length} baris.`;
+    if (skippedRowCount > 0) successMessage += ` Ada ${skippedRowCount} baris dilewati karena data kunci tidak valid.`;
 
+    return { success: true, message: successMessage };
   } catch (error: any) {
-    console.error("Upload Action Error:", error);
-    let errorMessage = "Terjadi kesalahan internal saat memproses file.";
-    if (error.message && typeof error.message === 'string') {
-        errorMessage = error.message;
-    } else if (typeof error === 'string') {
-        errorMessage = error;
-    }
-    return { success: false, message: errorMessage, errorDetails: error.toString() };
+    console.error("Ubinan Raw Upload Action Error:", error);
+    return { success: false, message: "Gagal memproses file ubinan raw.", errorDetails: error.message };
   }
 }
 
-// --- MULAI KODE BARU DI SINI ---
+// ===================================================================================
+// BAGIAN 2: LOGIKA UNTUK UPLOAD MASTER SAMPEL UBINAN
+// ===================================================================================
 
-// Helper untuk mapping nama bulan ke angka (text)
-const monthMap: { [key: string]: string } = {
-  'januari': '1',
-  'februari': '2',
-  'maret': '3',
-  'april': '4',
-  'mei': '5',
-  'juni': '6',
-  'juli': '7',
-  'agustus': '8',
-  'september': '9',
-  'oktober': '10',
-  'november': '11',
-  'desember': '12',
+const KABUPATEN_MAP_MASTER: { [key: string]: string } = {
+    "6101": "Sambas", "6102": "Bengkayang", "6103": "Landak", "6104": "Mempawah",
+    "6105": "Sanggau", "6106": "Ketapang", "6107": "Sintang", "6108": "Kapuas Hulu",
+    "6109": "Sekadau", "6110": "Melawi", "6111": "Kayong Utara", "6112": "Kubu Raya",
+    "6171": "Pontianak", "6172": "Singkawang"
+};
+const MONTH_MAP_MASTER: { [key: string]: string } = {
+  'januari': '1', 'februari': '2', 'maret': '3', 'april': '4', 'mei': '5', 'juni': '6', 
+  'juli': '7', 'agustus': '8', 'september': '9', 'oktober': '10', 'november': '11', 'desember': '12',
 };
 
 export async function uploadMasterSampleAction(formData: FormData): Promise<ActionResult> {
   const cookieStore = await cookies();
   const supabaseUserContext = await createSupabaseServerClientWithUserContext(cookieStore);
-
   const { data: { user } } = await supabaseUserContext.auth.getUser();
-  if (user?.user_metadata?.role !== "super_admin") {
-    return { success: false, message: "Akses ditolak." };
-  }
-  const username = user.user_metadata?.username || user.email || 'tidak_diketahui';
+  if (user?.user_metadata?.role !== "super_admin") return { success: false, message: "Akses ditolak." };
 
+  const username = user.user_metadata?.username || user.email || 'tidak_diketahui';
   const files = formData.getAll("files") as File[];
-  if (!files || files.length === 0) {
-    return { success: false, message: "Tidak ada file." };
-  }
+  if (!files || files.length === 0) return { success: false, message: "Tidak ada file yang dipilih." };
 
   let allRowsToUpsert: any[] = [];
   const uploadedAt = new Date().toISOString();
@@ -412,90 +395,44 @@ export async function uploadMasterSampleAction(formData: FormData): Promise<Acti
       const buffer = await file.arrayBuffer();
       const workbook = xlsx.read(buffer, { type: "buffer", cellDates: true });
       const sheetName = workbook.SheetNames[0];
-      const sheet = workbook.Sheets[sheetName];
-      const jsonData = xlsx.utils.sheet_to_json(sheet) as any[];
+      const jsonData = xlsx.utils.sheet_to_json(sheetName ? workbook.Sheets[sheetName] : undefined) as any[];
 
       for (const record of jsonData) {
         const monthName = record.bulan?.toString().trim().toLowerCase();
-        const monthNumber = monthMap[monthName];
-
-        if (!monthNumber) {
-           console.warn(`Melewatkan baris karena nama bulan tidak valid: "${record.bulan}"`, record);
-           skippedRowCount++;
-           continue;
+        const monthNumber = MONTH_MAP_MASTER[monthName];
+        if (!monthNumber || !record.tahun || !record.subround || !record.idsegmen || !record.subsegmen) {
+          skippedRowCount++;
+          continue;
         }
-
-        if (!record.tahun || !record.subround || !record.idsegmen || !record.subsegmen) {
-           console.warn(`Melewatkan baris karena kolom kunci (tahun/subround/idsegmen/subsegmen) kosong:`, record);
-           skippedRowCount++;
-           continue; 
-        }
-
         const newRow = {
-          kab: record.kab,
-          nmkab: record.nmkab,
-          kec: record.kec,
-          nmkec: record.nmkec,
-          namalok: record.namalok,
-          jenis_sampel: record.jenis_sampel,
-          Utama: record.Utama,
-          Cadangan: record.Cadangan,
-          idsegmen: record.idsegmen,
-          rilis: record.rilis, 
-          x: record.x,
-          y: record.y,
-          subsegmen: record.subsegmen,
-          tahun: parseInt(record.tahun),
-          subround: parseInt(record.subround),
-          bulan: monthNumber,
-          uploaded_at: uploadedAt,
-          uploaded_by_username: username,
+          kab: record.kab, nmkab: record.nmkab, kec: record.kec, nmkec: record.nmkec,
+          namalok: record.namalok, jenis_sampel: record.jenis_sampel, Utama: record.Utama,
+          Cadangan: record.Cadangan, idsegmen: record.idsegmen, rilis: record.rilis, 
+          x: record.x, y: record.y, subsegmen: record.subsegmen,
+          tahun: parseInt(record.tahun), subround: parseInt(record.subround), bulan: monthNumber,
+          uploaded_at: uploadedAt, uploaded_by_username: username,
         };
         allRowsToUpsert.push(newRow);
       }
     }
     
-    if (allRowsToUpsert.length === 0) {
-        return { success: false, message: "Tidak ada baris data yang valid untuk diimpor." };
-    }
+    if (allRowsToUpsert.length === 0) return { success: false, message: "Tidak ada baris data yang valid untuk diimpor." };
 
     const { error: upsertError } = await supabaseServer
       .from('master_sampel_ubinan')
-      .upsert(allRowsToUpsert, { 
-        onConflict: 'tahun,subround,bulan,idsegmen,subsegmen'
-      });
+      .upsert(allRowsToUpsert, { onConflict: 'tahun,subround,bulan,idsegmen,subsegmen' });
+    if (upsertError) throw upsertError;
 
-    if (upsertError) {
-      console.error("Upsert Error:", upsertError);
-      return { success: false, message: "Gagal menyimpan data ke database.", errorDetails: upsertError.message };
-    }
-
-    // --- AWAL PATCH ---
-    // Menambahkan refresh untuk materialized view ubinan_dashboard
-    const { error: mvError } = await supabaseServer.rpc('refresh_materialized_view_ubinan_dashboard');
-    if (mvError) {
-        console.warn("Gagal me-refresh materialized view ubinan_dashboard:", mvError);
-        // Proses utama tetap dianggap sukses, namun beri peringatan
-    }
-    // --- AKHIR PATCH ---
+    await supabaseServer.rpc('refresh_materialized_view_ubinan_dashboard');
 
     revalidatePath("/update-data/ubinan");
-    revalidatePath("/monitoring/ubinan"); // Tambahkan revalidate untuk halaman yang terpengaruh
-    revalidatePath("/evaluasi/ubinan");   // Tambahkan revalidate untuk halaman yang terpengaruh
 
-    let successMessage = `Berhasil memproses ${files.length} file dan menyimpan/memperbarui ${allRowsToUpsert.length} baris.`;
-    if (skippedRowCount > 0) {
-        successMessage += ` Ada ${skippedRowCount} baris yang dilewati karena data tidak lengkap.`;
-    }
-    if (mvError) { // Tambahkan peringatan jika refresh gagal
-        successMessage += ` Peringatan: Gagal me-refresh data dashboard ubinan.`;
-    }
+    let successMessage = `Berhasil menyimpan/memperbarui ${allRowsToUpsert.length} baris master sampel.`;
+    if (skippedRowCount > 0) successMessage += ` Ada ${skippedRowCount} baris dilewati karena data tidak lengkap.`;
 
     return { success: true, message: successMessage };
-
   } catch (error: any) {
     console.error("Upload Master Sample Error:", error);
-    return { success: false, message: "Terjadi kesalahan saat mem-parsing file Excel.", errorDetails: error.toString() };
+    return { success: false, message: "Gagal memproses file master sampel.", errorDetails: error.message };
   }
 }
-

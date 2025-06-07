@@ -45,12 +45,7 @@ function formatUpdateText(updateData: { uploaded_at: string | null; uploaded_by_
 }
 
 export default async function KsaUpdatePage() {
-    console.log("Rendering KsaUpdatePage at:", new Date().toLocaleTimeString()); // Tambahkan log ini
-    const lastUpdate = await getLastKsaUpdateInfo();
-    console.log("Last update data fetched:", lastUpdate); // Tambahkan log ini
-  
-  // Proteksi peran super_admin bisa ditambahkan di sini jika perlu,
-  // tapi idealnya sudah ditangani oleh middleware.
+    const lastUpdate = await getLastKsaUpdateInfo();  
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 md:gap-8 md:p-8">

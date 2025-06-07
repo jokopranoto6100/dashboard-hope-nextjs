@@ -284,6 +284,27 @@ Migrasi ini berfokus pada arsitektur yang lebih modern, performa, skalabilitas, 
         * **Konfigurasi Batas Ukuran File**: Batas ukuran body untuk Server Action telah dinaikkan menjadi **25MB** melalui `next.config.js` untuk mengakomodasi file impor yang besar.
         * **Penanganan Error**: Validasi dan penanganan error di sisi Server Action ditingkatkan untuk memberikan umpan balik yang lebih jelas kepada pengguna jika ada data yang tidak valid atau kosong di file sumber.
 
+11. **Halaman Update Data KSA (`/update-data/ksa`) - (Fitur Baru):**
+    * **Halaman Khusus**: Membuat halaman baru yang didedikasikan untuk impor data amatan KSA agar kode tetap modular dan terorganisir.
+    * **UI Halaman Unggah**:
+        * Menggunakan komponen dari `shadcn/ui` (`Card`, `Button`, `Alert`, `Dialog`) dan `lucide-react` untuk antarmuka yang seragam dengan fitur impor lainnya.
+        * Komponen uploader (`KsaUploader.tsx`) dirancang untuk menerima **satu atau beberapa file Excel (.xlsx, .xls)** dengan tampilan *drag-and-drop*.
+        * **Modal Konfirmasi Cerdas**: Sebelum mengunggah, sebuah modal akan muncul untuk meminta konfirmasi. Ringkasan data (tahun, bulan, dan wilayah terdampak) di dalam modal ini **dihasilkan secara dinamis** dengan mem-parsing file Excel di sisi klien terlebih dahulu, untuk memastikan pengguna mengonfirmasi data yang akurat.
+        * **Riwayat Pembaruan**: Menampilkan informasi unggahan terakhir (pengguna dan waktu) khusus untuk tabel `ksa_amatan`, yang diambil secara dinamis di Server Component dan diperbarui setelah impor berhasil.
+    * **Logika Backend (Server Action `uploadKsaAction`):**
+        * **Modular**: Ditempatkan di dalam file `_actions.ts` tersendiri di dalam direktori `/update-data/ksa`.
+        * **Transformasi Data Kompleks**:
+            * Secara otomatis mengekstrak `tahun` dan `bulan` (sebagai integer) dari kolom `tanggal` yang ada di file sumber.
+            * Membuat kolom `kode_kab` dan `kode_kec` dengan memotong (substring) data dari kolom `id_segmen`.
+            * Membuat kolom `kabupaten` dengan melakukan mapping dari `kode_kab` yang sudah digenerate.
+        * **Logika "Hapus dan Ganti"**:
+            * Menggunakan fungsi RPC PostgreSQL `process_ksa_amatan_upload` untuk menjalankan `DELETE` dan `INSERT` dalam satu transaksi atomik.
+            * Data lama di tabel `ksa_amatan` dihapus berdasarkan kombinasi `tahun`, `bulan`, dan `kode_kab`.
+        * **Penyegaran Cache & UI**: Menggunakan `revalidatePath` di server dan `router.refresh()` di klien untuk memastikan "Riwayat Pembaruan Terakhir" langsung ter-update setelah proses impor berhasil.
+    * **Persiapan Database untuk KSA**:
+        * Penambahan kolom audit (`uploaded_at`, `uploaded_by_username`) ke tabel `ksa_amatan`.
+        * Pembuatan `INDEX` pada kolom-kolom kunci (`tahun`, `bulan`, `kode_kab`) untuk mempercepat operasi `DELETE`.
+
 ## 📁 Struktur Folder Proyek
 Dashboard Pertanian/
 ├── .next/                            # Cache Next.js (dihapus saat debugging)
