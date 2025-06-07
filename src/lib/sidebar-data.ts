@@ -102,12 +102,12 @@ import {
             isActive: (currentPath) => currentPath === "/update/ubinan-raw",
           },
           {
-            title: "Upload Data KSA",
+            title: "Kerangka Sampel Area",
             url: "/update-data/ksa",
             isActive: (currentPath) => currentPath === "/update/ksa",
           },
           {
-            title: "Upload & Edit ATAP",
+            title: "Angka Tetap (ATAP)",
             url: "/update-data/atap",
             isActive: (currentPath) => currentPath === "/update/atap",
           },

@@ -256,54 +256,47 @@ Migrasi ini berfokus pada arsitektur yang lebih modern, performa, skalabilitas, 
             * Komponen `<Pagination>` penuh untuk navigasi antar halaman data detail.
             * Skeleton loading ditampilkan pada baris-baris tabel (`TableBody`) saat data sedang di-refresh (misalnya, saat sorting, pindah halaman, atau perubahan ukuran halaman).
 
-10. **Halaman Update Data (`/update-data/ubinan`) - (Fitur Baru & Diperluas):**
-    * **Struktur Halaman dengan Tabs**: Halaman ini sekarang menggunakan komponen `Tabs` dari `shadcn/ui` untuk memisahkan dua fungsi impor yang berbeda: "Import Data Transaksi (Raw)" dan "Import Master Sampel".
-    * **Riwayat Pembaruan Terakhir**: Setiap tab kini menampilkan riwayat pembaruan terakhir untuk tabelnya masing-masing (`ubinan_raw` dan `master_sampel_ubinan`), yang diambil secara dinamis menggunakan Server Component.
+10. **Halaman Update Data (`/update-data/ubinan`) - (Fitur Diperluas Secara Signifikan):**
+    * **Struktur Halaman dengan Tabs**: Halaman ini dirombak total menggunakan komponen `Tabs` dari `shadcn/ui` untuk memisahkan dua fungsi impor yang berbeda: "Import Data Transaksi (Raw)" dan "Import Master Sampel".
+    * **Riwayat Pembaruan Dinamis**: Setiap tab kini menampilkan riwayat pembaruan terakhir untuk tabelnya masing-masing (`ubinan_raw` dan `master_sampel_ubinan`). Logika pengambilan data telah disempurnakan untuk menangani nilai `NULL` pada data lama, memastikan data terbaru selalu ditampilkan dengan benar.
 
-    * **Fitur A: Import Data Ubinan (Raw)**
-        * **UI & Logika**: Menggunakan komponen uploader khusus (`UploaderClientComponent`) untuk mengunggah satu file **CSV**.
+    * **Fitur A: Import Data Ubinan (Raw) dengan Pemetaan Kolom Cerdas**
+        * **UI & Logika Unggah Dua Langkah**: Untuk mengatasi masalah header CSV yang sering berubah, alur unggah diubah menjadi proses dua langkah yang canggih:
+            1.  **Analisis Header**: Setelah pengguna memilih file, sistem menjalankan `Server Action` ringan (`analyzeCsvHeadersAction`) yang membaca header CSV dan secara otomatis mencocokkannya dengan kolom database yang dibutuhkan (`auto-matching`). Logika pencocokan ini dibuat *robust* untuk menangani karakter tak terlihat (seperti BOM) dan perbedaan spasi.
+            2.  **Modal Pemetaan Interaktif**: Sebuah modal `Dialog` dari `shadcn/ui` akan muncul, menampilkan hasil analisis. Pengguna dapat dengan mudah memetakan kolom yang tidak cocok secara otomatis melalui dropdown, dan melihat daftar kolom tak terduga yang akan diabaikan.
+            3.  **Impor Berdasarkan Mapping**: Proses impor penuh kemudian berjalan menggunakan konfigurasi pemetaan yang telah disetujui pengguna, membuat sistem menjadi sangat fleksibel terhadap perubahan format file sumber.
         * **Backend (Server Action `uploadUbinanRawAction`)**:
-            * Melakukan validasi, parsing, dan konversi tipe data dari file CSV.
-            * Menggunakan logika **"Hapus dan Ganti"**: Menghapus data yang ada di tabel `ubinan_raw` berdasarkan kombinasi unik dari `tahun`, `subround`, dan `kab` sebelum mengimpor data baru.
-            * Seluruh proses `DELETE` dan `INSERT` dibungkus dalam satu transaksi atomik melalui fungsi RPC PostgreSQL `process_ubinan_raw_upload`.
+            * Logika dipecah menjadi dua `Server Actions` untuk efisiensi.
+            * Tetap menggunakan logika **"Hapus dan Ganti"** melalui fungsi RPC PostgreSQL `process_ubinan_raw_upload`.
             * Setelah impor berhasil, secara otomatis memanggil fungsi RPC untuk me-refresh `materialized view` `ubinan_anomali` dan `ubinan_dashboard` secara berurutan.
 
-    * **Fitur B: Import Master Sampel Ubinan (Tambahan Baru)**
-        * **UI & Logika**: Menggunakan komponen uploader kedua (`MasterSampleUploader`) yang dirancang untuk mengunggah **satu atau beberapa file Excel (.xlsx, .xls)** sekaligus. Tampilannya diseragamkan dengan form upload data raw untuk konsistensi.
+    * **Fitur B: Import Master Sampel Ubinan**
+        * **UI & Logika**: Menggunakan komponen uploader yang diseragamkan (`MasterSampleUploader`) untuk mengunggah **satu atau beberapa file Excel (.xlsx, .xls)**.
         * **Backend (Server Action `uploadMasterSampleAction`)**:
             * Menggunakan library **`xlsx` (SheetJS)** untuk mem-parsing file Excel di sisi server.
-            * **Konversi Data**: Secara otomatis mengonversi nama bulan dari format teks (misal: "Agustus") menjadi format angka ("8") sesuai kebutuhan tabel target.
+            * Melakukan konversi nama bulan dari format teks (misal: "Agustus") menjadi format angka ("8").
             * Menggunakan logika **UPSERT** (Update jika ada, Insert jika baru) ke tabel `master_sampel_ubinan`.
             * Keunikan data ditentukan oleh kombinasi 5 kolom: `tahun`, `subround`, `bulan`, `idsegmen`, dan `subsegmen`.
-            * Setelah `upsert` data master sampel berhasil, secara otomatis memanggil fungsi RPC untuk me-refresh `materialized view` `ubinan_dashboard` untuk memastikan data tetap sinkron.
-        * **Persiapan Database untuk Master Sampel**:
-            * Penambahan kolom audit (`uploaded_at`, `uploaded_by_username`) ke tabel `master_sampel_ubinan`.
-            * Pembuatan `UNIQUE INDEX` pada 5 kolom kunci untuk mengoptimalkan performa `UPSERT`.
-
-    * **Peningkatan Lainnya**:
-        * **Konfigurasi Batas Ukuran File**: Batas ukuran body untuk Server Action telah dinaikkan menjadi **25MB** melalui `next.config.js` untuk mengakomodasi file impor yang besar.
-        * **Penanganan Error**: Validasi dan penanganan error di sisi Server Action ditingkatkan untuk memberikan umpan balik yang lebih jelas kepada pengguna jika ada data yang tidak valid atau kosong di file sumber.
+            * Me-refresh `materialized view` `ubinan_dashboard` setelah `upsert` berhasil.
+        * **Persiapan Database**: Meliputi penambahan kolom audit (`uploaded_at`, `uploaded_by_username`) dan pembuatan `UNIQUE INDEX` pada 5 kolom kunci untuk optimasi `UPSERT`.
 
 11. **Halaman Update Data KSA (`/update-data/ksa`) - (Fitur Baru):**
-    * **Halaman Khusus**: Membuat halaman baru yang didedikasikan untuk impor data amatan KSA agar kode tetap modular dan terorganisir.
+    * **Halaman & Logika Modular**: Membuat halaman dan `Server Action` (`_actions.ts`) yang sepenuhnya terpisah dan didedikasikan untuk impor data KSA.
     * **UI Halaman Unggah**:
-        * Menggunakan komponen dari `shadcn/ui` (`Card`, `Button`, `Alert`, `Dialog`) dan `lucide-react` untuk antarmuka yang seragam dengan fitur impor lainnya.
-        * Komponen uploader (`KsaUploader.tsx`) dirancang untuk menerima **satu atau beberapa file Excel (.xlsx, .xls)** dengan tampilan *drag-and-drop*.
-        * **Modal Konfirmasi Cerdas**: Sebelum mengunggah, sebuah modal akan muncul untuk meminta konfirmasi. Ringkasan data (tahun, bulan, dan wilayah terdampak) di dalam modal ini **dihasilkan secara dinamis** dengan mem-parsing file Excel di sisi klien terlebih dahulu, untuk memastikan pengguna mengonfirmasi data yang akurat.
-        * **Riwayat Pembaruan**: Menampilkan informasi unggahan terakhir (pengguna dan waktu) khusus untuk tabel `ksa_amatan`, yang diambil secara dinamis di Server Component dan diperbarui setelah impor berhasil.
-    * **Logika Backend (Server Action `uploadKsaAction`):**
-        * **Modular**: Ditempatkan di dalam file `_actions.ts` tersendiri di dalam direktori `/update-data/ksa`.
-        * **Transformasi Data Kompleks**:
-            * Secara otomatis mengekstrak `tahun` dan `bulan` (sebagai integer) dari kolom `tanggal` yang ada di file sumber.
-            * Membuat kolom `kode_kab` dan `kode_kec` dengan memotong (substring) data dari kolom `id_segmen`.
-            * Membuat kolom `kabupaten` dengan melakukan mapping dari `kode_kab` yang sudah digenerate.
-        * **Logika "Hapus dan Ganti"**:
-            * Menggunakan fungsi RPC PostgreSQL `process_ksa_amatan_upload` untuk menjalankan `DELETE` dan `INSERT` dalam satu transaksi atomik.
-            * Data lama di tabel `ksa_amatan` dihapus berdasarkan kombinasi `tahun`, `bulan`, dan `kode_kab`.
-        * **Penyegaran Cache & UI**: Menggunakan `revalidatePath` di server dan `router.refresh()` di klien untuk memastikan "Riwayat Pembaruan Terakhir" langsung ter-update setelah proses impor berhasil.
-    * **Persiapan Database untuk KSA**:
-        * Penambahan kolom audit (`uploaded_at`, `uploaded_by_username`) ke tabel `ksa_amatan`.
-        * Pembuatan `INDEX` pada kolom-kolom kunci (`tahun`, `bulan`, `kode_kab`) untuk mempercepat operasi `DELETE`.
+        * Menggunakan komponen `KsaUploader` yang dirancang untuk menerima **satu atau beberapa file Excel** dengan antarmuka *drag-and-drop* yang konsisten dengan fitur impor lainnya.
+        * **Modal Konfirmasi Cerdas**: Sebelum mengunggah, sebuah modal konfirmasi akan muncul. Ringkasan data (tahun, bulan, dan wilayah terdampak) di dalam modal ini **dihasilkan secara dinamis** dengan mem-parsing file Excel di sisi klien terlebih dahulu untuk memastikan pengguna mengonfirmasi data yang akurat.
+    * **Logika Backend (Server Action `uploadKsaAction`)**:
+        * Menggunakan logika **"Hapus dan Ganti"** melalui fungsi RPC PostgreSQL `process_ksa_amatan_upload`. Data lama dihapus berdasarkan `tahun`, `bulan`, dan `kode_kab`.
+        * **Transformasi Data Kompleks**: Secara otomatis melakukan transformasi data saat impor:
+            * Mengekstrak `tahun` dan `bulan` (sebagai integer) dari kolom `tanggal`.
+            * Membuat `kode_kab` dan `kode_kec` dengan memotong data dari kolom `id_segmen`.
+            * Membuat `kabupaten` dengan melakukan *mapping* dari `kode_kab`.
+            * Menangani nama header dengan spasi (seperti `"id segmen"`) dan karakter khusus (`"n-1"`) secara defensif.
+    * **Persiapan Database**: Meliputi penambahan kolom audit dan pembuatan `INDEX` (non-unik) pada kolom kunci `DELETE` untuk mempercepat performa penghapusan data.
+
+12. **Peningkatan Sistem & Pengalaman Pengguna (Global):**
+    * **Konfigurasi Batas Ukuran File**: Batas ukuran body untuk Server Action telah dinaikkan menjadi **25MB** melalui `next.config.js` untuk mengakomodasi file impor yang besar dan mencegah error `413 Payload Too Large`.
+    * **Penyegaran Cache & UI**: Mengimplementasikan pola `router.refresh()` di sisi klien setelah Server Action sukses. Ini bekerja bersama dengan `revalidatePath` di server untuk memastikan data di UI (seperti "Riwayat Pembaruan Terakhir") langsung ter-update tanpa perlu me-reload halaman secara manual.
 
 ## 📁 Struktur Folder Proyek
 Dashboard Pertanian/
@@ -331,7 +324,7 @@ Dashboard Pertanian/
 │   │   │   │       ├── page.tsx      # Server Component Evaluasi Ubinan (Entry Point)
 │   │   │   │       ├── evaluasi-ubinan-client.tsx # Client Component Utama Evaluasi Ubinan
 │   │   │   │       ├── descriptive-stats-columns.tsx # Definisi Kolom Tabel Statistik Deskriptif
-│   │   │   │       ├── penggunaan-benih-dan-pupuk-columns.tsx # Definisi Kolom Tabel Gabungan Benih & Pupuk
+│   │   │   │       ├── penggunaan-benih-dan-pupuk-columns.tsx 
 │   │   │   │       ├── DetailKabupatenModal.tsx # Komponen Modal Wrapper
 │   │   │   │       ├── DetailKabupatenModalContent.tsx # Komponen Konten Modal Detail
 │   │   │   │       └── detail-record-columns.tsx # Definisi Kolom Tabel Detail di Modal
@@ -339,6 +332,16 @@ Dashboard Pertanian/
 │   │   │   │   ├── _action.ts        # Server Actions untuk manajemen pengguna
 │   │   │   │   ├── page.tsx
 │   │   │   │   └── user-management-client-page.tsx
+│   │   │   ├── update-data/          # BARU: Folder untuk semua fitur update data
+│   │   │   │   ├── ubinan/           # Fitur Update Ubinan
+│   │   │   │   │   ├── _actions.ts
+│   │   │   │   │   ├── page.tsx
+│   │   │   │   │   ├── uploader-client-component.tsx
+│   │   │   │   │   └── master-sample-uploader.tsx
+│   │   │   │   └── ksa/              # Fitur Update KSA
+│   │   │   │       ├── _actions.ts
+│   │   │   │       ├── page.tsx
+│   │   │   │       └── ksa-uploader.tsx
 │   │   │   ├── layout.tsx            # Root Layout untuk grup (dashboard)
 │   │   │   └── page.tsx              # Halaman utama Dashboard (setelah login)
 │   │   ├── api/                      # Route Handlers (API Routes)
@@ -393,11 +396,11 @@ Dashboard Pertanian/
 │   │   ├── useUbinanDescriptiveStatsData.ts # Hook untuk data Statistik Deskriptif Ubinan
 │   │   └── usePenggunaanBenihDanPupukData.ts # Hook untuk data Penggunaan Benih & Pupuk Ubinan
 │   ├── lib/
-│   │   ├── sidebar-data.ts         # Data untuk item sidebar
-│   │   ├── supabase-server.ts      # Helper Supabase untuk Server Components/Actions
-│   │   ├── supabase.ts             # Konfigurasi Supabase client (createClientComponentSupabaseClient)
-│   │   ├── utils.ts                # Utility functions (cn, getNamaKabupaten, dll.)
-│   │   └── database.types.ts       # Tipe database yang di-generate dari Supabase
+│   │   ├── sidebar-data.ts           # Data untuk item sidebar
+│   │   ├── supabase-server.ts        # Helper Supabase untuk Server Components/Actions
+│   │   ├── supabase.ts               # Konfigurasi Supabase client (createClientComponentSupabaseClient)
+│   │   ├── utils.ts                  # Utility functions (cn, getNamaKabupaten, dll.)
+│   │   └── database.types.ts         # Tipe database yang di-generate dari Supabase
 │   ├── middleware.ts                 # Middleware Next.js (misal: untuk otentikasi)
 ├── .env.local                        # Variabel lingkungan
 ├── next.config.js                    # Konfigurasi Next.js
