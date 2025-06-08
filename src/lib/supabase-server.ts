@@ -27,10 +27,10 @@ export const createSupabaseServerClientWithUserContext = async (cookieStoreParam
     cookies: {
       get: (name: string) => cookieStore.get(name)?.value,
       set: (name: string, value: string, options: CookieOptions) => {
-        try { cookieStore.set({ name, value, ...options }); } catch (error) { /* Abaikan */ }
+        try { cookieStore.set({ name, value, ...options }); } catch { /* Abaikan */ }
       },
       remove: (name: string, options: CookieOptions) => {
-        try { cookieStore.set({ name, value: '', ...options }); } catch (error) { /* Abaikan */ }
+        try { cookieStore.set({ name, value: '', ...options }); } catch { /* Abaikan */ }
       },
     },
   });
