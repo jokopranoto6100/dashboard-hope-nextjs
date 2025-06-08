@@ -1,84 +1,96 @@
-// Lokasi: src/hooks/useAtapStatistikData.ts
-"use client";
+// Lokasi File: src/hooks/useAtapStatistikData.ts
+import { createClientComponentSupabaseClient } from "@/lib/supabase";
+import useSWR from 'swr';
+import { useYear } from "@/context/YearContext";
 
-import { useState, useEffect } from 'react';
-import { useAuth } from '@/context/AuthContext'; // <-- BARU: Impor useAuth
-
-interface AtapStatistikFilters {
-  tahun: number;
-  bulan: string;
-  indikatorId: string;
-  level: 'provinsi' | 'kabupaten';
-}
-
+// Definisikan tipe data yang akan kita terima dari view
 export interface AtapDataPoint {
-  id_indikator: number;
   indikator: string;
-  satuan: string | null;
+  satuan: string;
   deskripsi: string | null;
   tahun: number;
-  bulan: number | null;
-  kode_kab: string | null;
-  nilai: number | null;
+  bulan: number | null; // Null untuk data tahunan
+  kode_kab: string | null; // Null untuk data provinsi
+  nilai: number;
   level_data: string;
-  level_wilayah: string;
+  level_wilayah: 'provinsi' | 'kabupaten';
   kode_wilayah: string;
 }
 
-export function useAtapStatistikData(filters: AtapStatistikFilters) {
-  const { supabase } = useAuth(); // <-- BARU: Ambil koneksi Supabase dari context
-  const [data, setData] = useState<AtapDataPoint[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+// Tipe untuk state filter
+interface FilterState {
+  bulan: string; // "tahunan" atau "1"-"12"
+  indikatorNama: string; // Kita akan pakai nama resmi untuk query
+  level: 'provinsi' | 'kabupaten';
+  tahunPembanding?: number | null; // Opsional untuk Fase 2
+}
 
-  useEffect(() => {
-    if (!filters.indikatorId) {
-      setData([]);
-      setLoading(false);
-      return;
+const supabase = createClientComponentSupabaseClient();
+
+// Fungsi fetcher yang akan digunakan oleh SWR
+const fetchAtapData = async (
+  key: string, // SWR menggunakan key untuk caching
+  filters: FilterState,
+  selectedYear: number
+) => {
+  if (!filters.indikatorNama || !selectedYear) {
+    return { dataUtama: [], dataPembanding: [] };
+  }
+
+  // Fungsi untuk membangun query berdasarkan tahun
+  const buildQuery = (year: number) => {
+    let query = supabase
+      .from('laporan_atap_lengkap')
+      .select('*')
+      .eq('tahun', year)
+      .eq('indikator', filters.indikatorNama)
+      .eq('level_wilayah', filters.level);
+    
+    // Tentukan level_data berdasarkan pilihan bulan
+    if (filters.bulan === 'tahunan') {
+      query = query.like('level_data', 'Tahunan%'); // Mencocokkan "Tahunan Kabupaten" atau "Tahunan Provinsi"
+    } else {
+      query = query.like('level_data', 'Bulanan%'); // Mencocokkan "Bulanan Kabupaten" atau "Bulanan Provinsi"
+      query = query.eq('bulan', parseInt(filters.bulan));
     }
+    return query;
+  };
 
-    const fetchData = async () => {
-      setLoading(true);
-      setError(null);
-      
-      let query = supabase
-        .from('laporan_atap_lengkap')
-        .select('*')
-        .eq('tahun', filters.tahun)
-        .eq('id_indikator', parseInt(filters.indikatorId));
+  // Ambil data utama (tahun yang dipilih)
+  const { data: dataUtama, error: errorUtama } = await buildQuery(selectedYear);
+  if (errorUtama) throw errorUtama;
+  
+  // Ambil data pembanding jika ada
+  let dataPembanding: AtapDataPoint[] = [];
+  if (filters.tahunPembanding) {
+    const { data: dataPembandingResult, error: errorPembanding } = await buildQuery(filters.tahunPembanding);
+    if (errorPembanding) throw errorPembanding;
+    dataPembanding = dataPembandingResult || [];
+  }
 
-      if (filters.level === 'provinsi') {
-        query = query
-            .eq('level_wilayah', 'provinsi')
-            .not('bulan', 'is', null)
-            .order('bulan', { ascending: true });
-      } else {
-        query = query
-            .eq('level_wilayah', 'kabupaten')
-            .order('kode_wilayah', { ascending: true });
-        if (filters.bulan === 'tahunan') {
-            query = query.is('bulan', null);
-        } else {
-            query = query.eq('bulan', parseInt(filters.bulan));
-        }
-      }
+  return { dataUtama: dataUtama || [], dataPembanding };
+};
 
-      const { data: resultData, error: resultError } = await query;
+// Custom Hook utama
+export function useAtapStatistikData(filters: FilterState) {
+  const { selectedYear } = useYear();
 
-      if (resultError) {
-        console.error('Error fetching ATAP statistik data:', resultError);
-        setError(resultError.message);
-        setData([]);
-      } else {
-        setData(resultData as AtapDataPoint[]);
-      }
-      
-      setLoading(false);
-    };
+  // Buat key unik untuk SWR agar query di-cache berdasarkan filter
+  const swrKey = `atap_data_${selectedYear}_${filters.indikatorNama}_${filters.bulan}_${filters.level}_${filters.tahunPembanding || ''}`;
 
-    fetchData();
-  }, [filters.tahun, filters.bulan, filters.indikatorId, filters.level, supabase]);
+  const { data, error, isLoading } = useSWR(
+    swrKey, // Key untuk caching
+    () => fetchAtapData(swrKey, filters, selectedYear), // Fungsi fetcher
+    {
+      revalidateOnFocus: false, // Tidak perlu re-fetch saat window di-fokus
+      shouldRetryOnError: false, // Tidak perlu coba lagi jika error
+    }
+  );
 
-  return { data, loading, error };
+  return {
+    data: data?.dataUtama,
+    dataPembanding: data?.dataPembanding,
+    isLoading,
+    error,
+  };
 }
