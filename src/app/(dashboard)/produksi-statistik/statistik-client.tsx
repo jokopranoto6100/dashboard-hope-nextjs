@@ -16,6 +16,8 @@ import { unparse } from "papaparse";
 import { saveAs } from "file-saver";
 import useSWR from "swr";
 import { createClientComponentSupabaseClient } from "@/lib/supabase";
+import { DataTable } from './data-table';
+import { columns } from './columns';
 
 // --- Impor komponen grafik secara dinamis untuk mengatasi error Recharts ---
 const BarChartWrapper = dynamic(
@@ -273,15 +275,15 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
             </div>
 
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader>
                 <CardTitle>Data Rinci</CardTitle>
-                <Button variant="outline" size="sm" onClick={handleExport}><Download className="mr-2 h-4 w-4"/>Ekspor ke CSV</Button>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                    <p className="text-muted-foreground">Tabel data rinci dengan TanStack Table akan diimplementasikan di sini...</p>
-                </div>
-              </CardContent>
+                <CardDescription>
+                Data mendetail berdasarkan filter yang Anda pilih. Anda bisa melakukan sorting dan filtering pada tabel ini.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <DataTable columns={columns} data={data || []} />
+            </CardContent>
             </Card>
         </div>
       )}

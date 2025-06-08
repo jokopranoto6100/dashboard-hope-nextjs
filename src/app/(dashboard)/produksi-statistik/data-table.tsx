@@ -1,16 +1,17 @@
 // Lokasi: src/app/(dashboard)/produksi-statistik/data-table.tsx
 "use client"
 
+import { useState } from "react"
 import {
   ColumnDef,
+  ColumnFiltersState,
+  SortingState,
   flexRender,
   getCoreRowModel,
-  useReactTable,
+  getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
-  SortingState,
-  ColumnFiltersState,
-  getFilteredRowModel,
+  useReactTable,
 } from "@tanstack/react-table"
 
 import {
@@ -23,23 +24,18 @@ import {
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import React from "react"
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
-  filterColumn?: string // Kolom yang akan difilter, misal: 'kabupaten'
-  filterPlaceholder?: string // Placeholder untuk input filter
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
-  filterColumn,
-  filterPlaceholder
 }: DataTableProps<TData, TValue>) {
-  const [sorting, setSorting] = React.useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
+  const [sorting, setSorting] = useState<SortingState>([])
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
 
   const table = useReactTable({
     data,
@@ -58,18 +54,16 @@ export function DataTable<TData, TValue>({
 
   return (
     <div>
-      {filterColumn && (
         <div className="flex items-center py-4">
             <Input
-            placeholder={filterPlaceholder || `Filter data...`}
-            value={(table.getColumn(filterColumn)?.getFilterValue() as string) ?? ""}
+            placeholder="Cari berdasarkan nama wilayah..."
+            value={(table.getColumn("kode_wilayah")?.getFilterValue() as string) ?? ""}
             onChange={(event) =>
-                table.getColumn(filterColumn)?.setFilterValue(event.target.value)
+                table.getColumn("kode_wilayah")?.setFilterValue(event.target.value)
             }
             className="max-w-sm"
             />
-        </div>
-      )}
+      </div>
       <div className="rounded-md border">
         <Table>
           <TableHeader>
