@@ -298,6 +298,46 @@ Migrasi ini berfokus pada arsitektur yang lebih modern, performa, skalabilitas, 
     * **Konfigurasi Batas Ukuran File**: Batas ukuran body untuk Server Action telah dinaikkan menjadi **25MB** melalui `next.config.js` untuk mengakomodasi file impor yang besar dan mencegah error `413 Payload Too Large`.
     * **Penyegaran Cache & UI**: Mengimplementasikan pola `router.refresh()` di sisi klien setelah Server Action sukses. Ini bekerja bersama dengan `revalidatePath` di server untuk memastikan data di UI (seperti "Riwayat Pembaruan Terakhir") langsung ter-update tanpa perlu me-reload halaman secara manual.
 
+13. **Halaman Analisis Statistik Produksi ATAP (`/produksi-statistik`) - (Fitur Baru):**
+    * **Arsitektur Data Terpusat**: Halaman ini dirancang untuk menjadi pusat analisis dengan mengambil data dari satu `DATABASE VIEW` yang kuat bernama `laporan_atap_lengkap`. View ini menggabungkan semua tabel data ATAP (bulanan/tahunan, kab/prov) dengan tabel `master_indikator_atap`, menyederhanakan kueri di sisi aplikasi secara drastis.
+    * **UI & Komponen**: Halaman dibangun menggunakan struktur Server Component (`page.tsx`) yang mengambil data awal (daftar indikator) dan Client Component (`statistik-client.tsx`) yang menangani semua interaktivitas.
+    * **Filter Dinamis & Komprehensif**:
+        * **Filter Global**: Terintegrasi penuh dengan `YearContext` global, sehingga perubahan tahun di header akan otomatis memperbarui seluruh halaman.
+        * **Filter Lokal**: Menyediakan filter spesifik halaman untuk "Periode Bulan" (termasuk opsi "Tahunan"), "Indikator", "Level Wilayah" (Provinsi/Kabupaten), dan "Bandingkan Dengan Tahun".
+    * **Pengambilan Data Efisien**: Menggunakan *custom hook* `useAtapStatistikData` yang dibangun di atas `SWR` untuk data fetching yang efisien, lengkap dengan caching otomatis, revalidasi, dan penanganan status *loading*.
+    * **Visualisasi Data Interaktif dengan `Recharts`**:
+        * **KPI Cards**: Menampilkan 3 kartu ringkasan di bagian atas untuk menyajikan informasi kunci seperti Total Nilai, Wilayah Tertinggi, dan Jumlah Wilayah dengan data.
+        * **Grafik Batang (Perbandingan Wilayah)**: Memvisualisasikan perbandingan nilai antar kabupaten atau provinsi.
+        * **Grafik Garis (Tren Waktu)**: Menampilkan tren bulanan untuk data provinsi atau hasil *drill-down*.
+        * **Fitur Drill Down**: Pengguna dapat mengeklik sebuah batang pada grafik perbandingan kabupaten untuk secara otomatis memperbarui grafik tren waktu dan menampilkan data bulanan khusus untuk kabupaten tersebut.
+        * **Fitur Perbandingan Periode**: Pengguna dapat memilih tahun pembanding, yang akan ditampilkan sebagai set data kedua di kedua grafik (batang berdampingan atau garis kedua).
+    * **Tabel Data Rinci dengan `TanStack Table`**:
+        * Mengimplementasikan tabel data yang interaktif di bagian bawah halaman.
+        * Fitur yang tersedia meliputi **sorting** pada kolom yang dapat diurutkan (Tahun, Nilai) dan **filtering** berdasarkan nama wilayah.
+        * Dilengkapi dengan **paginasi** untuk menangani dataset yang besar.
+    * **Fitur Utilitas**:
+        * **Ekspor ke CSV**: Menyediakan tombol untuk mengunduh data yang sedang ditampilkan (sesuai filter) dalam format CSV, lengkap dengan penanganan karakter (BOM) agar bisa dibuka dengan baik di Excel.
+    * **Perbaikan Teknis (Robustness)**:
+        * Mengatasi error umum `Recharts` pada Next.js App Router dengan mengimplementasikan **Dynamic Imports** (`next/dynamic`) dengan opsi `ssr: false` untuk semua komponen grafik. Ini memastikan komponen hanya dirender di sisi klien.
+
+14. **Halaman Update Data ATAP (`/update-data/atap`) - (Fitur Baru & Arsitektur Lanjutan):**
+    * **Arsitektur Database Scalable**: Merancang dan mengimplementasikan arsitektur database yang kuat untuk data ATAP, yang terdiri dari:
+        * **Satu Tabel Master (`master_indikator_atap`)**: Menjadi "sumber kebenaran tunggal" untuk semua nama indikator, satuan default, dan alias. Ini memastikan standarisasi data di seluruh aplikasi.
+        * **Empat Tabel Data Spesifik**: Data dipecah berdasarkan granularitasnya ke dalam empat tabel (`data_atap_bulanan_kab`, `data_atap_tahunan_kab`, `data_atap_bulanan_prov`, `data_atap_tahunan_prov`) untuk menjaga integritas dan kejelasan data. Semua tabel data ini terhubung ke tabel master melalui `id_indikator`.
+        * **Satu `DATABASE VIEW` untuk Analisis (`laporan_atap_lengkap`)**: Sebuah "tabel virtual" dibuat dengan menggabungkan (JOIN) semua tabel data dan tabel master. Ini menyederhanakan kueri untuk analisis lintas tabel dan visualisasi data secara drastis.
+    * **UI Halaman Unggah dengan Tabs**:
+        * Membuat halaman baru di `/update-data/atap` yang menggunakan komponen `Tabs` `shadcn/ui` untuk menyediakan antarmuka yang bersih bagi empat jenis impor data yang berbeda.
+        * Menggunakan satu komponen `AtapUploader` yang reusable untuk semua tab, yang dikonfigurasi melalui *props*.
+    * **Logika Backend (Server Action `uploadAtapDataAction`)**:
+        * **Satu Aksi untuk Semua**: Membuat satu Server Action generik yang cerdas untuk menangani keempat jenis impor data ATAP.
+        * **Transformasi Data (Unpivot)**: Secara otomatis mengubah data dari format "wide" (banyak kolom indikator di Excel) menjadi format "long" yang sesuai dengan struktur database.
+        * **Pencocokan Indikator**: Mencocokkan nama indikator dari header file Excel dengan `nama_resmi` di tabel `master_indikator_atap` sebelum melakukan impor.
+        * **Logika `UPSERT`**: Menggunakan logika `UPSERT` (update jika ada, insert jika baru) untuk semua jenis data, memastikan tidak ada duplikasi dan data selalu yang terbaru.
+        * **Penanganan Satuan Dinamis**: Mampu mem-parsing satuan yang ada di dalam header Excel (misal: "Produksi Padi (Ton)") dan menyimpannya di kolom `satuan_override` jika berbeda dari `satuan_default` di tabel master.
+    * **Agregasi Otomatis**:
+        * Membuat dua fungsi RPC PostgreSQL (`aggregate_kabupaten_to_tahunan` dan `aggregate_provinsi_to_tahunan`).
+        * Setelah impor data bulanan berhasil, Server Action secara otomatis memanggil fungsi RPC ini untuk menjumlahkan data bulanan dan melakukan `UPSERT` hasilnya ke tabel tahunan yang sesuai. Ini mengurangi pekerjaan manual dan menjamin konsistensi data.
+
 ## 📁 Struktur Folder Proyek
 Dashboard Pertanian/
 ├── .next/                            # Cache Next.js (dihapus saat debugging)

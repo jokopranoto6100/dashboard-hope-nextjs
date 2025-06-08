@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Lokasi: src/app/(dashboard)/produksi-statistik/statistik-client.tsx
 "use client";
 
@@ -129,11 +130,11 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
     const barChartData = mainData.map(d => ({
         name: KABUPATEN_MAP[d.kode_wilayah] || 'Provinsi',
         kode_wilayah: d.kode_wilayah,
-        [selectedYear]: d.nilai,
+        [selectedYear.toString()]: d.nilai,
         ...(compareData.find(p => p.kode_wilayah === d.kode_wilayah) && {
             [filters.tahunPembanding]: compareData.find(p => p.kode_wilayah === d.kode_wilayah)?.nilai
         })
-    })).sort((a,b) => (b[selectedYear] || 0) - (a[selectedYear] || 0));
+    })).sort((a, b) => (b[selectedYear.toString()] || 0) - (a[selectedYear.toString()] || 0));
     
     const lineChartData = Array.from({ length: 12 }, (_, i) => i + 1).map(monthNum => {
         const monthStr = monthNum.toString();
@@ -275,11 +276,17 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
             </div>
 
             <Card>
-            <CardHeader>
-                <CardTitle>Data Rinci</CardTitle>
-                <CardDescription>
-                Data mendetail berdasarkan filter yang Anda pilih. Anda bisa melakukan sorting dan filtering pada tabel ini.
-                </CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                    <CardTitle>Data Rinci</CardTitle>
+                    <CardDescription className="mt-1">
+                    Data mendetail berdasarkan filter yang Anda pilih. Anda bisa melakukan sorting dan filtering pada tabel ini.
+                    </CardDescription>
+                </div>
+                <Button variant="outline" size="sm" onClick={handleExport} disabled={isLoading || !data || data.length === 0}>
+                <Download className="mr-2 h-4 w-4"/>
+                Ekspor ke CSV
+                </Button>
             </CardHeader>
             <CardContent>
                 <DataTable columns={columns} data={data || []} />
