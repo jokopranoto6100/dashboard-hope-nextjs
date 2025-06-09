@@ -1,9 +1,9 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // Lokasi: src/app/(dashboard)/produksi-statistik/statistik-client.tsx
 "use client";
 
 import { useState, useMemo } from "react";
 import dynamic from 'next/dynamic';
+import { useRouter } from 'next/navigation';
 import { useYear } from "@/context/YearContext";
 import { useAtapStatistikData } from "@/hooks/useAtapStatistikData";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -12,7 +12,8 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TrendingUp, Warehouse, Map, Download } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { TrendingUp, TrendingDown, Warehouse, Map, Download, Star, ChevronsDownUp } from "lucide-react";
 import { unparse } from "papaparse";
 import { saveAs } from "file-saver";
 import useSWR from "swr";
@@ -69,6 +70,7 @@ const formatNumber = (num: number) => {
 };
 
 export function StatistikClient({ availableIndicators }: StatistikClientProps) {
+  const router = useRouter();
   const { selectedYear } = useYear();
 
   const [filters, setFilters] = useState<FilterState>({
@@ -85,17 +87,14 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
   
-  // Pengambilan data utama untuk KPI dan Bar Chart
   const { data, dataPembanding, isLoading } = useAtapStatistikData({
     ...filters,
     tahunPembanding: filters.tahunPembanding === 'tidak' ? null : parseInt(filters.tahunPembanding)
   });
 
-  // Pengambilan data terpisah khusus untuk Line Chart (tren bulanan)
-  const { supabase } = useAuth();
+  const {supabase} = useAuth();
   const lineChartSWRKey = `monthly_trend_${selectedYear}_${filters.indikatorNama}_${filters.tahunPembanding}_${selectedKabupaten || 'prov'}`;
   const { data: lineChartRawData, isLoading: isLineChartLoading } = useSWR(
-    // Hanya fetch jika indikator sudah dipilih
     filters.indikatorNama ? lineChartSWRKey : null,
     async () => {
         const fetchMonthlyData = async (year: number) => {
@@ -142,7 +141,7 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
         const compareDataPoint = lineChartRawData?.compareData?.find(d => d.bulan?.toString() === monthStr);
         return {
             name: MONTH_NAMES[monthStr],
-            [selectedYear]: mainDataPoint?.nilai ?? null,
+            [selectedYear.toString()]: mainDataPoint?.nilai ?? null,
             ...(filters.tahunPembanding !== 'tidak' && {
                 [filters.tahunPembanding]: compareDataPoint?.nilai ?? null
             })
@@ -150,10 +149,23 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
     });
 
     const totalNilai = mainData.reduce((sum, item) => sum + item.nilai, 0);
+    // --- AWAL PATCH LOGIKA KPI ---
     const wilayahTertinggi = barChartData[0] || null;
+    // Ambil data terendah HANYA jika ada lebih dari satu wilayah untuk dibandingkan
+    const wilayahTerendah = barChartData.length > 1 ? barChartData[barChartData.length - 1] : null;
+    // --- AKHIR PATCH LOGIKA KPI ---
+    let percentageChange: number | null = null;
+    if (filters.tahunPembanding !== 'tidak' && compareData.length > 0) {
+        const totalNilaiPembanding = compareData.reduce((sum, item) => sum + item.nilai, 0);
+        if (totalNilaiPembanding > 0) {
+            percentageChange = ((totalNilai - totalNilaiPembanding) / totalNilaiPembanding) * 100;
+        } else if (totalNilai > 0) {
+            percentageChange = Infinity;
+        }
+    }
 
     return { 
-        kpi: { total: totalNilai, satuan: mainData[0]?.satuan || '', wilayahTertinggi, jumlahWilayah: new Set(mainData.map(d => d.kode_wilayah)).size }, 
+        kpi: { total: totalNilai, satuan: mainData[0]?.satuan || '', wilayahTertinggi,wilayahTerendah, jumlahWilayah: new Set(mainData.map(d => d.kode_wilayah)).size, percentageChange }, 
         barChart: barChartData, 
         lineChart: lineChartData
     };
@@ -242,9 +254,57 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
       ) : (
         <div className="grid gap-6">
             <div className="grid gap-4 md:grid-cols-3">
-                <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Total Nilai ({filters.level === 'provinsi' ? 'Provinsi' : 'Semua Kab'})</CardTitle><TrendingUp className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="text-2xl font-bold">{formatNumber(processedData.kpi.total)}</div><p className="text-xs text-muted-foreground">{processedData.kpi.satuan}</p></CardContent></Card>
-                <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Wilayah Tertinggi</CardTitle><Warehouse className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="text-2xl font-bold">{processedData.kpi.wilayahTertinggi?.name || '-'}</div><p className="text-xs text-muted-foreground">Nilai: {formatNumber(processedData.kpi.wilayahTertinggi?.[selectedYear] || 0)}</p></CardContent></Card>
-                <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Jumlah Wilayah</CardTitle><Map className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="text-2xl font-bold">{processedData.kpi.jumlahWilayah}</div><p className="text-xs text-muted-foreground">Wilayah dengan data</p></CardContent></Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Total Nilai ({filters.level === 'provinsi' ? 'Provinsi' : 'Semua Kab'})</CardTitle><TrendingUp className="h-4 w-4 text-muted-foreground"/></CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{formatNumber(processedData.kpi.total)}</div>
+                        {processedData.kpi.percentageChange !== null && isFinite(processedData.kpi.percentageChange) && (
+                            <Badge variant={processedData.kpi.percentageChange >= 0 ? 'default' : 'destructive'} className="flex items-center gap-1 text-xs mt-1 w-fit">
+                                {processedData.kpi.percentageChange >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                                <span>{processedData.kpi.percentageChange.toFixed(2)}% vs thn pembanding</span>
+                            </Badge>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-2">{processedData.kpi.satuan}</p>
+                    </CardContent>
+                </Card>
+                    {/* --- AWAL PATCH TAMPILAN KPI CARD --- */}
+                    <Card>
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium">Wilayah Tertinggi & Terendah</CardTitle>
+                        <ChevronsDownUp className="h-4 w-4 text-muted-foreground"/>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                        {/* Wilayah Tertinggi */}
+                        <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-2">
+                                <div className="p-1.5 bg-emerald-100 dark:bg-emerald-900 rounded-md">
+                                    <TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                                </div>
+                                <div>
+                                    <p className="text-xs text-muted-foreground">Tertinggi</p>
+                                    <p className="text-sm font-semibold">{processedData.kpi.wilayahTertinggi?.name || '-'}</p>
+                                </div>
+                            </div>
+                            <p className="text-sm font-bold">{formatNumber(processedData.kpi.wilayahTertinggi?.[selectedYear.toString()] || 0)}</p>
+                        </div>
+                        {/* Wilayah Terendah */}
+                        {processedData.kpi.wilayahTerendah && (
+                             <div className="flex items-start justify-between">
+                                <div className="flex items-center gap-2">
+                                    <div className="p-1.5 bg-red-100 dark:bg-red-900 rounded-md">
+                                        <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-muted-foreground">Terendah</p>
+                                        <p className="text-sm font-semibold">{processedData.kpi.wilayahTerendah?.name || '-'}</p>
+                                    </div>
+                                </div>
+                                <p className="text-sm font-bold">{formatNumber(processedData.kpi.wilayahTerendah?.[selectedYear.toString()] || 0)}</p>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+                {/* --- AKHIR PATCH TAMPILAN KPI CARD --- */}                <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Jumlah Wilayah</CardTitle><Map className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="text-2xl font-bold">{processedData.kpi.jumlahWilayah}</div><p className="text-xs text-muted-foreground">Wilayah dengan data</p></CardContent></Card>
             </div>
           
             <div className="grid md:grid-cols-2 gap-6">
@@ -276,21 +336,21 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
             </div>
 
             <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+              <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                     <CardTitle>Data Rinci</CardTitle>
                     <CardDescription className="mt-1">
-                    Data mendetail berdasarkan filter yang Anda pilih. Anda bisa melakukan sorting dan filtering pada tabel ini.
+                      Data mendetail berdasarkan filter yang Anda pilih. Anda bisa melakukan sorting dan filtering pada tabel ini.
                     </CardDescription>
                 </div>
                 <Button variant="outline" size="sm" onClick={handleExport} disabled={isLoading || !data || data.length === 0}>
-                <Download className="mr-2 h-4 w-4"/>
-                Ekspor ke CSV
+                  <Download className="mr-2 h-4 w-4"/>
+                  Ekspor ke CSV
                 </Button>
-            </CardHeader>
-            <CardContent>
+              </CardHeader>
+              <CardContent>
                 <DataTable columns={columns} data={data || []} />
-            </CardContent>
+              </CardContent>
             </Card>
         </div>
       )}
