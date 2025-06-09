@@ -4,7 +4,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { Toaster } from '@/components/ui/sonner';
 import { YearProvider } from '@/context/YearContext';
-// Hapus import ClientLayoutWrapper dan MainLayout dari sini jika tidak digunakan lagi secara langsung
+import { AuthProvider } from '@/context/AuthContext'; // <== Tambahkan import ini
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -21,9 +21,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <YearProvider>
-          {children} {/* Langsung render children */}
-        </YearProvider>
+        <AuthProvider> {/* <== Tambahkan AuthProvider membungkus semua children */}
+          <YearProvider>
+            {children}
+          </YearProvider>
+        </AuthProvider>
         <Toaster />
       </body>
     </html>

@@ -4,7 +4,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { createClientComponentSupabaseClient } from '@/lib/supabase';
+import { useAuth } from "@/context/AuthContext";
 
 import { cn } from '@/lib/utils';
 import { getNavMainItems, type UserData } from '@/lib/sidebar-data';
@@ -34,7 +34,7 @@ interface NewSidebarProps {}
 export default function NewSidebar({}: NewSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const supabase = createClientComponentSupabaseClient();
+  const { supabase } = useAuth();
 
   const [userSession, setUserSession] = React.useState<UserSessionData | null>(null);
   const [isLoadingSession, setIsLoadingSession] = React.useState(true);

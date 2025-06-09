@@ -1,6 +1,6 @@
 // src/hooks/usePenggunaanBenihDanPupukData.ts
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { createClientComponentSupabaseClient } from '@/lib/supabase'; //
+import { useAuth } from '@/context/AuthContext'; //
 import { useYear } from '@/context/YearContext'; //
 import { useUbinanEvaluasiFilter } from '@/context/UbinanEvaluasiFilterContext'; //
 import { Tables } from '@/lib/database.types'; //
@@ -52,7 +52,7 @@ const getAverage = (arr: (number | null | undefined)[]): number | null => {
 };
 
 export const usePenggunaanBenihDanPupukData = () => {
-  const supabase = createClientComponentSupabaseClient(); //
+  const { supabase } = useAuth();
   const { selectedYear } = useYear(); //
   const { selectedSubround, selectedKomoditas, isLoadingFilters } = useUbinanEvaluasiFilter(); //
 

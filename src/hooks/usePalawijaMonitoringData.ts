@@ -1,6 +1,6 @@
 // src/hooks/usePalawijaMonitoringData.ts
 import { useState, useEffect } from 'react';
-import { createClientComponentSupabaseClient } from '@/lib/supabase';
+import { useAuth } from "@/context/AuthContext";
 import { toast } from 'sonner';
 
 const KAB_CODE_TO_NAME: { [key: string]: string } = {
@@ -49,8 +49,8 @@ interface PalawijaMonitoringDataHook {
 }
 
 export const usePalawijaMonitoringData = (selectedYear: number, selectedSubround: string): PalawijaMonitoringDataHook => {
-  const supabase = createClientComponentSupabaseClient();
-
+  const { supabase } = useAuth();
+  
   const [processedPalawijaData, setProcessedPalawijaData] = useState<PalawijaDataRow[] | null>(null);
   const [palawijaTotals, setPalawijaTotals] = useState<PalawijaTotals | null>(null);
   const [loadingPalawija, setLoadingPalawija] = useState(true);

@@ -50,7 +50,3 @@ export const createServerComponentSupabaseClient = (cookieStore: ReadonlyRequest
     }
   );
 };
-
-// Ini adalah client yang Anda miliki sebelumnya, bisa tetap ada jika Anda menggunakannya
-// untuk interaksi langsung yang tidak melibatkan cookies Next.js (misalnya di API Route yang tidak perlu session)
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);

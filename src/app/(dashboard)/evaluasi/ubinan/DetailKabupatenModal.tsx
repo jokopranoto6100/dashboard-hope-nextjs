@@ -38,10 +38,10 @@ export function DetailKabupatenModal({
       <DialogContent className="max-w-4xl sm:max-w-3xl md:max-w-4xl lg:max-w-5xl xl:max-w-6xl h-[90vh] flex flex-col"> {/* Lebar dan tinggi bisa disesuaikan */}
         <DialogHeader>
           <DialogTitle>Detail Penggunaan Benih & Pupuk: {namaKabupaten}</DialogTitle>
-          {/* <DialogDescription>
+          <DialogDescription>
             Data per record untuk tahun {selectedYear}, komoditas {selectedKomoditas},
             {selectedSubround !== 'all' ? ` subround ${selectedSubround}` : ' semua subround'}.
-          </DialogDescription> */}
+          </DialogDescription>
         </DialogHeader>
         <div className="flex-grow overflow-y-auto"> {/* Membuat konten bisa di-scroll jika melebihi tinggi */}
           <DetailKabupatenModalContent

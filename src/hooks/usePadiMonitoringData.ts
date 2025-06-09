@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // src/hooks/usePadiMonitoringData.ts
 import { useState, useEffect } from 'react';
-import { createClientComponentSupabaseClient } from '@/lib/supabase';
+import { useAuth } from "@/context/AuthContext";
 
 const toTitleCase = (str: string) => {
   if (!str) return '';
@@ -36,7 +36,7 @@ interface PadiMonitoringDataHook {
 }
 
 export const usePadiMonitoringData = (selectedYear: number, selectedSubround: string): PadiMonitoringDataHook => {
-  const supabase = createClientComponentSupabaseClient();
+  const { supabase } = useAuth();
 
   const [processedPadiData, setProcessedPadiData] = useState<any[] | null>(null);
   const [padiTotals, setPadiTotals] = useState<PadiTotals | null>(null);

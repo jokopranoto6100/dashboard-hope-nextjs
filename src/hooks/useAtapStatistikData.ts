@@ -1,5 +1,5 @@
 // Lokasi File: src/hooks/useAtapStatistikData.ts
-import { createClientComponentSupabaseClient } from "@/lib/supabase";
+import { useAuth } from "@/context/AuthContext";
 import useSWR from 'swr';
 import { useYear } from "@/context/YearContext";
 
@@ -25,11 +25,10 @@ interface FilterState {
   tahunPembanding?: number | null; // Opsional untuk Fase 2
 }
 
-const supabase = createClientComponentSupabaseClient();
-
-// Fungsi fetcher yang akan digunakan oleh SWR
+// Fungsi fetcher menerima instance supabase dari hook utama
 const fetchAtapData = async (
-  key: string, // SWR menggunakan key untuk caching
+  supabase, // <== Instance dari useAuth di bawah
+  key: string,
   filters: FilterState,
   selectedYear: number
 ) => {
@@ -45,12 +44,12 @@ const fetchAtapData = async (
       .eq('tahun', year)
       .eq('indikator', filters.indikatorNama)
       .eq('level_wilayah', filters.level);
-    
+
     // Tentukan level_data berdasarkan pilihan bulan
     if (filters.bulan === 'tahunan') {
-      query = query.like('level_data', 'Tahunan%'); // Mencocokkan "Tahunan Kabupaten" atau "Tahunan Provinsi"
+      query = query.like('level_data', 'Tahunan%');
     } else {
-      query = query.like('level_data', 'Bulanan%'); // Mencocokkan "Bulanan Kabupaten" atau "Bulanan Provinsi"
+      query = query.like('level_data', 'Bulanan%');
       query = query.eq('bulan', parseInt(filters.bulan));
     }
     return query;
@@ -59,7 +58,7 @@ const fetchAtapData = async (
   // Ambil data utama (tahun yang dipilih)
   const { data: dataUtama, error: errorUtama } = await buildQuery(selectedYear);
   if (errorUtama) throw errorUtama;
-  
+
   // Ambil data pembanding jika ada
   let dataPembanding: AtapDataPoint[] = [];
   if (filters.tahunPembanding) {
@@ -74,16 +73,17 @@ const fetchAtapData = async (
 // Custom Hook utama
 export function useAtapStatistikData(filters: FilterState) {
   const { selectedYear } = useYear();
+  const { supabase } = useAuth(); // <== Sudah BENAR, di dalam function
 
   // Buat key unik untuk SWR agar query di-cache berdasarkan filter
   const swrKey = `atap_data_${selectedYear}_${filters.indikatorNama}_${filters.bulan}_${filters.level}_${filters.tahunPembanding || ''}`;
 
   const { data, error, isLoading } = useSWR(
     swrKey, // Key untuk caching
-    () => fetchAtapData(swrKey, filters, selectedYear), // Fungsi fetcher
+    () => fetchAtapData(supabase, swrKey, filters, selectedYear), // Fungsi fetcher sudah terima supabase
     {
-      revalidateOnFocus: false, // Tidak perlu re-fetch saat window di-fokus
-      shouldRetryOnError: false, // Tidak perlu coba lagi jika error
+      revalidateOnFocus: false,
+      shouldRetryOnError: false,
     }
   );
 

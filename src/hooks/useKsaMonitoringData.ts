@@ -1,6 +1,6 @@
 // src/hooks/useKsaMonitoringData.ts
-import { useState, useEffect, useContext } from 'react';
-import { createClientComponentSupabaseClient } from '@/lib/supabase';
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
 import { useYear } from '@/context/YearContext';
 
 interface KsaAmatanRow {
@@ -58,8 +58,8 @@ export const useKsaMonitoringData = (
   requestedMonth: string | undefined,
   behavior: FetchBehavior = 'directFetch'
 ) => {
-  const supabase = createClientComponentSupabaseClient();
-  const { selectedYear } = useYear();
+    const { supabase } = useAuth();
+    const { selectedYear } = useYear();
   
   // Renamed states for district level
   const [districtLevelData, setDistrictLevelData] = useState<ProcessedKsaDistrictData[]>([]);

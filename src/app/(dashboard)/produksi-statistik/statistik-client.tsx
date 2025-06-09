@@ -16,7 +16,7 @@ import { TrendingUp, Warehouse, Map, Download } from "lucide-react";
 import { unparse } from "papaparse";
 import { saveAs } from "file-saver";
 import useSWR from "swr";
-import { createClientComponentSupabaseClient } from "@/lib/supabase";
+import { useAuth } from "@/context/AuthContext";
 import { DataTable } from './data-table';
 import { columns } from './columns';
 
@@ -92,7 +92,7 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
   });
 
   // Pengambilan data terpisah khusus untuk Line Chart (tren bulanan)
-  const supabase = createClientComponentSupabaseClient();
+  const { supabase } = useAuth();
   const lineChartSWRKey = `monthly_trend_${selectedYear}_${filters.indikatorNama}_${filters.tahunPembanding}_${selectedKabupaten || 'prov'}`;
   const { data: lineChartRawData, isLoading: isLineChartLoading } = useSWR(
     // Hanya fetch jika indikator sudah dipilih

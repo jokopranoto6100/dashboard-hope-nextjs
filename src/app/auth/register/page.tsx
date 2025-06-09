@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClientComponentSupabaseClient } from '@/lib/supabase'; // Ganti import ini
+import { useAuth } from "@/context/AuthContext";
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,7 +17,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const supabase = createClientComponentSupabaseClient();
+  const { supabase }= useAuth();
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();

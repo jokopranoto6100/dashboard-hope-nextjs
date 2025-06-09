@@ -1,6 +1,6 @@
 // src/hooks/useUbinanDescriptiveStatsData.ts
 import { useState, useEffect, useCallback } from 'react';
-import { createClientComponentSupabaseClient } from '@/lib/supabase';
+import { useAuth } from '@/context/AuthContext';
 import { useYear } from '@/context/YearContext';
 import { useUbinanEvaluasiFilter } from '@/context/UbinanEvaluasiFilterContext';
 import { Tables } from '@/lib/database.types';
@@ -37,7 +37,7 @@ export interface UbinanDescriptiveStatsOutput {
 
 // Tambahkan parameter conversionFactor
 export const useUbinanDescriptiveStatsData = (conversionFactor: number = 1) => {
-  const supabase = createClientComponentSupabaseClient();
+  const { supabase } = useAuth();
   const { selectedYear } = useYear();
   const { selectedSubround, selectedKomoditas, isLoadingFilters } = useUbinanEvaluasiFilter();
 
