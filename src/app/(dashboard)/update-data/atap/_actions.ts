@@ -128,34 +128,24 @@ export async function uploadAtapDataAction(formData: FormData): Promise<ActionRe
       return { success: false, message: "Gagal menyimpan data ke database.", errorDetails: upsertError.message };
     }
     
-    // --- AWAL PATCH UNTUK AGREGRASI OTOMATIS ---
-
+    // --- AWAL PATCH AGREGRASI ---
     let aggregationMessage = "";
-    // Hanya jalankan agregasi jika data yang diimpor adalah 'bulanan_kab'
-    if (config.triggersAggregation) {
-        // Kumpulkan tahun-tahun unik dari data yang baru diimpor
-        const uniqueYears = new Set<number>(longDataToUpsert.map(row => row.tahun));
+    // Hanya picu agregasi jika data yang diimpor adalah data bulanan
+    if (dataType === 'bulanan_kab' || dataType === 'bulanan_prov') {
+        const uniqueYears = Array.from(new Set(longDataToUpsert.map(row => row.tahun)));
         
-        // Panggil fungsi RPC untuk setiap tahun yang terpengaruh
         for (const year of uniqueYears) {
-            console.log(`Memicu agregasi untuk tahun ${year}...`);
             const { error: aggregateError } = await supabaseServer.rpc('recalculate_atap_aggregates', {
                 p_tahun: year
             });
-
             if (aggregateError) {
                 console.error(`Agregasi otomatis untuk tahun ${year} gagal:`, aggregateError);
-                // Jangan hentikan proses, tapi catat pesannya
-                aggregationMessage += ` Peringatan: Gagal melakukan agregasi untuk tahun ${year}.`;
+                // Kita bisa memilih untuk tidak menghentikan proses, tapi mencatatnya
             }
         }
-        
-        if (!aggregationMessage) {
-          aggregationMessage = " Agregasi otomatis ke level tahunan dan provinsi juga telah berhasil dijalankan.";
-        }
+        aggregationMessage = " Agregasi otomatis ke level data yang lebih tinggi juga telah dijalankan.";
     }
-    
-    // --- AKHIR PATCH ---
+    // --- AKHIR PATCH AGREGRASI ---
     
     revalidatePath("/update-data/atap");
     revalidatePath("/produksi-statistik"); // Revalidasi halaman statistik juga
