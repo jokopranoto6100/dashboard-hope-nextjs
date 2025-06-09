@@ -99,17 +99,17 @@ import {
           {
             title: "Ubinan",
             url: "/update-data/ubinan",
-            isActive: (currentPath) => currentPath === "/update/ubinan-raw",
+            isActive: (currentPath) => currentPath === "/update-data/ubinan",
           },
           {
             title: "Kerangka Sampel Area",
             url: "/update-data/ksa",
-            isActive: (currentPath) => currentPath === "/update/ksa",
+            isActive: (currentPath) => currentPath === "/update-data/ksa",
           },
           {
             title: "Angka Tetap (ATAP)",
             url: "/update-data/atap",
-            isActive: (currentPath) => currentPath === "/update/atap",
+            isActive: (currentPath) => currentPath === "/update-data/atap",
           },
         ],
       },
@@ -117,7 +117,7 @@ import {
         title: "Analisis Data",
         url: "/analisis-data",
         icon: FlaskConical,
-        isActive: (currentPath) => currentPath === "/produksi-statistik",
+        isActive: (currentPath) => currentPath === "/analisis-data",
       },
     ];
   
