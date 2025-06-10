@@ -13,7 +13,7 @@ async function getAvailableIndicators() {
   const { data, error } = await supabase
     .from('master_indikator_atap')
     .select('id, nama_resmi')
-    .order('nama_resmi', { ascending: true });
+    .order('id', { ascending: true }); 
 
   if (error) {
     console.error("Error fetching indicators:", error);
@@ -29,7 +29,7 @@ export default async function ProduksiStatistikPage() {
     <div className="flex flex-1 flex-col gap-6 p-4 md:gap-8 md:p-8">
         <Card className="shadow-lg">
             <CardHeader>
-                <CardTitle className="text-2xl">Analisis Statistik Produksi ATAP</CardTitle>
+                <CardTitle className="text-2xl">Statistik Produksi</CardTitle>
                 <CardDescription>
                     Visualisasikan dan bandingkan data produksi dari berbagai level dan periode waktu. Gunakan filter di bawah untuk menyesuaikan data yang ditampilkan.
                 </CardDescription>

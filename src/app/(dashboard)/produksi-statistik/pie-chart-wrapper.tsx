@@ -12,7 +12,6 @@ interface PieChartWrapperProps {
   data: PieChartData[];
 }
 
-// Daftar warna yang akan digunakan untuk setiap irisan pie chart
 const COLORS = [
     '#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', 
     '#FF4560', '#00E396', '#775DD0', '#FEB019', '#FF66C3',
@@ -21,15 +20,17 @@ const COLORS = [
 
 const formatNumber = (num: number) => new Intl.NumberFormat('id-ID').format(num);
 
-// Custom Tooltip untuk menampilkan persentase
-const CustomTooltip = ({ active, payload }: any) => {
+// Tooltip diubah untuk menerima 'total' dan menghitung persentase secara manual
+const CustomTooltip = ({ active, payload, total }: any) => {
     if (active && payload && payload.length) {
       const data = payload[0];
+      // Perhitungan manual: (nilai slice / total nilai) * 100
+      const percentage = total > 0 ? (data.value / total) * 100 : 0;
       return (
         <div className="p-2 text-sm bg-background/90 border rounded-md shadow-lg">
           <p className="font-semibold">{`${data.name}`}</p>
           <p className="text-muted-foreground">{`Nilai: ${formatNumber(data.value)}`}</p>
-          <p className="text-muted-foreground">{`Kontribusi: ${(data.percent * 100).toFixed(2)}%`}</p>
+          <p className="text-muted-foreground">{`Kontribusi: ${percentage.toFixed(2)}%`}</p>
         </div>
       );
     }
@@ -38,8 +39,6 @@ const CustomTooltip = ({ active, payload }: any) => {
 
 
 export default function PieChartWrapper({ data }: PieChartWrapperProps) {
-  // Hanya ambil 6 data teratas untuk ditampilkan di chart agar tidak terlalu ramai
-  // Sisanya akan digabungkan menjadi "Lainnya"
   const topData = data.slice(0, 6);
   const otherValue = data.slice(6).reduce((sum, item) => sum + item.value, 0);
 
@@ -47,6 +46,9 @@ export default function PieChartWrapper({ data }: PieChartWrapperProps) {
   if (otherValue > 0) {
     chartData.push({ name: 'Lainnya', value: otherValue });
   }
+
+  // Hitung total nilai dari data yang akan ditampilkan di chart
+  const totalForPie = chartData.reduce((sum, item) => sum + item.value, 0);
 
   return (
     <ResponsiveContainer width="100%" height={300}>
@@ -57,7 +59,7 @@ export default function PieChartWrapper({ data }: PieChartWrapperProps) {
           cy="50%"
           labelLine={false}
           outerRadius={80}
-          innerRadius={60} // Ini yang membuatnya menjadi Donut Chart
+          innerRadius={60}
           fill="#8884d8"
           dataKey="value"
           nameKey="name"
@@ -67,7 +69,8 @@ export default function PieChartWrapper({ data }: PieChartWrapperProps) {
             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
           ))}
         </Pie>
-        <Tooltip content={<CustomTooltip />} />
+        {/* Kirim 'totalForPie' yang sudah dihitung ke CustomTooltip */}
+        <Tooltip content={<CustomTooltip total={totalForPie} />} />
         <Legend 
             iconSize={10} 
             layout="vertical" 

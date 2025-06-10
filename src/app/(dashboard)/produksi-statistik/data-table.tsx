@@ -9,7 +9,6 @@ import {
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table"
@@ -22,7 +21,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
 interface DataTableProps<TData, TValue> {
@@ -41,7 +39,6 @@ export function DataTable<TData, TValue>({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     onSortingChange: setSorting,
     getSortedRowModel: getSortedRowModel(),
     onColumnFiltersChange: setColumnFilters,
@@ -56,10 +53,10 @@ export function DataTable<TData, TValue>({
     <div>
         <div className="flex items-center py-4">
             <Input
-            placeholder="Cari berdasarkan kode wilayah..."
-            value={(table.getColumn("kode_wilayah")?.getFilterValue() as string) ?? ""}
+            placeholder="Cari berdasarkan nama wilayah..."
+            value={(table.getColumn("nama_wilayah")?.getFilterValue() as string) ?? ""}
             onChange={(event) =>
-                table.getColumn("kode_wilayah")?.setFilterValue(event.target.value)
+                table.getColumn("nama_wilayah")?.setFilterValue(event.target.value)
             }
             className="max-w-sm"
             />
@@ -107,24 +104,6 @@ export function DataTable<TData, TValue>({
             )}
           </TableBody>
         </Table>
-      </div>
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
-        >
-          Sebelumnya
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
-        >
-          Berikutnya
-        </Button>
       </div>
     </div>
   )

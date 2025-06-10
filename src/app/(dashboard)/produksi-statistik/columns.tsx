@@ -2,74 +2,97 @@
 "use client"
 
 import { ColumnDef } from "@tanstack/react-table"
-import { AtapDataPoint } from "@/hooks/useAtapStatistikData" // Asumsi path ini benar
-import { ArrowUpDown } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { ArrowUpDown, TrendingUp, TrendingDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
-const KABUPATEN_MAP: { [key: string]: string } = { "6101": "Sambas", "6102": "Bengkayang", "6103": "Landak", "6104": "Mempawah", "6105": "Sanggau", "6106": "Ketapang", "6107": "Sintang", "6108": "Kapuas Hulu", "6109": "Sekadau", "6110": "Melawi", "6111": "Kayong Utara", "6112": "Kubu Raya", "6171": "Pontianak", "6172": "Singkawang" };
-const MONTH_NAMES: { [key: string]: string } = { "1": "Jan", "2": "Feb", "3": "Mar", "4": "Apr", "5": "Mei", "6": "Jun", "7": "Jul", "8": "Agu", "9": "Sep", "10": "Okt", "11": "Nov", "12": "Des" };
+export interface AugmentedAtapDataPoint {
+  indikator: string;
+  tahun: number;
+  bulan: number | null;
+  kode_wilayah: string;
+  level_wilayah: 'provinsi' | 'kabupaten';
+  nama_wilayah: string;
+  nilai: number;
+  satuan: string | null;
+  kontribusi?: number;
+  nilaiTahunLalu?: number | null;
+  pertumbuhan?: number | null;
+}
 
-// Fungsi untuk format angka
 const formatNumber = (num: number) => new Intl.NumberFormat('id-ID').format(num);
 
-export const columns: ColumnDef<AtapDataPoint>[] = [
-  {
-    accessorKey: "indikator",
-    header: "Indikator",
-  },
-  {
-    accessorKey: "tahun",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Tahun
+export const getColumns = (selectedYear: number, tahunPembanding: string): ColumnDef<AugmentedAtapDataPoint>[] => {
+  const hasPerbandingan = tahunPembanding !== 'tidak';
+
+  const baseColumns: ColumnDef<AugmentedAtapDataPoint>[] = [
+    {
+      accessorKey: "nama_wilayah",
+      header: "Nama Wilayah",
+      // Kolom ini tetap rata kiri (tidak diubah)
+      cell: ({ row }) => <div className="font-medium">{row.getValue("nama_wilayah")}</div>,
+    },
+    {
+      accessorKey: "nilai",
+      header: ({ column }) => (
+        // --- DIUBAH ---
+        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="w-full justify-center px-0 hover:bg-transparent">
+          Nilai ({selectedYear})
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
-      )
+      ),
+      // --- DIUBAH ---
+      cell: ({ row }) => <div className="text-center font-mono">{formatNumber(row.getValue("nilai"))}</div>
     },
-  },
-  {
-    accessorKey: "bulan",
-    header: "Bulan",
-    cell: ({ row }) => {
-      const bulan = row.getValue("bulan") as number | null;
-      return bulan ? MONTH_NAMES[bulan.toString()] : "Tahunan";
+    {
+      accessorKey: "kontribusi",
+      // --- DIUBAH ---
+      header: () => <div className="text-center">Kontribusi (%)</div>,
+      // --- DIUBAH ---
+      cell: ({ row }) => {
+        const kontribusi = row.getValue("kontribusi") as number | undefined;
+        return <div className="text-center text-muted-foreground font-mono">{kontribusi?.toFixed(2) || '0.00'}%</div>
+      },
     },
-  },
-  {
-    accessorKey: "kode_wilayah",
-    header: "Nama Wilayah",
-    cell: ({ row }) => {
-        const kodeWilayah = row.original.kode_wilayah;
-        const level = row.original.level_wilayah;
-        return level === 'provinsi' ? 'Provinsi Kalimantan Barat' : (KABUPATEN_MAP[kodeWilayah] || kodeWilayah);
+  ];
+  
+  const perbandinganColumns: ColumnDef<AugmentedAtapDataPoint>[] = [
+    {
+      id: "nilaiTahunLalu",
+      // --- DIUBAH ---
+      header: () => <div className="text-center">Nilai ({tahunPembanding})</div>,
+      cell: ({ row }) => {
+        const nilai = row.original.nilaiTahunLalu;
+        // --- DIUBAH ---
+        return <div className="text-center font-mono text-muted-foreground">{nilai ? formatNumber(nilai) : '-'}</div>
+      }
+    },
+    {
+      id: "pertumbuhan",
+      // --- DIUBAH ---
+      header: () => <div className="text-center">Pertumbuhan (%)</div>,
+      cell: ({ row }) => {
+        const pertumbuhan = row.original.pertumbuhan;
+        if (pertumbuhan === null || pertumbuhan === undefined || !isFinite(pertumbuhan)) {
+          // --- DIUBAH ---
+          return <div className="text-center text-muted-foreground">-</div>;
+        }
+        return (
+          // --- DIUBAH ---
+          <div className="flex justify-center">
+            <Badge variant={pertumbuhan >= 0 ? "default" : "destructive"} className="flex items-center gap-1 text-xs">
+              {pertumbuhan >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+              <span>{pertumbuhan.toFixed(2)}%</span>
+            </Badge>
+          </div>
+        )
+      }
     }
-  },
-  {
-    accessorKey: "nilai",
-    header: ({ column }) => {
-      return (
-        <div className="text-right">
-            <Button
-                variant="ghost"
-                onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            >
-                Nilai
-                <ArrowUpDown className="ml-2 h-4 w-4" />
-            </Button>
-        </div>
-      )
-    },
-    cell: ({ row }) => {
-        const nilai = parseFloat(row.getValue("nilai"));
-        return <div className="text-right font-medium">{formatNumber(nilai)}</div>
-    }
-  },
-  {
-    accessorKey: "satuan",
-    header: "Satuan",
-  },
-]
+  ];
+
+  if (hasPerbandingan) {
+    return [...baseColumns, ...perbandinganColumns];
+  }
+  
+  return baseColumns;
+};
