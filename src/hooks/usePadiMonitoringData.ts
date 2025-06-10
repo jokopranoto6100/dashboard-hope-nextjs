@@ -12,6 +12,22 @@ const toTitleCase = (str: string) => {
   }).join(' ');
 };
 
+const mapStatusToGroup = (rawStatus: string): 'Approved' | 'Rejected' | 'Submitted' | 'Lainnya' => {
+  const lowerCaseStatus = rawStatus.toLowerCase();
+
+  if (lowerCaseStatus.includes('approved') || lowerCaseStatus.includes('selesai') || lowerCaseStatus.includes('lengkap')) {
+    return 'Approved';
+  }
+  if (lowerCaseStatus.includes('rejected') || lowerCaseStatus.includes('gagal')) {
+    return 'Rejected';
+  }
+  if (lowerCaseStatus.includes('submitted') || lowerCaseStatus.includes('pencacah')) {
+    return 'Submitted';
+  }
+  
+  return 'Lainnya'; // Fallback untuk status yang tidak terduga
+};
+
 interface PadiTotals {
   targetUtama: number;
   cadangan: number;
@@ -159,11 +175,13 @@ export const usePadiMonitoringData = (selectedYear: number, selectedSubround: st
 
                       // Proses kolom status HANYA JIKA r701 tidak null (merupakan entri realisasi)
                       if (row.status && typeof row.status === 'string' && String(row.status).trim() !== '') {
-                          const statusValue = String(row.status).trim();
-                          // Agregasi per nmkab
-                          groupedData[originalNmkab].statuses[statusValue] = (groupedData[originalNmkab].statuses[statusValue] || 0) + 1;
-                          // Agregasi total
-                          aggregatedStatuses[statusValue] = (aggregatedStatuses[statusValue] || 0) + 1;
+                          const rawStatus = String(row.status).trim();
+                          const groupedStatus = mapStatusToGroup(rawStatus); // Panggil fungsi mapping kita
+
+                          // Agregasi per nmkab (menggunakan status yang sudah dikelompokkan)
+                          groupedData[originalNmkab].statuses[groupedStatus] = (groupedData[originalNmkab].statuses[groupedStatus] || 0) + 1;
+                          // Agregasi total (menggunakan status yang sudah dikelompokkan)
+                          aggregatedStatuses[groupedStatus] = (aggregatedStatuses[groupedStatus] || 0) + 1;
                       }
                   }
 

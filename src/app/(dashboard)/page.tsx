@@ -98,7 +98,7 @@ export default function HomePage() {
     <>
       <div className="grid gap-4 md:grid-cols-3 mb-6">
         {/* Card 1: Ubinan Padi */}
-        <Card>
+        <Card className="h-full">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Ubinan Padi ({selectedYear})</CardTitle>
             {loadingPadi ? <Skeleton className="h-5 w-12" /> :
@@ -113,14 +113,13 @@ export default function HomePage() {
               })() : <Badge variant="outline">N/A</Badge>
             }
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex flex-col h-full">
             {loadingPadi ? (
               <>
                 <Skeleton className="h-8 w-3/4 mb-1" />
                 <Skeleton className="h-4 w-full mb-1" />
                 <Skeleton className="h-5 w-1/2 mb-1" />
                 <Skeleton className="h-5 w-1/2 mb-1" />
-                {/* Skeleton for Detail Status Ubinan */}
                 <Skeleton className="h-4 w-full mt-2 pt-2 border-t" /> 
                 <Skeleton className="h-5 w-3/4 mt-1" /> 
                 <Skeleton className="h-4 w-2/3 mt-1" />
@@ -129,39 +128,36 @@ export default function HomePage() {
               <p className="text-xs text-red-500">Error: {errorPadi}</p>
             ) : padiTotals ? (
               <>
-                <div className="text-2xl font-bold">{padiTotals.persentase.toFixed(2)}%</div>
-                <p className="text-xs text-muted-foreground">
-                  Realisasi: {padiTotals.realisasi} dari {padiTotals.targetUtama} Target Utama
-                </p>
-                <p className="text-xs text-muted-foreground mt-1 flex items-center flex-wrap">
-                  Total Lewat Panen:&nbsp;
-                  <Badge variant={padiTotals.lewatPanen > 0 ? "destructive" : "success"}>
-                    {padiTotals.lewatPanen}
-                  </Badge>
-                </p>
-                <p className="text-xs text-muted-foreground mt-1 flex items-center flex-wrap">
-                  Jumlah Anomali:&nbsp;
-                  <Badge variant={padiTotals.anomali > 0 ? "destructive" : "success"}>
-                    {padiTotals.anomali}
-                  </Badge>
-                </p>
+                <div className="flex-grow">
+                  <div className="text-2xl font-bold">{padiTotals.persentase.toFixed(2)}%</div>
+                  <p className="text-xs text-muted-foreground">
+                    Realisasi: {padiTotals.realisasi} dari {padiTotals.targetUtama} Target Utama
+                  </p>
+                  <div className="flex flex-col md:flex-row md:gap-6">
+                      <p className="text-xs text-muted-foreground mt-1 flex items-center flex-wrap">
+                          Total Lewat Panen:&nbsp;
+                          <Badge variant={padiTotals.lewatPanen > 0 ? "destructive" : "success"}>
+                              {padiTotals.lewatPanen}
+                          </Badge>
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1 flex items-center flex-wrap">
+                          Jumlah Anomali:&nbsp;
+                          <Badge variant={padiTotals.anomali > 0 ? "destructive" : "success"}>
+                              {padiTotals.anomali}
+                          </Badge>
+                      </p>
+                  </div>
+                </div>
 
-                {/* Detail Status Ubinan Padi */}
                 {padiTotals.statuses && padiUniqueStatusNames && padiUniqueStatusNames.length > 0 && (
-                  <div className="text-xs text-muted-foreground mt-2 pt-2 border-t">
+                  <div className="text-xs text-muted-foreground mt-3 pt-2 border-t">
                     <h4 className="font-semibold mb-1 text-foreground">Detail Status Ubinan:</h4>
                     <div className="flex flex-wrap gap-1">
                       {padiUniqueStatusNames.map(statusName => {
                         const count = padiTotals.statuses?.[statusName];
                         if (count !== undefined) {
-                          // Anda dapat menyesuaikan varian badge berdasarkan nama status jika diperlukan
-                          let statusVariant: "default" | "secondary" | "destructive" | "success" | "warning" = "secondary";
-                          if (statusName.toLowerCase().includes("selesai") || statusName.toLowerCase().includes("lengkap")) statusVariant = "success";
-                          else if (statusName.toLowerCase().includes("proses") || statusName.toLowerCase().includes("belum")) statusVariant = "default";
-                          else if (statusName.toLowerCase().includes("gagal") || statusName.toLowerCase().includes("error")) statusVariant = "destructive";
-                          
                           return (
-                            <Badge key={statusName} variant={statusVariant}>
+                            <Badge key={statusName} variant="secondary">
                               {statusName}: {count}
                             </Badge>
                           );
@@ -180,7 +176,7 @@ export default function HomePage() {
         </Card>
 
         {/* Card 2: Ubinan Palawija */}
-        <Card>
+        <Card className="h-full">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Ubinan Palawija ({selectedYear})</CardTitle>
             {loadingPalawija ? <Skeleton className="h-5 w-12" /> :
@@ -195,34 +191,40 @@ export default function HomePage() {
               })() : <Badge variant="outline">N/A</Badge>
             }
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex flex-col h-full">
             {loadingPalawija ? (
               <>
                 <Skeleton className="h-8 w-3/4 mb-1" />
                 <Skeleton className="h-4 w-full mb-1" />
-                <Skeleton className="h-5 w-full mb-1" />
+                <Skeleton className="h-5 w-full mt-2 pt-2 border-t" />
                 <Skeleton className="h-4 w-2/3 mt-1" />
               </>
             ) : errorPalawija ? (
               <p className="text-xs text-red-500">Error: {errorPalawija}</p>
             ) : palawijaTotals ? (
               <>
-                <div className="text-2xl font-bold">{parseFloat(palawijaTotals.persentase.toString()).toFixed(2)}%</div>
-                <p className="text-xs text-muted-foreground">
-                  Realisasi: {palawijaTotals.realisasi} dari {palawijaTotals.target} Target
-                </p>
-                <div className="text-xs text-muted-foreground mt-1 flex flex-wrap items-center gap-1">
-                  Status Validasi:&nbsp;
-                  <Badge variant="success">
-                    Clean: {palawijaTotals.clean}
-                  </Badge>
-                  <Badge variant="warning">
-                    Warning: {palawijaTotals.warning}
-                  </Badge>
-                  <Badge variant="destructive">
-                    Error: {palawijaTotals.error}
-                  </Badge>
+                <div className="flex-grow">
+                    <div className="text-2xl font-bold">{parseFloat(palawijaTotals.persentase.toString()).toFixed(2)}%</div>
+                    <p className="text-xs text-muted-foreground">
+                    Realisasi: {palawijaTotals.realisasi} dari {palawijaTotals.target} Target
+                    </p>
                 </div>
+                
+                <div className="text-xs text-muted-foreground mt-3 pt-2 border-t">
+                  <h4 className="font-semibold mb-1 text-foreground">Detail Status Validasi:</h4>
+                  <div className="flex flex-wrap items-center gap-1">
+                    <Badge variant="secondary">
+                      Clean: {palawijaTotals.clean}
+                    </Badge>
+                    <Badge variant="secondary">
+                      Warning: {palawijaTotals.warning}
+                    </Badge>
+                    <Badge variant="secondary">
+                      Error: {palawijaTotals.error}
+                    </Badge>
+                  </div>
+                </div>
+
                 {lastUpdatePalawija && <p className="text-xs text-muted-foreground mt-1">Data per: {lastUpdatePalawija}</p>}
               </>
             ) : (
@@ -232,7 +234,7 @@ export default function HomePage() {
         </Card>
 
         {/* Card 3: KSA Padi */}
-        <Card>
+        <Card className="h-full">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               KSA Padi ({selectedYear}) - {getMonthName(effectiveDisplayMonth)}
@@ -249,7 +251,7 @@ export default function HomePage() {
               })() : <Badge variant="outline">N/A</Badge>
             }
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex flex-col h-full">
             {loadingKsa ? (
               <>
                 <Skeleton className="h-8 w-3/4 mb-1" />
@@ -264,42 +266,48 @@ export default function HomePage() {
               <p className="text-xs text-red-500">Error: {errorKsa}</p>
             ) : ksaTotals ? (
               <>
-                <div className="text-2xl font-bold">{ksaTotals.persentase.toFixed(2)}%</div>
-                <p className="text-xs text-muted-foreground">
-                  Realisasi: {ksaTotals.realisasi} dari {ksaTotals.target} Target
-                </p>
-                <p className="text-xs text-muted-foreground mt-1 flex items-center flex-wrap">
-                  Inkonsisten:&nbsp;
-                  {ksaTotals.inkonsisten > 0 ? (
-                    <Badge variant="destructive"> 
-                      {ksaTotals.inkonsisten}
-                    </Badge>
-                  ) : (
-                    <Badge variant="success">{ksaTotals.inkonsisten}</Badge>
-                  )}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Total Kode 12: <span className="font-semibold">{ksaTotals.kode_12}</span>
-                </p>
+                <div className="flex-grow">
+                    <div className="text-2xl font-bold">{ksaTotals.persentase.toFixed(2)}%</div>
+                    <p className="text-xs text-muted-foreground">
+                    Realisasi: {ksaTotals.realisasi} dari {ksaTotals.target} Target
+                    </p>
+                    <div className="flex flex-col md:flex-row md:gap-6">
+                        <p className="text-xs text-muted-foreground mt-1 flex items-center flex-wrap">
+                            Inkonsisten:&nbsp;
+                            {ksaTotals.inkonsisten > 0 ? (
+                                <Badge variant="destructive"> 
+                                    {ksaTotals.inkonsisten}
+                                </Badge>
+                            ) : (
+                                <Badge variant="success">{ksaTotals.inkonsisten}</Badge>
+                            )}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1 flex items-center">
+                            Total Kode 12:&nbsp;
+                            <Badge variant="warning">{ksaTotals.kode_12}</Badge>
+                        </p>
+                    </div>
+                </div>
                 
                 {ksaTotals.statuses && ksaUniqueStatusNames && ksaUniqueStatusNames.length > 0 && (
-                  <div className="text-xs text-muted-foreground mt-2 pt-2 border-t">
+                  <div className="text-xs text-muted-foreground mt-3 pt-2 border-t">
                     <h4 className="font-semibold mb-1 text-foreground">Detail Status KSA:</h4>
                     <div className="flex flex-wrap gap-1">
                       {ksaUniqueStatusNames.map(statusName => {
-                        const statusData = ksaTotals.statuses?.[statusName];
-                        if (statusData) {
-                          let statusVariant: "default" | "secondary" | "destructive" | "success" | "warning" = "secondary";
-                          if (statusName.toLowerCase().includes("selesai") || statusName.toLowerCase().includes("panen")) statusVariant = "success";
-                          if (statusName.toLowerCase().includes("belum") || statusName.toLowerCase().includes("kosong")) statusVariant = "default";
+                          const statusData = ksaTotals.statuses?.[statusName];
+                          if (statusData) {
+                              // Mengembalikan ke logika pewarnaan awal
+                              let statusVariant: "default" | "secondary" | "destructive" | "success" | "warning" = "secondary";
+                              if (statusName.toLowerCase().includes("selesai") || statusName.toLowerCase().includes("panen")) statusVariant = "success";
+                              if (statusName.toLowerCase().includes("belum") || statusName.toLowerCase().includes("kosong")) statusVariant = "default";
 
-                          return (
-                            <Badge key={statusName} variant={statusVariant}>
-                              {statusName}: {statusData.count} 
-                            </Badge>
-                          );
-                        }
-                        return null;
+                              return (
+                                  <Badge key={statusName} variant={statusVariant}>
+                                      {statusName}: {statusData.count} 
+                                  </Badge>
+                              );
+                          }
+                          return null;
                       })}
                     </div>
                   </div>
