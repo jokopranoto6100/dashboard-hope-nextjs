@@ -1,7 +1,7 @@
 // Lokasi: src/app/(dashboard)/produksi-statistik/statistik-client.tsx
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { useYear } from "@/context/YearContext";
@@ -13,65 +13,35 @@ import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, Warehouse, Map, Download, Star, ChevronsDownUp } from "lucide-react";
+import { TrendingUp, TrendingDown, Warehouse, Map, Download, ChevronsDownUp, Camera } from "lucide-react";
 import { unparse } from "papaparse";
 import { saveAs } from "file-saver";
+import { toPng } from 'html-to-image';
 import useSWR from "swr";
 import { useAuth } from "@/context/AuthContext";
 import { DataTable } from './data-table';
 import { columns } from './columns';
+import { toast } from "sonner"; // Pastikan impor ini ada
 
-// --- Impor komponen grafik secara dinamis untuk mengatasi error Recharts ---
-const BarChartWrapper = dynamic(
-    () => import('./bar-chart-wrapper'),
-    { 
-        ssr: false, // Nonaktifkan Server-Side Rendering untuk komponen ini
-        loading: () => <Skeleton className="w-full h-[300px]" /> 
-    }
-);
+// --- Impor komponen grafik secara dinamis ---
+const BarChartWrapper = dynamic(() => import('./bar-chart-wrapper'), { ssr: false, loading: () => <Skeleton className="w-full h-[300px]" /> });
+const LineChartWrapper = dynamic(() => import('./line-chart-wrapper'), { ssr: false, loading: () => <Skeleton className="w-full h-[300px]" /> });
 
-const LineChartWrapper = dynamic(
-    () => import('./line-chart-wrapper'),
-    { 
-        ssr: false, // Nonaktifkan SSR
-        loading: () => <Skeleton className="w-full h-[300px]" /> 
-    }
-);
-
-// Tipe data yang diterima dari Server Component
-interface StatistikClientProps {
-  availableIndicators: {
-    id: number;
-    nama_resmi: string;
-  }[];
-}
-
-// Tipe untuk state filter lokal
-type FilterState = {
-  bulan: string; // "tahunan" atau "1"-"12"
-  indikatorNama: string;
-  level: 'provinsi' | 'kabupaten';
-  tahunPembanding: string; // "tidak" atau tahun
-};
-
-// Daftar konstanta untuk mapping
+// Tipe data dan konstanta
+interface StatistikClientProps { availableIndicators: { id: number; nama_resmi: string; }[] }
+type FilterState = { bulan: string; indikatorNama: string; level: 'provinsi' | 'kabupaten'; tahunPembanding: string; };
 const KABUPATEN_MAP: { [key: string]: string } = { "6101": "Sambas", "6102": "Bengkayang", "6103": "Landak", "6104": "Mempawah", "6105": "Sanggau", "6106": "Ketapang", "6107": "Sintang", "6108": "Kapuas Hulu", "6109": "Sekadau", "6110": "Melawi", "6111": "Kayong Utara", "6112": "Kubu Raya", "6171": "Pontianak", "6172": "Singkawang" };
 const MONTH_NAMES: { [key: string]: string } = { "1": "Jan", "2": "Feb", "3": "Mar", "4": "Apr", "5": "Mei", "6": "Jun", "7": "Jul", "8": "Agu", "9": "Sep", "10": "Okt", "11": "Nov", "12": "Des" };
-const FULL_MONTH_NAMES: { [key: string]: string[] } = { 
-    "1": ["1", "Januari"], "2": ["2", "Februari"], "3": ["3", "Maret"], "4": ["4", "April"], 
-    "5": ["5", "Mei"], "6": ["6", "Juni"], "7": ["7", "Juli"], "8": ["8", "Agustus"], 
-    "9": ["9", "September"], "10": ["10", "Oktober"], "11": ["11", "November"], "12": ["12", "Desember"] 
-};
-
-// Fungsi untuk format angka besar
-const formatNumber = (num: number) => {
-    if (num === null || num === undefined) return '0';
-    return new Intl.NumberFormat('id-ID').format(num);
-};
+const FULL_MONTH_NAMES: { [key: string]: string[] } = { "1": ["1", "Januari"], "2": ["2", "Februari"], "3": ["3", "Maret"], "4": ["4", "April"], "5": ["5", "Mei"], "6": ["6", "Juni"], "7": ["7", "Juli"], "8": ["8", "Agustus"], "9": ["9", "September"], "10": ["10", "Oktober"], "11": ["11", "November"], "12": ["12", "Desember"] };
+const formatNumber = (num: number) => (num === null || num === undefined) ? '0' : new Intl.NumberFormat('id-ID').format(num);
 
 export function StatistikClient({ availableIndicators }: StatistikClientProps) {
   const router = useRouter();
   const { selectedYear } = useYear();
+  const { supabase } = useAuth();
+
+  const barChartCardRef = useRef<HTMLDivElement>(null);
+  const lineChartCardRef = useRef<HTMLDivElement>(null);
 
   const [filters, setFilters] = useState<FilterState>({
     bulan: 'tahunan',
@@ -92,10 +62,9 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
     tahunPembanding: filters.tahunPembanding === 'tidak' ? null : parseInt(filters.tahunPembanding)
   });
 
-  const {supabase} = useAuth();
   const lineChartSWRKey = `monthly_trend_${selectedYear}_${filters.indikatorNama}_${filters.tahunPembanding}_${selectedKabupaten || 'prov'}`;
   const { data: lineChartRawData, isLoading: isLineChartLoading } = useSWR(
-    filters.indikatorNama ? lineChartSWRKey : null,
+    filters.indikatorNama && supabase ? lineChartSWRKey : null,
     async () => {
         const fetchMonthlyData = async (year: number) => {
             let query = supabase.from('laporan_atap_lengkap').select('bulan, nilai, kode_wilayah')
@@ -149,11 +118,9 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
     });
 
     const totalNilai = mainData.reduce((sum, item) => sum + item.nilai, 0);
-    // --- AWAL PATCH LOGIKA KPI ---
     const wilayahTertinggi = barChartData[0] || null;
-    // Ambil data terendah HANYA jika ada lebih dari satu wilayah untuk dibandingkan
     const wilayahTerendah = barChartData.length > 1 ? barChartData[barChartData.length - 1] : null;
-    // --- AKHIR PATCH LOGIKA KPI ---
+
     let percentageChange: number | null = null;
     if (filters.tahunPembanding !== 'tidak' && compareData.length > 0) {
         const totalNilaiPembanding = compareData.reduce((sum, item) => sum + item.nilai, 0);
@@ -165,17 +132,36 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
     }
 
     return { 
-        kpi: { total: totalNilai, satuan: mainData[0]?.satuan || '', wilayahTertinggi,wilayahTerendah, jumlahWilayah: new Set(mainData.map(d => d.kode_wilayah)).size, percentageChange }, 
+        kpi: { total: totalNilai, satuan: mainData[0]?.satuan || '', wilayahTertinggi, wilayahTerendah, jumlahWilayah: new Set(mainData.map(d => d.kode_wilayah)).size, percentageChange }, 
         barChart: barChartData, 
         lineChart: lineChartData
     };
   }, [data, dataPembanding, lineChartRawData, selectedYear, filters.tahunPembanding, selectedKabupaten]);
 
   const handleBarClick = (payload: any) => {
-    if (filters.level !== 'kabupaten') { toast.info("Drill-down hanya tersedia untuk level kabupaten."); return; }
+    if (filters.level !== 'kabupaten') { 
+        toast.info("Drill-down hanya tersedia untuk level kabupaten."); 
+        return; 
+    }
     if (payload?.activePayload?.[0]?.payload?.kode_wilayah) {
         const kodeWilayah = payload.activePayload[0].payload.kode_wilayah;
         setSelectedKabupaten(prev => prev === kodeWilayah ? null : kodeWilayah);
+    }
+  };
+
+  const handleExportChart = async (ref: React.RefObject<HTMLDivElement>, chartName: string) => {
+    if (!ref.current) {
+      toast.error("Grafik tidak dapat ditemukan untuk diekspor.");
+      return;
+    }
+    toast.info("Membuat gambar grafik...");
+    try {
+      const dataUrl = await toPng(ref.current, { cacheBust: true, backgroundColor: 'white', pixelRatio: 2 });
+      const fileName = `grafik_${chartName}_${filters.indikatorNama}_${selectedYear}.png`;
+      saveAs(dataUrl, fileName);
+      toast.success("Grafik berhasil diunduh!");
+    } catch (err) {
+      toast.error("Gagal mengekspor grafik.");
     }
   };
 
@@ -254,99 +240,20 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
       ) : (
         <div className="grid gap-6">
             <div className="grid gap-4 md:grid-cols-3">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Total Nilai ({filters.level === 'provinsi' ? 'Provinsi' : 'Semua Kab'})</CardTitle><TrendingUp className="h-4 w-4 text-muted-foreground"/></CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{formatNumber(processedData.kpi.total)}</div>
-                        {processedData.kpi.percentageChange !== null && isFinite(processedData.kpi.percentageChange) && (
-                            <Badge variant={processedData.kpi.percentageChange >= 0 ? 'default' : 'destructive'} className="flex items-center gap-1 text-xs mt-1 w-fit">
-                                {processedData.kpi.percentageChange >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                                <span>{processedData.kpi.percentageChange.toFixed(2)}% vs thn pembanding</span>
-                            </Badge>
-                        )}
-                        <p className="text-xs text-muted-foreground mt-2">{processedData.kpi.satuan}</p>
-                    </CardContent>
-                </Card>
-                    {/* --- AWAL PATCH TAMPILAN KPI CARD --- */}
-                    <Card>
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium">Wilayah Tertinggi & Terendah</CardTitle>
-                        <ChevronsDownUp className="h-4 w-4 text-muted-foreground"/>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                        {/* Wilayah Tertinggi */}
-                        <div className="flex items-start justify-between">
-                            <div className="flex items-center gap-2">
-                                <div className="p-1.5 bg-emerald-100 dark:bg-emerald-900 rounded-md">
-                                    <TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                                </div>
-                                <div>
-                                    <p className="text-xs text-muted-foreground">Tertinggi</p>
-                                    <p className="text-sm font-semibold">{processedData.kpi.wilayahTertinggi?.name || '-'}</p>
-                                </div>
-                            </div>
-                            <p className="text-sm font-bold">{formatNumber(processedData.kpi.wilayahTertinggi?.[selectedYear.toString()] || 0)}</p>
-                        </div>
-                        {/* Wilayah Terendah */}
-                        {processedData.kpi.wilayahTerendah && (
-                             <div className="flex items-start justify-between">
-                                <div className="flex items-center gap-2">
-                                    <div className="p-1.5 bg-red-100 dark:bg-red-900 rounded-md">
-                                        <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-muted-foreground">Terendah</p>
-                                        <p className="text-sm font-semibold">{processedData.kpi.wilayahTerendah?.name || '-'}</p>
-                                    </div>
-                                </div>
-                                <p className="text-sm font-bold">{formatNumber(processedData.kpi.wilayahTerendah?.[selectedYear.toString()] || 0)}</p>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-                {/* --- AKHIR PATCH TAMPILAN KPI CARD --- */}                <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Jumlah Wilayah</CardTitle><Map className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="text-2xl font-bold">{processedData.kpi.jumlahWilayah}</div><p className="text-xs text-muted-foreground">Wilayah dengan data</p></CardContent></Card>
+                <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Total Nilai ({filters.level === 'provinsi' ? 'Provinsi' : 'Semua Kab'})</CardTitle><TrendingUp className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="text-2xl font-bold">{formatNumber(processedData.kpi.total)}</div>{processedData.kpi.percentageChange !== null && isFinite(processedData.kpi.percentageChange) && (<Badge variant={processedData.kpi.percentageChange >= 0 ? 'default' : 'destructive'} className="flex items-center gap-1 text-xs mt-1 w-fit">{processedData.kpi.percentageChange >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}<span>{processedData.kpi.percentageChange.toFixed(2)}% vs thn pembanding</span></Badge>)}<p className="text-xs text-muted-foreground mt-2">{processedData.kpi.satuan}</p></CardContent></Card>
+                <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Wilayah Tertinggi & Terendah</CardTitle><ChevronsDownUp className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent className="space-y-2"><div className="flex items-start justify-between"><div className="flex items-center gap-2"><div className="p-1.5 bg-emerald-100 dark:bg-emerald-900 rounded-md"><TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /></div><div><p className="text-xs text-muted-foreground">Tertinggi</p><p className="text-sm font-semibold">{processedData.kpi.wilayahTertinggi?.name || '-'}</p></div></div><p className="text-sm font-bold">{formatNumber(processedData.kpi.wilayahTertinggi?.[selectedYear.toString()] || 0)}</p></div>{processedData.kpi.wilayahTerendah && (<div className="flex items-start justify-between"><div className="flex items-center gap-2"><div className="p-1.5 bg-red-100 dark:bg-red-900 rounded-md"><TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" /></div><div><p className="text-xs text-muted-foreground">Terendah</p><p className="text-sm font-semibold">{processedData.kpi.wilayahTerendah?.name || '-'}</p></div></div><p className="text-sm font-bold">{formatNumber(processedData.kpi.wilayahTerendah?.[selectedYear.toString()] || 0)}</p></div>)}</CardContent></Card>
+                <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Jumlah Wilayah</CardTitle><Map className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="text-2xl font-bold">{processedData.kpi.jumlahWilayah}</div><p className="text-xs text-muted-foreground">Wilayah dengan data</p></CardContent></Card>
             </div>
           
             <div className="grid md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>{filters.level === 'provinsi' ? 'Data Provinsi' : 'Perbandingan Antar Kabupaten'}</CardTitle>
-                  <CardDescription>
-                    {filters.bulan === 'tahunan' ? `Data tahunan untuk ${selectedYear}` : `Data untuk bulan ${Object.values(FULL_MONTH_NAMES).find(v => v[0] === filters.bulan)?.[1] || ''} ${selectedYear}`}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <BarChartWrapper 
-                        data={processedData.barChart}
-                        onClick={handleBarClick}
-                        dataKey1={selectedYear.toString()}
-                        dataKey2={filters.tahunPembanding !== 'tidak' ? filters.tahunPembanding : undefined}
-                    />
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader>
-                    <CardTitle>{selectedKabupaten ? `Tren Waktu Bulanan: ${KABUPATEN_MAP[selectedKabupaten]}` : 'Tren Waktu Bulanan: Provinsi'}</CardTitle>
-                    {selectedKabupaten && <Button variant="link" size="sm" onClick={() => setSelectedKabupaten(null)} className="p-0 h-auto">Kembali ke tampilan Provinsi</Button>}
-                </CardHeader>
-                <CardContent>
-                    {isLineChartLoading ? <Skeleton className="w-full h-[300px]" /> : <LineChartWrapper data={processedData.lineChart} dataKey1={selectedYear.toString()} dataKey2={filters.tahunPembanding !== 'tidak' ? filters.tahunPembanding : undefined}/>}
-                </CardContent>
-              </Card>
+              <Card ref={barChartCardRef}><CardHeader className="flex flex-row items-center justify-between"><div><CardTitle>{filters.level === 'provinsi' ? 'Data Provinsi' : 'Perbandingan Antar Kabupaten'}</CardTitle><CardDescription className="mt-1">{filters.bulan === 'tahunan' ? `Data tahunan untuk ${selectedYear}` : `Data untuk bulan ${Object.values(FULL_MONTH_NAMES).find(v => v[0] === filters.bulan)?.[1] || ''} ${selectedYear}`}</CardDescription></div><Button variant="ghost" size="icon" onClick={() => handleExportChart(barChartCardRef, 'perbandingan_wilayah')}><Camera className="h-4 w-4" /></Button></CardHeader><CardContent><BarChartWrapper data={processedData.barChart} onClick={handleBarClick} dataKey1={selectedYear.toString()} dataKey2={filters.tahunPembanding !== 'tidak' ? filters.tahunPembanding : undefined} /></CardContent></Card>
+              <Card ref={lineChartCardRef}><CardHeader className="flex flex-row items-center justify-between"><div><CardTitle>{selectedKabupaten ? `Tren Waktu Bulanan: ${KABUPATEN_MAP[selectedKabupaten]}` : 'Tren Waktu Bulanan: Provinsi'}</CardTitle>{selectedKabupaten && <Button variant="link" size="sm" onClick={() => setSelectedKabupaten(null)} className="p-0 h-auto">Kembali ke tampilan Provinsi</Button>}</div><Button variant="ghost" size="icon" onClick={() => handleExportChart(lineChartCardRef, 'tren_waktu')}><Camera className="h-4 w-4" /></Button></CardHeader><CardContent>{isLineChartLoading ? <Skeleton className="w-full h-[300px]" /> : <LineChartWrapper data={processedData.lineChart} dataKey1={selectedYear.toString()} dataKey2={filters.tahunPembanding !== 'tidak' ? filters.tahunPembanding : undefined}/>}</CardContent></Card>
             </div>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                    <CardTitle>Data Rinci</CardTitle>
-                    <CardDescription className="mt-1">
-                      Data mendetail berdasarkan filter yang Anda pilih. Anda bisa melakukan sorting dan filtering pada tabel ini.
-                    </CardDescription>
-                </div>
-                <Button variant="outline" size="sm" onClick={handleExport} disabled={isLoading || !data || data.length === 0}>
-                  <Download className="mr-2 h-4 w-4"/>
-                  Ekspor ke CSV
-                </Button>
+                <div><CardTitle>Data Rinci</CardTitle><CardDescription className="mt-1">Data mendetail berdasarkan filter yang Anda pilih. Anda bisa melakukan sorting dan filtering pada tabel ini.</CardDescription></div>
+                <Button variant="outline" size="sm" onClick={handleExport} disabled={isLoading || !data || data.length === 0}><Download className="mr-2 h-4 w-4"/>Ekspor ke CSV</Button>
               </CardHeader>
               <CardContent>
                 <DataTable columns={columns} data={data || []} />
