@@ -2,18 +2,17 @@
 "use client";
 
 import * as React from "react";
-// import { createClientComponentSupabaseClient } from '@/lib/supabase'; // Tidak digunakan langsung di sini jika data dari hook
-// import { toast } from 'sonner';
+import Link from 'next/link';
 import { useYear } from '@/context/YearContext';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from "@/components/ui/button"; // LANGKAH 1: Impor Button
 import { usePadiMonitoringData } from '@/hooks/usePadiMonitoringData';
 import { usePalawijaMonitoringData } from '@/hooks/usePalawijaMonitoringData';
 import { useKsaMonitoringData } from '@/hooks/useKsaMonitoringData'; 
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { getPercentageBadgeVariant } from "@/lib/utils";
-import { CheckCircle2, TrendingUp, AlertTriangle, Info, TrendingDown, PackagePlus } from "lucide-react";
+import { PackagePlus } from "lucide-react";
 
 const getMonthName = (monthNumberStr: string | undefined): string => {
   if (!monthNumberStr || monthNumberStr.toLowerCase() === "semua") return "Semua Bulan (Tahunan)";
@@ -27,9 +26,7 @@ const getMonthName = (monthNumberStr: string | undefined): string => {
 };
 
 export default function HomePage() {
-  // const supabase = createClientComponentSupabaseClient(); // Tidak digunakan langsung di sini
   const { selectedYear } = useYear();
-
   const ubinanSubround = 'all';
 
   const {
@@ -37,7 +34,7 @@ export default function HomePage() {
     loadingPadi,
     errorPadi,
     lastUpdate,
-    uniqueStatusNames: padiUniqueStatusNames // Ambil uniqueStatusNames untuk Padi
+    uniqueStatusNames: padiUniqueStatusNames
   } = usePadiMonitoringData(selectedYear, ubinanSubround);
 
   const {
@@ -56,43 +53,10 @@ export default function HomePage() {
     error: errorKsa, 
     lastUpdated: lastUpdatedKsa,
     effectiveDisplayMonth, 
-    uniqueStatusNames: ksaUniqueStatusNames // Alias agar tidak konflik
+    uniqueStatusNames: ksaUniqueStatusNames
   } = useKsaMonitoringData(currentMonthParam, 'autoFallback'); 
 
-  const getKpiBadge = (value: number | string | undefined, isPercentage = true, isChange = false) => {
-    if (value === undefined || value === null || (typeof value === 'string' && value === "N/A")) {
-      return { text: "N/A", variant: "default" as const, icon: null };
-    }
-    const numValue = typeof value === 'string' ? parseFloat(value) : value;
-    if (isNaN(numValue)) return { text: "Error", variant: "destructive" as const, icon: <AlertTriangle /> };
-
-    let text = isPercentage ? `${numValue.toFixed(isChange ? 1 : 2)}%` : numValue.toString();
-    let icon = null;
-    let variant: "default" | "success" | "warning" | "destructive" = "default";
-
-    if (isChange) {
-      if (numValue > 0) {
-        text = `+${text}`;
-        icon = <TrendingUp />;
-        variant = "success";
-      } else if (numValue < 0) {
-        icon = <TrendingDown />;
-        variant = "destructive";
-      } else {
-        icon = <Info />;
-      }
-    } else if (isPercentage) {
-      const badgeVariant = getPercentageBadgeVariant(numValue);
-      // Fallback to "default" if the returned variant is not allowed
-      variant = (["default", "destructive", "success", "warning"].includes(badgeVariant as string) 
-        ? badgeVariant 
-        : "default") as "default" | "destructive" | "success" | "warning";
-      if (numValue >= 100) icon = <CheckCircle2 />;
-      else if (numValue < 70) icon = <AlertTriangle />;
-    }
-    
-    return { text, variant, icon };
-  };
+  // LANGKAH 2: Fungsi getKpiBadge tidak diperlukan lagi di sini
 
   return (
     <>
@@ -101,17 +65,10 @@ export default function HomePage() {
         <Card className="h-full">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Ubinan Padi ({selectedYear})</CardTitle>
-            {loadingPadi ? <Skeleton className="h-5 w-12" /> :
-              padiTotals ? (() => {
-                const badgeInfo = getKpiBadge(padiTotals.persentase);
-                return (
-                  <Badge variant={badgeInfo.variant}>
-                    {badgeInfo.icon}
-                    {badgeInfo.text && <span>{badgeInfo.text}</span>}
-                  </Badge>
-                );
-              })() : <Badge variant="outline">N/A</Badge>
-            }
+            {/* LANGKAH 3: Ganti Badge dengan Button Link */}
+            <Button asChild variant="outline" size="sm">
+              <Link href="/monitoring/ubinan">Lihat Detail</Link>
+            </Button>
           </CardHeader>
           <CardContent className="flex flex-col h-full">
             {loadingPadi ? (
@@ -179,17 +136,10 @@ export default function HomePage() {
         <Card className="h-full">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Ubinan Palawija ({selectedYear})</CardTitle>
-            {loadingPalawija ? <Skeleton className="h-5 w-12" /> :
-              palawijaTotals ? (() => {
-                const badgeInfo = getKpiBadge(parseFloat(palawijaTotals.persentase.toString()));
-                return (
-                  <Badge variant={badgeInfo.variant}>
-                    {badgeInfo.icon}
-                    {badgeInfo.text && <span>{badgeInfo.text}</span>}
-                  </Badge>
-                );
-              })() : <Badge variant="outline">N/A</Badge>
-            }
+            {/* LANGKAH 3: Ganti Badge dengan Button Link */}
+            <Button asChild variant="outline" size="sm">
+              <Link href="/monitoring/ubinan">Lihat Detail</Link>
+            </Button>
           </CardHeader>
           <CardContent className="flex flex-col h-full">
             {loadingPalawija ? (
@@ -239,17 +189,10 @@ export default function HomePage() {
             <CardTitle className="text-sm font-medium">
               KSA Padi ({selectedYear}) - {getMonthName(effectiveDisplayMonth)}
             </CardTitle>
-            {loadingKsa ? <Skeleton className="h-5 w-12" /> :
-              ksaTotals ? (() => {
-                const badgeInfo = getKpiBadge(ksaTotals.persentase);
-                return (
-                  <Badge variant={badgeInfo.variant}>
-                    {badgeInfo.icon}
-                    {badgeInfo.text && <span>{badgeInfo.text}</span>}
-                  </Badge>
-                );
-              })() : <Badge variant="outline">N/A</Badge>
-            }
+            {/* LANGKAH 3: Ganti Badge dengan Button Link */}
+            <Button asChild variant="outline" size="sm">
+              <Link href="/monitoring/ksa">Lihat Detail</Link>
+            </Button>
           </CardHeader>
           <CardContent className="flex flex-col h-full">
             {loadingKsa ? (
@@ -296,7 +239,6 @@ export default function HomePage() {
                       {ksaUniqueStatusNames.map(statusName => {
                           const statusData = ksaTotals.statuses?.[statusName];
                           if (statusData) {
-                              // Mengembalikan ke logika pewarnaan awal
                               let statusVariant: "default" | "secondary" | "destructive" | "success" | "warning" = "secondary";
                               if (statusName.toLowerCase().includes("selesai") || statusName.toLowerCase().includes("panen")) statusVariant = "success";
                               if (statusName.toLowerCase().includes("belum") || statusName.toLowerCase().includes("kosong")) statusVariant = "default";
