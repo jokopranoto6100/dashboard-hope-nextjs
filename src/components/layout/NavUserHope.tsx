@@ -1,4 +1,4 @@
-// src/components/layout/NavUserHope.tsx
+// Lokasi: src/components/layout/NavUserHope.tsx
 'use client';
 
 import * as React from 'react';
@@ -6,8 +6,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { User as UserIcon, Settings, LogOut, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
-// UserData dari sidebar-data tidak lagi dibutuhkan sebagai prop
-// import type { UserData } from '@/lib/sidebar-data';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -24,26 +22,21 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { useAuth } from '@/context/AuthContext'; // <-- Impor useAuth
-import { Skeleton } from "@/components/ui/skeleton"; // Impor Skeleton
+import { useAuth } from '@/context/AuthContext';
+import { Skeleton } from "@/components/ui/skeleton";
 
-// Props user & userRole tidak lagi diperlukan karena diambil dari context
-// interface NavUserHopeProps {
-//   user: UserData | null;
-// }
-
-export function NavUserHope(/*{ user }: NavUserHopeProps*/) { // Hapus props
+export function NavUserHope() {
   const router = useRouter();
-  const { userData, userRole, logout, isLoading } = useAuth(); // <-- Gunakan useAuth
+  const { userData, userRole, logout, isLoading } = useAuth(); // Data dari useAuth sekarang sudah kaya!
   const { open, isMobile } = useSidebar();
 
   const handleLogout = async () => {
-    await logout(); // Gunakan fungsi logout dari context
-    router.push('/auth/login'); // Arahkan ke halaman login setelah logout
+    await logout();
+    router.push('/auth/login');
   };
 
-  // Fungsi untuk mendapatkan inisial nama
   const getInitials = (name: string) => {
+    if (!name) return '??'; // Handle jika nama kosong
     const names = name.split(' ');
     let initials = names[0].substring(0, 1).toUpperCase();
     if (names.length > 1) {
@@ -52,7 +45,6 @@ export function NavUserHope(/*{ user }: NavUserHopeProps*/) { // Hapus props
     return initials;
   };
 
-  // Tampilkan skeleton loading jika isLoading true
   if (isLoading) {
     return (
       <SidebarMenu>
@@ -71,13 +63,11 @@ export function NavUserHope(/*{ user }: NavUserHopeProps*/) { // Hapus props
     );
   }
 
-  // Jika tidak loading dan tidak ada userData (berarti tidak ada sesi)
   if (!userData) {
-    // Bisa jadi redirect ke login atau tidak menampilkan apa-apa, tergantung kebutuhan
-    // Untuk di dalam sidebar, mungkin lebih baik tidak menampilkan apa-apa
-    return null;
+    return null; // Tidak menampilkan apa-apa jika tidak ada sesi
   }
 
+  // PATCH: Semua referensi ke `userData.name` sekarang menjadi `userData.fullname`
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -88,14 +78,15 @@ export function NavUserHope(/*{ user }: NavUserHopeProps*/) { // Hapus props
               className={cn("w-full justify-start text-left")}
             >
               <Avatar className={cn("h-8 w-8 rounded-lg shrink-0", !open ? "mx-auto" : "mr-2")}>
-                {userData.avatar && <AvatarImage src={userData.avatar} alt={userData.name} />}
+                {userData.avatar && <AvatarImage src={userData.avatar} alt={userData.fullname} />}
                 <AvatarFallback className="rounded-lg">
-                  {getInitials(userData.name)}
+                  {getInitials(userData.fullname)}
                 </AvatarFallback>
               </Avatar>
               {open && (
                 <div className="grid flex-1 text-sm leading-tight">
-                  <span className="truncate font-semibold">{userData.name}</span>
+                  {/* Di sini perubahannya */}
+                  <span className="truncate font-semibold">{userData.fullname}</span>
                   <span className="truncate text-xs text-muted-foreground">
                     {userData.email}
                   </span>
@@ -113,13 +104,14 @@ export function NavUserHope(/*{ user }: NavUserHopeProps*/) { // Hapus props
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-2 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg shrink-0">
-                  {userData.avatar && <AvatarImage src={userData.avatar} alt={userData.name} />}
+                  {userData.avatar && <AvatarImage src={userData.avatar} alt={userData.fullname} />}
                   <AvatarFallback className="rounded-lg">
-                    {getInitials(userData.name)}
+                    {getInitials(userData.fullname)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">{userData.name}</span>
+                  {/* Dan di sini juga perubahannya */}
+                  <span className="truncate font-semibold">{userData.fullname}</span>
                   <span className="truncate text-xs text-muted-foreground">
                     {userData.email}
                   </span>
@@ -133,7 +125,7 @@ export function NavUserHope(/*{ user }: NavUserHopeProps*/) { // Hapus props
                 <span>Profil</span>
               </Link>
             </DropdownMenuItem>
-            {userRole === 'super_admin' && ( // <-- Kondisi untuk menampilkan menu
+            {userRole === 'super_admin' && (
               <DropdownMenuItem asChild>
                 <Link href="/pengguna" className="flex items-center w-full cursor-pointer">
                   <Settings className="mr-2 h-4 w-4 shrink-0" />

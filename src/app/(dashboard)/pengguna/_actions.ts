@@ -2,90 +2,48 @@
 'use server';
 
 import { cookies } from 'next/headers';
-import { revalidatePath } from 'next/cache';
 import { createServerComponentSupabaseClient } from '@/lib/supabase';
 import { supabaseServer } from '@/lib/supabase-server';
 
 async function verifySuperAdmin() {
   const cookieStore = await cookies();
-  const supabase = createServerComponentSupabaseClient(cookieStore);
+  const supabase = createServerComponentSupabaseClient(cookieStore); 
   const { data: { user }, error: getUserError } = await supabase.auth.getUser();
 
-  if (getUserError) {
-    console.error('[verifySuperAdmin] Error getting current user:', getUserError.message);
-    throw new Error('Akses ditolak: Tidak dapat memverifikasi sesi pengguna.');
-  }
-  if (!user) {
+  if (getUserError || !user) {
     throw new Error('Akses ditolak: Pengguna tidak terotentikasi.');
   }
 
-  const currentUserRole = user.user_metadata?.role || (user as any).role; 
-  if (currentUserRole !== 'super_admin') {
-    console.warn(`[verifySuperAdmin] Unauthorized access attempt by user ${user.email} with role '${currentUserRole}'.`);
-    throw new Error('Akses ditolak: Hanya super_admin yang diizinkan melakukan aksi ini.');
+  const { data: profile, error: profileError } = await supabaseServer
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+  
+  if (profileError || profile?.role !== 'super_admin') {
+    throw new Error('Akses ditolak: Hanya super_admin yang diizinkan.');
   }
-  return user;
+  return user; 
 }
 
 export async function deleteUserAction(userId: string) {
   try {
-    await verifySuperAdmin();
+    // PATCH: Tangkap data admin yang sedang login
+    const actor = await verifySuperAdmin(); 
     if (!userId) throw new Error('User ID tidak boleh kosong.');
 
-    const { error: deleteError } = await supabaseServer.auth.admin.deleteUser(userId);
-    if (deleteError) {
-      console.error(`[deleteUserAction] Error deleting user ${userId} from Supabase Auth:`, deleteError);
-      throw new Error(`Gagal menghapus pengguna: ${deleteError.message}`);
+    // PATCH: Tambahkan pengecekan agar tidak bisa menghapus diri sendiri
+    if (actor.id === userId) {
+      throw new Error('Anda tidak dapat menghapus akun Anda sendiri.');
     }
 
-    revalidatePath('/pengguna');
+    const { error: authError } = await supabaseServer.auth.admin.deleteUser(userId);
+    if (authError) throw new Error(`Gagal menghapus otentikasi pengguna: ${authError.message}`);
+
     return { success: true, message: 'Pengguna berhasil dihapus.' };
-  } catch (error: any) {
-    console.error('[deleteUserAction] Overall error:', error.message);
-    return { success: false, message: error.message || 'Terjadi kesalahan saat menghapus pengguna.' };
-  }
-}
-
-interface UpdateUserRolePayload {
-  userId: string;
-  newRole: string;
-}
-
-export async function updateUserRoleAction(payload: UpdateUserRolePayload) {
-  try {
-    await verifySuperAdmin();
-    const { userId, newRole } = payload;
-
-    if (!userId || !newRole) throw new Error('User ID dan peran baru tidak boleh kosong.');
-    
-    const { data: roleSetInDbByRpc, error: rpcRoleError } = await supabaseServer.rpc('update_user_custom_role', {
-      user_id_to_update: userId,
-      new_custom_role: newRole,
-    });
-
-    if (rpcRoleError) {
-      console.error(`[updateUserRoleAction] Error calling RPC 'update_user_custom_role' for user ${userId}:`, rpcRoleError);
-      throw new Error(`Gagal memperbarui kolom peran kustom via RPC: ${rpcRoleError.message}.`);
-    }
-    if (roleSetInDbByRpc !== newRole) {
-      console.warn(`[updateUserRoleAction] RPC 'update_user_custom_role' for user ${userId} executed, but DB function returned '${roleSetInDbByRpc}' instead of expected '${newRole}'.`);
-      throw new Error('Gagal memperbarui kolom peran kustom: Nilai di database tidak sesuai harapan.');
-    }
-    
-    const { data: targetUserData, error: getUserError } = await supabaseServer.auth.admin.getUserById(userId);
-    if (getUserError) console.warn(`[updateUserRoleAction] Peringatan: Gagal mengambil metadata pengguna ${userId} untuk sinkronisasi sesi. Error: ${getUserError.message}`);
-    
-    const existingUserMetadata = targetUserData?.user?.user_metadata || {};
-    const updatedUserMetadata = { ...existingUserMetadata, role: newRole };
-
-    const { error: updateMetaError } = await supabaseServer.auth.admin.updateUserById( userId, { user_metadata: updatedUserMetadata });
-    if (updateMetaError) console.warn(`[updateUserRoleAction] Peringatan: Kolom peran kustom berhasil diupdate, tapi gagal sinkronisasi user_metadata.role untuk pengguna ${userId}. Error: ${updateMetaError.message}`);
-
-    revalidatePath('/pengguna');
-    return { success: true, message: `Peran pengguna berhasil diperbarui menjadi ${newRole}.` };
-  } catch (error: any) {
-    console.error('[updateUserRoleAction] Overall error:', error.message);
-    return { success: false, message: error.message || 'Terjadi kesalahan fatal saat memperbarui peran pengguna.' };
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan yang tidak diketahui.';
+    return { success: false, message: errorMessage };
   }
 }
 
@@ -93,105 +51,95 @@ interface UserFormData {
   email: string;
   password?: string;
   username: string;
+  full_name: string;
+  satker_id: string;
   role: string;
-}
-
-interface EditUserPayload extends UserFormData {
-  userId: string;
 }
 
 export async function createUserAction(userData: UserFormData) {
   try {
     await verifySuperAdmin();
-    const { email, password, username, role } = userData;
+    const { email, password, username, full_name, satker_id, role } = userData;
 
-    if (!email || !username || !role) throw new Error("Email, username, dan peran harus diisi.");
     if (!password) throw new Error("Password harus diisi untuk pengguna baru.");
 
+    // Membuat pengguna baru dengan client admin
     const { data: newUserResponse, error: createError } = await supabaseServer.auth.admin.createUser({
       email: email,
       password: password,
-      email_confirm: true, 
-      user_metadata: { username_initial: username, role_initial: role }
+      email_confirm: true,
     });
 
-    if (createError) throw new Error(`Gagal membuat pengguna di Supabase Auth: ${createError.message}`);
-    const newUser = newUserResponse?.user;
-    if (!newUser || !newUser.id) throw new Error('Gagal membuat pengguna: tidak ada data pengguna yang valid dikembalikan.');
+    if (createError) throw new Error(`Gagal membuat pengguna di Auth: ${createError.message}`);
+    const newUser = newUserResponse.user;
+    if (!newUser) throw new Error('Gagal membuat pengguna.');
     
-    const { data: roleSetInDb, error: rpcRoleError } = await supabaseServer.rpc('update_user_custom_role', {
-        user_id_to_update: newUser.id,
-        new_custom_role: role,
+    // Langsung insert ke tabel users
+    const { error: profileError } = await supabaseServer.from('users').insert({
+      id: newUser.id,
+      username,
+      full_name,
+      satker_id,
+      role,
     });
-    if (rpcRoleError || roleSetInDb !== role) {
-        await supabaseServer.auth.admin.deleteUser(newUser.id); // Rollback
-        throw new Error(`Pengguna dibuat, tapi gagal mengatur kolom peran kustom: ${rpcRoleError?.message || `DB melaporkan peran sebagai '${roleSetInDb}' bukan '${role}'`}`);
+
+    if (profileError) {
+      await supabaseServer.auth.admin.deleteUser(newUser.id); // Rollback
+      throw new Error(`Pengguna dibuat, tapi gagal menyimpan profil: ${profileError.message}`);
     }
 
-    const { data: usernameSetInDb, error: rpcUsernameError } = await supabaseServer.rpc('update_user_custom_username', {
-        user_id_to_update: newUser.id,
-        new_custom_username: username,
-    });
-    if (rpcUsernameError || usernameSetInDb !== username) {
-        await supabaseServer.auth.admin.deleteUser(newUser.id); // Rollback
-        throw new Error(`Pengguna dibuat, tapi gagal mengatur kolom username kustom: ${rpcUsernameError?.message || `DB melaporkan username sebagai '${usernameSetInDb}' bukan '${username}'`}`);
-    }
-
-    const { error: updateMetaError } = await supabaseServer.auth.admin.updateUserById(
-      newUser.id,
-      { user_metadata: { username: username, role: role } }
-    );
-    if (updateMetaError) console.warn(`[createUserAction] Peringatan: Kolom kustom berhasil diupdate, tapi gagal sinkronisasi user_metadata untuk pengguna baru ${newUser.id}.`);
-
-    revalidatePath('/pengguna');
-    return { success: true, message: `Pengguna ${email} berhasil dibuat.`, userId: newUser.id };
-  } catch (error: any) {
-    console.error('[createUserAction] Overall error:', error.message);
-    return { success: false, message: error.message || 'Terjadi kesalahan fatal saat membuat pengguna.' };
+    return { success: true, message: `Pengguna ${email} berhasil dibuat.` };
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan yang tidak diketahui.';
+    return { success: false, message: errorMessage };
   }
+}
+
+interface EditUserPayload extends Omit<UserFormData, 'password'> {
+  userId: string;
+  password?: string;
 }
 
 export async function editUserAction(payload: EditUserPayload) {
   try {
-    await verifySuperAdmin();
-    const { userId, email, password, username, role } = payload;
+    // PATCH: Tangkap data admin yang sedang login (aktor)
+    const actor = await verifySuperAdmin();
+    const { userId, email, password, username, full_name, satker_id, role } = payload;
 
     if (!userId) throw new Error("User ID diperlukan untuk edit.");
-    if (!email || !username || !role) throw new Error("Email, username, dan peran harus diisi.");
 
-    const authUpdatePayload: { email?: string; password?: string; user_metadata?: Record<string, any> } = {};
+    // PATCH: Tambahkan pengecekan agar tidak bisa mengedit diri sendiri secara sembarangan
+    if (actor.id === userId) {
+      // Izinkan admin mengedit profilnya sendiri,
+      // TAPI cegah dia menurunkan perannya sendiri yang bisa mengunci akses.
+      if (role !== 'super_admin') {
+        throw new Error('Anda tidak dapat menurunkan peran (role) akun Anda sendiri.');
+      }
+    }
+
+    // 1. Update data di public.users
+    const { error: profileError } = await supabaseServer
+      .from('users')
+      .update({ username, full_name, satker_id, role })
+      .eq('id', userId);
+
+    if (profileError) throw new Error(`Gagal mengupdate profil: ${profileError.message}`);
+    
+    // 2. Update data di auth (jika ada perubahan email/password)
+    const authUpdatePayload: { email?: string; password?: string } = {};
     if (email) authUpdatePayload.email = email;
+    // Hanya tambahkan password ke payload jika diisi (tidak kosong)
     if (password) authUpdatePayload.password = password;
-    
-    const { data: targetUserData, error: getUserError } = await supabaseServer.auth.admin.getUserById(userId);
-    if (getUserError) throw new Error(`Gagal mengambil data pengguna ${userId} sebelum update metadata: ${getUserError.message}`);
-    
-    const existingUserMetadata = targetUserData?.user?.user_metadata || {};
-    authUpdatePayload.user_metadata = { ...existingUserMetadata, username: username, role: role };
 
-    const { error: authUpdateError } = await supabaseServer.auth.admin.updateUserById(userId, authUpdatePayload);
-    if (authUpdateError) throw new Error(`Gagal mengupdate data Auth pengguna: ${authUpdateError.message}`);
-
-    const { data: roleSetInDb, error: rpcRoleError } = await supabaseServer.rpc('update_user_custom_role', {
-      user_id_to_update: userId,
-      new_custom_role: role,
-    });
-    if (rpcRoleError || roleSetInDb !== role) {
-      throw new Error(`Gagal mengupdate kolom peran kustom via RPC: ${rpcRoleError?.message || `DB melaporkan peran sebagai '${roleSetInDb}' bukan '${role}'`}`);
+    if (Object.keys(authUpdatePayload).length > 0) {
+      const { error: authError } = await supabaseServer.auth.admin.updateUserById(userId, authUpdatePayload);
+      if (authError) throw new Error(`Gagal mengupdate data Auth: ${authError.message}`);
     }
 
-    const { data: usernameSetInDb, error: rpcUsernameError } = await supabaseServer.rpc('update_user_custom_username', {
-      user_id_to_update: userId,
-      new_custom_username: username,
-    });
-    if (rpcUsernameError || usernameSetInDb !== username) {
-      throw new Error(`Gagal mengupdate kolom username kustom via RPC: ${rpcUsernameError?.message || `DB melaporkan username sebagai '${usernameSetInDb}' bukan '${username}'`}`);
-    }
-
-    revalidatePath('/pengguna');
-    return { success: true, message: `Data pengguna ${username} berhasil diperbarui.` };
-  } catch (error: any) {
-    console.error('[editUserAction] Overall error:', error.message);
-    return { success: false, message: error.message || 'Terjadi kesalahan fatal saat mengedit pengguna.' };
+    return { success: true, message: `Data pengguna berhasil diperbarui.` };
+  } catch (error: unknown) {
+    // Mempertahankan error handling Anda yang sudah baik
+    const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan yang tidak diketahui.';
+    return { success: false, message: errorMessage };
   }
 }

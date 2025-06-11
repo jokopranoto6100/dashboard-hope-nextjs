@@ -26,12 +26,17 @@ import {
     icon?: LucideIcon; // Ikon untuk submenu (opsional)
     isActive?: (pathname: string) => boolean;
   }
-  
-  export interface UserData {
-    name: string;
-    email: string;
-    avatar?: string; // URL ke avatar pengguna (opsional)
-  }
+
+export interface UserData {
+  // PATCH: Ubah 'name' menjadi 'fullname' dan tambahkan properti lain
+  id: string;
+  fullname: string;
+  username: string;
+  email: string;
+  avatar: string | null;
+  satker_id: string | null;
+  // 'role' akan kita kelola di state terpisah 'userRole' di context
+}
   
   // --- Definisi Item Navigasi Utama ---
   export const getNavMainItems = (pathname: string, isSuperAdmin: boolean): NavItem[] => {

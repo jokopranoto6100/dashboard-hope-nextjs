@@ -2,50 +2,91 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { createServerComponentSupabaseClient } from '@/lib/supabase';
-import { supabaseServer } from '@/lib/supabase-server';
 import UserManagementClientPage from './user-management-client-page';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from "lucide-react";
+import { supabaseServer } from '@/lib/supabase-server'; // <-- PASTIKAN INI DI-IMPOR
+import { daftarSatker } from '@/lib/satker-data'; // Impor data satker
 
+// PATCH: Tipe data diperbarui untuk mencakup semua data yang kita butuhkan
 export interface ManagedUser {
   id: string;
   username: string | null;
+  full_name: string | null; // <-- BARU
   email: string | null;
   role: string | null;
+  satker_id: string | null; // <-- BARU
+  satker_name: string | null; // <-- BARU (Untuk ditampilkan)
   created_at: string;
 }
 
+// PATCH: Fungsi ini sekarang menggunakan client yang benar
 async function getUsersForAdmin(): Promise<ManagedUser[]> {
-  // console.log("getUsersForAdmin: Fetching joined user data..."); // Dihapus
-  const { data: usersData, error } = await supabaseServer.rpc('get_all_managed_users');
+  // Ambil semua profil dari public.users
+  // Operasi SELECT aman dilakukan dengan client admin
+  const { data: profiles, error: profileError } = await supabaseServer
+    .from('users')
+    .select('*');
 
-  if (error) {
-    console.error("getUsersForAdmin: Error calling RPC 'get_all_managed_users':", error);
-    throw new Error(`Gagal mengambil data pengguna via RPC: ${error.message}`);
+  if (profileError) {
+    console.error("getUsersForAdmin: Error fetching profiles:", profileError);
+    throw new Error(`Gagal mengambil data profil: ${profileError.message}`);
   }
-  if (!usersData) {
-    console.warn("getUsersForAdmin: No data returned from RPC 'get_all_managed_users'.");
-    return [];
+
+  // Ambil semua user dari auth.users untuk mendapatkan email
+  // INI ADALAH BAGIAN YANG MEMERLUKAN CLIENT ADMIN
+  const { data: { users: authUsers }, error: authError } = await supabaseServer.auth.admin.listUsers(); // <-- GUNAKAN supabaseServer
+  
+  if (authError) {
+    console.error("getUsersForAdmin: Error fetching auth users:", authError.message);
+    throw new Error(`Gagal mengambil data otentikasi: ${authError.message}`);
   }
-  // console.log("getUsersForAdmin: Data fetched from RPC:", JSON.stringify(usersData, null, 2)); // Dihapus
-  return usersData as ManagedUser[];
+
+  // Logika penggabungan data tetap sama
+  const authUserMap = new Map(authUsers.map(u => [u.id, u.email]));
+  const satkerMap = new Map(daftarSatker.map(s => [s.value, s.label]));
+
+  const managedUsers: ManagedUser[] = profiles.map(profile => ({
+    id: profile.id,
+    username: profile.username,
+    full_name: profile.full_name,
+    email: authUserMap.get(profile.id) || 'Email tidak ditemukan',
+    role: profile.role,
+    satker_id: profile.satker_id,
+    satker_name: satkerMap.get(profile.satker_id) || 'Satker tidak diketahui',
+    created_at: profile.created_at,
+  }));
+
+  return managedUsers;
 }
 
 export default async function ManajemenPenggunaPage() {
-  const cookieStore = await cookies(); // ✅ Perbaiki di sini
+  const cookieStore = await cookies();
   const supabase = createServerComponentSupabaseClient(cookieStore);
 
-  const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser();
+  const { data: { user: currentUser } } = await supabase.auth.getUser();
 
-  if (authError || !currentUser) {
-    console.error("ManajemenPenggunaPage: Error getting current user or no user", authError?.message);
+  if (!currentUser) {
     redirect('/auth/login');
   }
+  
+  // PATCH: Pengecekan role sekarang langsung dari tabel users (via AuthContext di client-side)
+  // atau bisa juga dengan query tambahan di sini jika diperlukan, namun asumsi role di context sudah benar
+  // Untuk keamanan, kita tetap cek di sini sebelum fetch data berat
+  const { data: adminProfile } = await supabase.from('users').select('role').eq('id', currentUser.id).single();
 
-  const currentUserRole = currentUser.user_metadata?.role || (currentUser as any).role;
-  if (currentUserRole !== 'super_admin') {
-    console.warn(`ManajemenPenggunaPage: User ${currentUser.email} with role ${currentUserRole} attempted to access restricted page.`);
-    redirect('/');
+  if (adminProfile?.role !== 'super_admin') {
+    console.warn(`ManajemenPenggunaPage: User ${currentUser.email} with role ${adminProfile?.role} attempted to access.`);
+    // Tampilkan halaman "Akses Ditolak" atau redirect
+    return (
+      <div className="container mx-auto py-8">
+        <Alert variant="destructive">
+          <Terminal className="h-4 w-4" />
+          <AlertTitle>Akses Ditolak!</AlertTitle>
+          <AlertDescription>Anda tidak memiliki izin untuk mengakses halaman ini.</AlertDescription>
+        </Alert>
+      </div>
+    );
   }
 
   let users: ManagedUser[] = [];
@@ -53,9 +94,12 @@ export default async function ManajemenPenggunaPage() {
 
   try {
     users = await getUsersForAdmin();
-  } catch (error: any) {
-    console.error("ManajemenPenggunaPage: Error in getUsersForAdmin execution:", error.message);
-    fetchError = error.message;
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      fetchError = error.message;
+    } else {
+      fetchError = 'Terjadi kesalahan yang tidak diketahui.';
+    }
   }
 
   return (

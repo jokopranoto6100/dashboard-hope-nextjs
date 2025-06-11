@@ -22,12 +22,13 @@ Migrasi ini berfokus pada arsitektur yang lebih modern, performa, skalabilitas, 
     * Inisialisasi `shadcn/ui` dan komponen-komponen dasarnya.
     * Integrasi `TanStack Table` untuk tabel yang lebih kuat.
 
-2.  **Sistem Login & Otorisasi Berbasis Peran:**
-    * Halaman login (`/auth/login`) dan registrasi (`/auth/register`) yang berfungsi penuh menggunakan Supabase Auth.
-    * Penggantian notifikasi dari SweetAlert2 ke Sonner untuk pengalaman *toast* yang lebih modern.
-    * **Middleware untuk Proteksi Rute:** Menggunakan Next.js Middleware (`middleware.ts`) untuk melindungi rute yang memerlukan otentikasi dan mengarahkan pengguna yang belum *login* ke halaman login. Middleware juga diperbarui untuk menggunakan `supabase.auth.getUser()` untuk validasi sesi yang lebih aman di sisi server.
-    * **Visibilitas Menu Dinamis:** Menu sidebar disesuaikan berdasarkan peran pengguna (`super_admin`, `viewer`) yang diambil dari `user_metadata` Supabase Auth.
-    * **React Context untuk Autentikasi (`AuthContext`)**: Implementasi `AuthContext` (`src/context/AuthContext.tsx`) untuk mengelola sesi pengguna, data pengguna (termasuk peran dari `user_metadata`), dan status loading secara global di sisi klien. Komponen `NavUserHope.tsx` telah diupdate untuk menggunakan *context* ini.
+2.  **Sistem Login & Otorisasi Berbasis Peran (Telah Direfaktor):**
+    * **Single Source of Truth**: Arsitektur dirombak total untuk menjadikan tabel **`public.users`** sebagai satu-satunya sumber data profil pengguna (`username`, `fullname`, `role`, `satker_id`), menghilangkan duplikasi dan ketergantungan pada `user_metadata`.
+    * **Halaman Registrasi Cerdas**: Halaman registrasi (`/auth/register`) diperbarui untuk menyertakan input "Nama Lengkap" dan "Satuan Kerja". Kolom Satuan Kerja menggunakan komponen **`Combobox`** `shadcn/ui` yang interaktif dengan fitur pencarian dan daftar yang dapat di-scroll.
+    * **React Context untuk Autentikasi (`AuthContext`)**: Direfaktor untuk melakukan proses 2 langkah: mengambil sesi dari Supabase Auth, lalu menggunakan ID pengguna untuk mengambil data profil lengkap dari `public.users`, memastikan data di seluruh aplikasi selalu konsisten.
+    * **Halaman Login & Notifikasi**: Halaman login (`/auth/login`) berfungsi penuh dengan notifikasi `toast` dari Sonner.
+    * **Middleware untuk Proteksi Rute:** Menggunakan Next.js Middleware (`middleware.ts`) untuk melindungi rute dan mengarahkan pengguna yang belum login.
+    * **Visibilitas Menu Dinamis:** Menu sidebar (`NavUserHope`) disesuaikan berdasarkan `userRole` yang didapat dari `AuthContext` yang sudah terpusat.
 
 3.  **Layout & Navigasi Sidebar yang Dinamis:**
     * `MainLayout` yang kondisional: Sidebar dan header hanya muncul di halaman dashboard setelah *login*, tidak di halaman otentikasi.
@@ -81,37 +82,18 @@ Migrasi ini berfokus pada arsitektur yang lebih modern, performa, skalabilitas, 
     * Ringkasan Palawija juga menampilkan jumlah status validasi data (Clean, Warning, Error) dari hasil realisasi.
     * Pengambilan dan pemrosesan data untuk ringkasan ini menggunakan *custom hooks* yang sama (`usePadiMonitoringData`, `usePalawijaMonitoringData`).
 
-7.  **Manajemen Pengguna (Halaman `/pengguna`) - (Fitur Baru dalam Sesi Ini):**
-    * **Akses Terbatas**: Halaman hanya dapat diakses oleh pengguna dengan peran `super_admin`. Proteksi diterapkan di level *middleware* (`middleware.ts`) dan juga di *server component* halaman (`src/app/(dashboard)/pengguna/page.tsx`).
-    * **Visibilitas Menu**: Menu "Manajemen Pengguna" di `NavUserHope.tsx` hanya terlihat oleh `super_admin`, menggunakan data peran dari `AuthContext`.
-    * **Struktur Data Pengguna**: Dikonfirmasi bahwa kolom kustom `role` dan `username` ada langsung di tabel `public.users` (bukan di `auth.users` atau hanya di `user_metadata` untuk daftar pengguna).
-    * **Pengambilan Daftar Pengguna**:
-        * `src/app/(dashboard)/pengguna/page.tsx` (Server Component) mengambil daftar semua pengguna.
-        * Menggunakan fungsi PostgreSQL `get_all_managed_users()` yang dipanggil via `supabaseServer.rpc()` untuk melakukan `LEFT JOIN` antara `auth.users` (untuk `id`, `email`, `created_at`) dan `public.users` (untuk kolom kustom `username`, `role`).
-    * **Tampilan Tabel Pengguna**:
-        * Komponen klien `src/app/(dashboard)/pengguna/user-management-client-page.tsx` menampilkan daftar pengguna menggunakan `TanStack Table`.
-        * Fitur tabel: sorting, filtering (berdasarkan email), dan paginasi.
-    * **Server Actions (`src/app/(dashboard)/pengguna/_actions.ts`)**:
-        * Fungsi `verifySuperAdmin()` untuk memastikan hanya admin yang bisa menjalankan aksi.
-        * `deleteUserAction(userId)`: Menghapus pengguna dari `Supabase Auth`.
-        * `updateUserRoleAction({ userId, newRole })`:
-            * Memanggil fungsi PostgreSQL `update_user_custom_role(userId, newRole)` via RPC untuk mengupdate kolom `role` di tabel `public.users`.
-            * Juga mengupdate `user_metadata.role` pengguna target untuk konsistensi sesi.
-        * `createUserAction(userData)`:
-            * Membuat pengguna baru di `Supabase Auth`.
-            * Memanggil fungsi RPC `update_user_custom_role` dan `update_user_custom_username` untuk mengisi kolom kustom di `public.users`.
-            * Juga mengupdate `user_metadata` pengguna baru.
-        * `editUserAction(payload)`: Kerangka telah dibuat untuk mengedit detail pengguna, termasuk email, password (opsional), username (via RPC), dan role (via RPC), serta `user_metadata`.
-    * **Fungsi PostgreSQL untuk Kolom Kustom**:
-        * `update_user_custom_role(user_id, new_role)`: Dibuat dan digunakan untuk mengupdate kolom `role` di `public.users`. Fungsi ini mengembalikan peran baru yang di-set.
-        * `update_user_custom_username(user_id, new_username)`: Dibuat dan digunakan untuk mengupdate kolom `username` di `public.users`. Fungsi ini mengembalikan username baru yang di-set.
-    * **UI Aksi Pengguna**:
-        * Tombol "Hapus Pengguna" di tabel dengan dialog konfirmasi (`AlertDialog`) dan notifikasi `toast` (Sonner).
-        * Tombol "Ubah Peran" di tabel (menjadi "Super Admin" atau "Viewer") dengan notifikasi `toast`.
-        * Tombol "Tambah Pengguna Baru" yang membuka dialog (`Dialog`) dengan form (`React Hook Form` + `Zod` untuk validasi) untuk membuat pengguna baru.
-        * Tombol "Edit Pengguna" di tabel yang membuka dialog (`Dialog`) dengan form untuk mengedit data pengguna.
-        * Status loading (`useTransition`, ikon `Loader2`) diimplementasikan untuk tombol-tombol aksi (hapus, ubah peran, tambah, edit) untuk memberikan feedback visual selama proses.
-    * **Revalidasi Data**: `revalidatePath('/pengguna')` digunakan di Server Actions untuk memastikan data di halaman diperbarui setelah aksi.
+7.  **Manajemen Pengguna (Halaman `/pengguna`) - (Telah Direfaktor):**
+    * **Akses Terbatas**: Halaman hanya dapat diakses oleh pengguna dengan peran `super_admin`, yang diverifikasi langsung dari tabel `public.users`.
+    * **Pengambilan Daftar Pengguna**: `page.tsx` (Server Component) mengambil daftar pengguna dengan melakukan `JOIN` antara `auth.users` (untuk email) dan `public.users` (untuk semua data profil). Ketergantungan pada RPC telah dihapus.
+    * **Tampilan Tabel Pengguna**: Komponen klien (`user-management-client-page.tsx`) menampilkan daftar pengguna menggunakan `TanStack Table`, kini dengan kolom tambahan **"Nama Lengkap"** dan **"Satuan Kerja"**.
+    * **Server Actions yang Disederhanakan (`_actions.ts`)**:
+        * Fungsi `verifySuperAdmin()` memvalidasi peran dari `public.users`.
+        * Semua aksi (Create, Edit, Delete) kini langsung berinteraksi dengan `public.users` dan `Supabase Auth`.
+        * Logika **RPC** dan **sinkronisasi `user_metadata`** yang kompleks telah **dihapus sepenuhnya**.
+    * **UI Aksi Pengguna yang Disempurnakan**:
+        * Tombol "Tambah Pengguna" dan "Edit Pengguna" membuka `Dialog` dengan form yang sudah mencakup input untuk **Nama Lengkap** dan **Satuan Kerja**.
+        * Menggunakan **Optimistic UI Update** pada aksi "Edit Pengguna" untuk menghilangkan *glitch* visual dan memberikan pengalaman pengguna yang instan.
+        * Aksi "Hapus" dan "Ubah Peran" (via form edit) berfungsi dengan andal.
 
 8.  **Monitoring KSA (Halaman `/monitoring/ksa`):**
     * **Nama Halaman & Judul Kartu Dinamis:** Judul halaman dan kartu berubah secara dinamis, menampilkan "Monitoring KSA Padi" untuk tampilan level kabupaten, dan "Detail KSA Padi - \[Nama Kabupaten]" saat melihat detail per `nama` dalam suatu kabupaten.
@@ -322,7 +304,7 @@ Migrasi ini berfokus pada arsitektur yang lebih modern, performa, skalabilitas, 
         * **Simpan Tampilan (Preset Filter)**: Pengguna dapat menyimpan konfigurasi filter favorit mereka ke `localStorage` untuk diakses kembali dengan cepat.
     * **Perbaikan Teknis (Robustness)**:
         * Mengatasi error umum `Recharts` pada Next.js App Router dengan mengimplementasikan **Dynamic Imports** (`next/dynamic`) dengan opsi `ssr: false`.
-        
+
 14. **Halaman Update Data ATAP (`/update-data/atap`) - (Fitur Baru & Arsitektur Lanjutan):**
     * **Arsitektur Database Scalable**: Merancang dan mengimplementasikan arsitektur database yang kuat untuk data ATAP, yang terdiri dari:
         * **Satu Tabel Master (`master_indikator_atap`)**: Menjadi "sumber kebenaran tunggal" untuk semua nama indikator, satuan default, dan alias. Ini memastikan standarisasi data di seluruh aplikasi.
@@ -343,113 +325,154 @@ Migrasi ini berfokus pada arsitektur yang lebih modern, performa, skalabilitas, 
 
 ## 📁 Struktur Folder Proyek
 Dashboard Pertanian/
-├── .next/                            # Cache Next.js (dihapus saat debugging)
-├── node_modules/                     # Dependensi Node.js
-├── public/
-│   └── images/                       # Gambar statis (misal: login-illustration.svg)
-│   └── icon/                         # Icon aplikasi (misal: hope.png)
-├── src/
-│   ├── app/
-│   │   ├── auth/                     # Grup rute otentikasi
-│   │   │   ├── login/
-│   │   │   │   └── page.tsx
-│   │   │   └── register/
-│   │   │       └── page.tsx
-│   │   ├── (dashboard)               # Grup rute untuk halaman setelah login
-│   │   │   ├── monitoring/
-│   │   │   │   ├── ubinan/
-│   │   │   │   │   └── page.tsx      # Halaman Monitoring Ubinan
-│   │   │   │   └── ksa/
-│   │   │   │       ├── page.tsx      # Halaman Monitoring KSA (Server Component)
-│   │   │   │       └── ksa-monitoring-client-page.tsx # Komponen Klien untuk tabel KSA
-│   │   │   ├── evaluasi/             # Folder untuk fitur Evaluasi
-│   │   │   │   └── ubinan/           # Halaman Evaluasi Ubinan
-│   │   │   │       ├── page.tsx      # Server Component Evaluasi Ubinan (Entry Point)
-│   │   │   │       ├── evaluasi-ubinan-client.tsx # Client Component Utama Evaluasi Ubinan
-│   │   │   │       ├── descriptive-stats-columns.tsx # Definisi Kolom Tabel Statistik Deskriptif
-│   │   │   │       ├── penggunaan-benih-dan-pupuk-columns.tsx 
-│   │   │   │       ├── DetailKabupatenModal.tsx # Komponen Modal Wrapper
-│   │   │   │       ├── DetailKabupatenModalContent.tsx # Komponen Konten Modal Detail
-│   │   │   │       └── detail-record-columns.tsx # Definisi Kolom Tabel Detail di Modal
-│   │   │   ├── pengguna/
-│   │   │   │   ├── _action.ts        # Server Actions untuk manajemen pengguna
+├── README.md
+├── components.json
+├── eslint.config.mjs
+├── next-env.d.ts
+├── next.config.ts
+├── package-lock.json
+├── package.json
+├── postcss.config.mjs
+├── public
+│   ├── file.svg
+│   ├── globe.svg
+│   ├── icon
+│   │   └── hope.png
+│   ├── images
+│   │   ├── login-illustration.jpg
+│   │   └── login-illustration.svg
+│   ├── next.svg
+│   ├── templates
+│   │   ├── template_atap_bulanan_kab.xlsx
+│   │   ├── template_atap_bulanan_prov.xlsx
+│   │   ├── template_atap_tahunan_kab.xlsx
+│   │   ├── template_atap_tahunan_prov.xlsx
+│   │   └── template_ubinan.csv
+│   ├── vercel.svg
+│   └── window.svg
+├── src
+│   ├── app
+│   │   ├── (dashboard)
+│   │   │   ├── evaluasi
+│   │   │   │   └── ubinan
+│   │   │   │       ├── DetailKabupatenModal.tsx
+│   │   │   │       ├── DetailKabupatenModalContent.tsx
+│   │   │   │       ├── descriptive-stats-columns.tsx
+│   │   │   │       ├── detail-record-columns.tsx
+│   │   │   │       ├── evaluasi-ubinan-client.tsx
+│   │   │   │       ├── page.tsx
+│   │   │   │       └── penggunaan-benih-dan-pupuk-columns.tsx
+│   │   │   ├── layout.tsx
+│   │   │   ├── monitoring
+│   │   │   │   ├── ksa
+│   │   │   │   │   ├── ksa-monitoring-client-page.tsx
+│   │   │   │   │   └── page.tsx
+│   │   │   │   └── ubinan
+│   │   │   │       └── page.tsx
+│   │   │   ├── page.tsx
+│   │   │   ├── pengguna
+│   │   │   │   ├── _actions.ts
 │   │   │   │   ├── page.tsx
 │   │   │   │   └── user-management-client-page.tsx
-│   │   │   ├── update-data/          # BARU: Folder untuk semua fitur update data
-│   │   │   │   ├── ubinan/           # Fitur Update Ubinan
-│   │   │   │   │   ├── _actions.ts
-│   │   │   │   │   ├── page.tsx
-│   │   │   │   │   ├── uploader-client-component.tsx
-│   │   │   │   │   └── master-sample-uploader.tsx
-│   │   │   │   └── ksa/              # Fitur Update KSA
-│   │   │   │       ├── _actions.ts
-│   │   │   │       ├── page.tsx
-│   │   │   │       └── ksa-uploader.tsx
-│   │   │   ├── layout.tsx            # Root Layout untuk grup (dashboard)
-│   │   │   └── page.tsx              # Halaman utama Dashboard (setelah login)
-│   │   ├── api/                      # Route Handlers (API Routes)
-│   │   │   └── users/
-│   │   │       └── route.ts          # Contoh API route untuk pengguna (menggantikan routes.ts)
-│   │   ├── client-layout-wrapper.tsx # Wrapper untuk layout kondisional (jika masih digunakan)
+│   │   │   ├── produksi-statistik
+│   │   │   │   ├── atap-charts.tsx
+│   │   │   │   ├── bar-chart-wrapper.tsx
+│   │   │   │   ├── columns.tsx
+│   │   │   │   ├── data-table.tsx
+│   │   │   │   ├── line-chart-wrapper.tsx
+│   │   │   │   ├── page.tsx
+│   │   │   │   ├── pie-chart-wrapper.tsx
+│   │   │   │   └── statistik-client.tsx
+│   │   │   └── update-data
+│   │   │       ├── atap
+│   │   │       │   ├── _actions.ts
+│   │   │       │   ├── atap-uploader.tsx
+│   │   │       │   └── page.tsx
+│   │   │       ├── ksa
+│   │   │       │   ├── _actions.ts
+│   │   │       │   ├── ksa-uploader.tsx
+│   │   │       │   └── page.tsx
+│   │   │       └── ubinan
+│   │   │           ├── _actions.ts
+│   │   │           ├── master-sample-uploader.tsx
+│   │   │           ├── page.tsx
+│   │   │           └── uploader-client-component.tsx
+│   │   ├── api
+│   │   │   ├── produksi
+│   │   │   │   └── route.ts
+│   │   │   └── users
+│   │   │       └── route.ts
+│   │   ├── auth
+│   │   │   ├── login
+│   │   │   │   └── page.tsx
+│   │   │   └── register
+│   │   │       └── page.tsx
+│   │   ├── client-layout-wrapper.tsx
 │   │   ├── favicon.ico
-│   │   └── globals.css               # Styling global Tailwind CSS
-│   ├── components/
-│   │   ├── layout/
-│   │   │   ├── main-layout.tsx       # Layout utama dengan Header dan Sidebar (untuk dashboard)
-│   │   │   ├── NavMainHope.tsx       # Komponen Sidebar Navigasi Utama
-│   │   │   ├── NavUserHope.tsx       # Komponen Navigasi Pengguna (di header)
-│   │   │   └── NewSidebar.tsx        # Komponen Sidebar (jika ini implementasi utama)
-│   │   ├── ui/                       # Komponen shadcn/ui yang di-generate (lengkap)
-│   │   │   ├── avatar.tsx
-│   │   │   ├── badge.tsx
-│   │   │   ├── breadcrumb.tsx
-│   │   │   ├── button.tsx
-│   │   │   ├── card.tsx
-│   │   │   ├── carousel.tsx
-│   │   │   ├── chart.tsx
-│   │   │   ├── checkbox.tsx
-│   │   │   ├── collapsible.tsx
-│   │   │   ├── dialog.tsx            # Komponen Dialog (digunakan untuk modal)
-│   │   │   ├── dropdown-menu.tsx
-│   │   │   ├── form.tsx
-│   │   │   ├── input.tsx
-│   │   │   ├── label.tsx
-│   │   │   ├── menubar.tsx
-│   │   │   ├── navigation-menu.tsx
-│   │   │   ├── pagination.tsx        # Komponen Pagination (digunakan di modal)
-│   │   │   ├── scroll-area.tsx
-│   │   │   ├── select.tsx
-│   │   │   ├── separator.tsx
-│   │   │   ├── sheet.tsx
-│   │   │   ├── skeleton.tsx
-│   │   │   ├── sonner.tsx
-│   │   │   ├── switch.tsx            # Komponen Switch (digunakan untuk unit)
-│   │   │   ├── table.tsx
-│   │   │   ├── tabs.tsx
-│   │   │   └── tooltip.tsx
-│   │   └── ... (komponen umum lainnya jika ada)
-│   ├── context/
-│   │   ├── YearContext.tsx           # Context untuk filter Tahun global
-│   │   ├── AuthContext.tsx           # Context untuk Otentikasi (jika digunakan)
-│   │   └── UbinanEvaluasiFilterContext.tsx # Context untuk filter halaman Evaluasi Ubinan
-│   ├── hooks/
+│   │   ├── globals.css
+│   │   └── layout.tsx
+│   ├── components
+│   │   ├── layout
+│   │   │   ├── NavMainHope.tsx
+│   │   │   ├── NavUserHope.tsx
+│   │   │   ├── NewSidebar.tsx
+│   │   │   └── main-layout.tsx
+│   │   └── ui
+│   │       ├── alert-dialog.tsx
+│   │       ├── alert.tsx
+│   │       ├── avatar.tsx
+│   │       ├── badge.tsx
+│   │       ├── breadcrumb.tsx
+│   │       ├── button.tsx
+│   │       ├── card.tsx
+│   │       ├── carousel.tsx
+│   │       ├── chart.tsx
+│   │       ├── checkbox.tsx
+│   │       ├── collapsible.tsx
+│   │       ├── command.tsx
+│   │       ├── dialog.tsx
+│   │       ├── dropdown-menu.tsx
+│   │       ├── form.tsx
+│   │       ├── input.tsx
+│   │       ├── label.tsx
+│   │       ├── menubar.tsx
+│   │       ├── navigation-menu.tsx
+│   │       ├── pagination.tsx
+│   │       ├── popover.tsx
+│   │       ├── scroll-area.tsx
+│   │       ├── select.tsx
+│   │       ├── separator.tsx
+│   │       ├── sheet.tsx
+│   │       ├── sidebar.tsx
+│   │       ├── skeleton.tsx
+│   │       ├── sonner.tsx
+│   │       ├── switch.tsx
+│   │       ├── table.tsx
+│   │       ├── tabs.tsx
+│   │       └── tooltip.tsx
+│   ├── context
+│   │   ├── AuthContext.tsx
+│   │   ├── UbinanEvaluasiFilterContext.tsx
+│   │   └── YearContext.tsx
+│   ├── hooks
+│   │   ├── use-mobile.ts
+│   │   ├── useAtapStatistikData.ts
+│   │   ├── useDebounce.ts
+│   │   ├── useKsaMonitoringData.ts
 │   │   ├── usePadiMonitoringData.ts
 │   │   ├── usePalawijaMonitoringData.ts
-│   │   ├── useKsaMonitoringData.ts
-│   │   ├── useUbinanDescriptiveStatsData.ts # Hook untuk data Statistik Deskriptif Ubinan
-│   │   └── usePenggunaanBenihDanPupukData.ts # Hook untuk data Penggunaan Benih & Pupuk Ubinan
-│   ├── lib/
-│   │   ├── sidebar-data.ts           # Data untuk item sidebar
-│   │   ├── supabase-server.ts        # Helper Supabase untuk Server Components/Actions
-│   │   ├── supabase.ts               # Konfigurasi Supabase client (createClientComponentSupabaseClient)
-│   │   ├── utils.ts                  # Utility functions (cn, getNamaKabupaten, dll.)
-│   │   └── database.types.ts         # Tipe database yang di-generate dari Supabase
-│   ├── middleware.ts                 # Middleware Next.js (misal: untuk otentikasi)
-├── .env.local                        # Variabel lingkungan
-├── next.config.js                    # Konfigurasi Next.js
-├── package.json                      # Daftar dependensi & script
-├── tsconfig.json                     # Konfigurasi TypeScript
-└── package-lock.json                 # File lock dependensi
+│   │   ├── usePenggunaanBenihDanPupukData.ts
+│   │   └── useUbinanDescriptiveStatsData.ts
+│   ├── lib
+│   │   ├── database.types.ts
+│   │   ├── satker-data.ts
+│   │   ├── sidebar-data.ts
+│   │   ├── supabase-server.ts
+│   │   ├── supabase.ts
+│   │   └── utils.ts
+│   └── middleware.ts
+├── tailwind.config.ts
+└── tsconfig.json
 
 **Catatan Penting tentang Struktur Folder:**
 * Penempatan `middleware.ts` di dalam `src/`.
