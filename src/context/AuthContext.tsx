@@ -92,7 +92,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     fetchUserSessionAndProfile();
 
     const { data: authListener } = supabase.auth.onAuthStateChange(
-      (event, _session) => {
+      (event) => {
         // Panggil ulang fungsi fetch utama saat auth state berubah (login/logout)
         // Ini memastikan data profil selalu yang terbaru
         console.log(`AuthContext: Auth event '${event}', refetching profile.`);

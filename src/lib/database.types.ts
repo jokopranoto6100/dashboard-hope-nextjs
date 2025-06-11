@@ -9,6 +9,167 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      data_atap_bulanan_kab: {
+        Row: {
+          bulan: number | null
+          id: number
+          id_indikator: number
+          kode_kab: string | null
+          nilai: number | null
+          satuan_override: string | null
+          tahun: number | null
+          uploaded_at: string | null
+          uploaded_by_username: string | null
+        }
+        Insert: {
+          bulan?: number | null
+          id?: number
+          id_indikator: number
+          kode_kab?: string | null
+          nilai?: number | null
+          satuan_override?: string | null
+          tahun?: number | null
+          uploaded_at?: string | null
+          uploaded_by_username?: string | null
+        }
+        Update: {
+          bulan?: number | null
+          id?: number
+          id_indikator?: number
+          kode_kab?: string | null
+          nilai?: number | null
+          satuan_override?: string | null
+          tahun?: number | null
+          uploaded_at?: string | null
+          uploaded_by_username?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_atap_bulanan_kab_id_indikator_fkey"
+            columns: ["id_indikator"]
+            isOneToOne: false
+            referencedRelation: "master_indikator_atap"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      data_atap_bulanan_prov: {
+        Row: {
+          bulan: number | null
+          id: number
+          id_indikator: number
+          kode_prov: string | null
+          nilai: number | null
+          tahun: number | null
+          uploaded_at: string | null
+          uploaded_by_username: string | null
+        }
+        Insert: {
+          bulan?: number | null
+          id?: number
+          id_indikator: number
+          kode_prov?: string | null
+          nilai?: number | null
+          tahun?: number | null
+          uploaded_at?: string | null
+          uploaded_by_username?: string | null
+        }
+        Update: {
+          bulan?: number | null
+          id?: number
+          id_indikator?: number
+          kode_prov?: string | null
+          nilai?: number | null
+          tahun?: number | null
+          uploaded_at?: string | null
+          uploaded_by_username?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_atap_bulanan_prov_id_indikator_fkey"
+            columns: ["id_indikator"]
+            isOneToOne: false
+            referencedRelation: "master_indikator_atap"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      data_atap_tahunan_kab: {
+        Row: {
+          id: number
+          id_indikator: number
+          kode_kab: string | null
+          nilai: number | null
+          tahun: number | null
+          uploaded_at: string | null
+          uploaded_by_username: string | null
+        }
+        Insert: {
+          id?: number
+          id_indikator: number
+          kode_kab?: string | null
+          nilai?: number | null
+          tahun?: number | null
+          uploaded_at?: string | null
+          uploaded_by_username?: string | null
+        }
+        Update: {
+          id?: number
+          id_indikator?: number
+          kode_kab?: string | null
+          nilai?: number | null
+          tahun?: number | null
+          uploaded_at?: string | null
+          uploaded_by_username?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_atap_tahunan_kab_id_indikator_fkey"
+            columns: ["id_indikator"]
+            isOneToOne: false
+            referencedRelation: "master_indikator_atap"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      data_atap_tahunan_prov: {
+        Row: {
+          id: number
+          id_indikator: number
+          kode_prov: string | null
+          nilai: number | null
+          tahun: number | null
+          uploaded_at: string | null
+          uploaded_by_username: string | null
+        }
+        Insert: {
+          id?: number
+          id_indikator: number
+          kode_prov?: string | null
+          nilai?: number | null
+          tahun?: number | null
+          uploaded_at?: string | null
+          uploaded_by_username?: string | null
+        }
+        Update: {
+          id?: number
+          id_indikator?: number
+          kode_prov?: string | null
+          nilai?: number | null
+          tahun?: number | null
+          uploaded_at?: string | null
+          uploaded_by_username?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_atap_tahunan_prov_id_indikator_fkey"
+            columns: ["id_indikator"]
+            isOneToOne: false
+            referencedRelation: "master_indikator_atap"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ksa_amatan: {
         Row: {
           amatan: string | null
@@ -27,6 +188,8 @@ export type Database = {
           subsegmen: string | null
           tahun: number | null
           tanggal: string | null
+          uploaded_at: string | null
+          uploaded_by_username: string | null
         }
         Insert: {
           amatan?: string | null
@@ -45,6 +208,8 @@ export type Database = {
           subsegmen?: string | null
           tahun?: number | null
           tanggal?: string | null
+          uploaded_at?: string | null
+          uploaded_by_username?: string | null
         }
         Update: {
           amatan?: string | null
@@ -63,6 +228,8 @@ export type Database = {
           subsegmen?: string | null
           tahun?: number | null
           tanggal?: string | null
+          uploaded_at?: string | null
+          uploaded_by_username?: string | null
         }
         Relationships: []
       }
@@ -78,6 +245,33 @@ export type Database = {
         Update: {
           last_refreshed?: string | null
           view_name?: string
+        }
+        Relationships: []
+      }
+      master_indikator_atap: {
+        Row: {
+          alias: string[] | null
+          created_at: string | null
+          deskripsi: string | null
+          id: number
+          nama_resmi: string
+          satuan_default: string | null
+        }
+        Insert: {
+          alias?: string[] | null
+          created_at?: string | null
+          deskripsi?: string | null
+          id?: number
+          nama_resmi: string
+          satuan_default?: string | null
+        }
+        Update: {
+          alias?: string[] | null
+          created_at?: string | null
+          deskripsi?: string | null
+          id?: number
+          nama_resmi?: string
+          satuan_default?: string | null
         }
         Relationships: []
       }
@@ -97,6 +291,8 @@ export type Database = {
           subround: number | null
           subsegmen: string | null
           tahun: number | null
+          uploaded_at: string | null
+          uploaded_by_username: string | null
           Utama: number | null
           x: number | null
           y: number | null
@@ -116,6 +312,8 @@ export type Database = {
           subround?: number | null
           subsegmen?: string | null
           tahun?: number | null
+          uploaded_at?: string | null
+          uploaded_by_username?: string | null
           Utama?: number | null
           x?: number | null
           y?: number | null
@@ -135,6 +333,8 @@ export type Database = {
           subround?: number | null
           subsegmen?: string | null
           tahun?: number | null
+          uploaded_at?: string | null
+          uploaded_by_username?: string | null
           Utama?: number | null
           x?: number | null
           y?: number | null
@@ -316,6 +516,7 @@ export type Database = {
           subround: number | null
           tahun: number | null
           uploaded_at: string | null
+          uploaded_by_username: string | null
           url: string | null
           validasi: string | null
         }
@@ -448,6 +649,7 @@ export type Database = {
           subround?: number | null
           tahun?: number | null
           uploaded_at?: string | null
+          uploaded_by_username?: string | null
           url?: string | null
           validasi?: string | null
         }
@@ -580,6 +782,7 @@ export type Database = {
           subround?: number | null
           tahun?: number | null
           uploaded_at?: string | null
+          uploaded_by_username?: string | null
           url?: string | null
           validasi?: string | null
         }
@@ -610,22 +813,28 @@ export type Database = {
         Row: {
           created_at: string
           email: string
+          full_name: string | null
           id: string
           role: string
+          satker_id: string | null
           username: string
         }
         Insert: {
           created_at?: string
           email: string
+          full_name?: string | null
           id: string
           role?: string
+          satker_id?: string | null
           username: string
         }
         Update: {
           created_at?: string
           email?: string
+          full_name?: string | null
           id?: string
           role?: string
+          satker_id?: string | null
           username?: string
         }
         Relationships: []
@@ -653,6 +862,22 @@ export type Database = {
           n: number | null
           n_prev: number | null
           subsegmen: string | null
+          tahun: number | null
+        }
+        Relationships: []
+      }
+      laporan_atap_lengkap: {
+        Row: {
+          bulan: number | null
+          deskripsi: string | null
+          id_indikator: number | null
+          indikator: string | null
+          kode_kab: string | null
+          kode_wilayah: string | null
+          level_data: string | null
+          level_wilayah: string | null
+          nilai: number | null
+          satuan: string | null
           tahun: number | null
         }
         Relationships: []
@@ -768,6 +993,59 @@ export type Database = {
           username: string
           role: string
         }[]
+      }
+      get_ubinan_detail_sorted_paginated: {
+        Args: {
+          kab_kode: number
+          tahun_val: number
+          komoditas_val: string
+          subround_filter: string
+          sort_column_key: string
+          sort_direction_val: string
+          page_limit_val: number
+          page_offset_val: number
+        }
+        Returns: {
+          r111: string
+          r604: number
+          r608_bibit_kg_mentah: number
+          r610_1_urea_kg_mentah: number
+          r610_2_tsp_kg_mentah: number
+          r610_3_kcl_kg_mentah: number
+          r610_4_npk_kg_mentah: number
+          r610_5_kompos_kg_mentah: number
+          r610_6_organik_cair_liter_mentah: number
+          r610_7_za_kg_mentah: number
+          benih_kg_ha: number
+          urea_kg_ha: number
+          tsp_kg_ha: number
+          kcl_kg_ha: number
+          npk_kg_ha: number
+          kompos_kg_ha: number
+          organik_cair_liter_ha: number
+          za_kg_ha: number
+          total_records: number
+        }[]
+      }
+      process_ksa_amatan_upload: {
+        Args: { deletion_scopes: Json[]; insert_data: Json[] }
+        Returns: undefined
+      }
+      process_ubinan_raw_upload: {
+        Args: { deletion_scopes: Json[]; insert_data: Json[] }
+        Returns: undefined
+      }
+      recalculate_atap_aggregates: {
+        Args: { p_tahun: number }
+        Returns: string
+      }
+      refresh_materialized_view_ubinan_anomali: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      refresh_materialized_view_ubinan_dashboard: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       update_user_custom_role: {
         Args: { user_id_to_update: string; new_custom_role: string }

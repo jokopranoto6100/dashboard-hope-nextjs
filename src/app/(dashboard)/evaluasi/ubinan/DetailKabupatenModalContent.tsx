@@ -126,9 +126,7 @@ export function DetailKabupatenModalContent({
     if (currentPage !== 1) { // Hanya reset jika bukan sudah di halaman 1
         setCurrentPage(1);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sorting, pageSize]); // Jangan tambahkan currentPage di sini untuk menghindari loop
-
 
   const pageCount = Math.ceil(totalRecords / pageSize);
 
