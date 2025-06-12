@@ -21,11 +21,11 @@ export function DetailKsaModal({ isOpen, onClose, kabupaten }: ModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl">
+      <DialogContent className="max-w-[90vw]">
         <DialogHeader>
           <DialogTitle>Rincian Panen Subsegmen: {kabupaten}</DialogTitle>
           <DialogDescription>
-            Daftar subsegmen beserta jadwal panen bulanan di kabupaten yang dipilih.
+            Daftar subsegmen beserta jadwal panen bulanan di kabupaten yang dipilih. Gunakan kolom pencarian untuk memfilter ID subsegmen.
           </DialogDescription>
         </DialogHeader>
         <DetailKsaModalContent kabupaten={kabupaten} />

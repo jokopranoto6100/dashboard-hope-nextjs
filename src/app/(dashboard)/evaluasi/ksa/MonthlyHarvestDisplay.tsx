@@ -1,17 +1,17 @@
 // Lokasi: src/app/(dashboard)/evaluasi/ksa/MonthlyHarvestDisplay.tsx
 "use client";
 
-import { cn } from "@/lib/utils"; // Impor utilitas cn dari shadcn
+import { cn } from "@/lib/utils";
 
 interface MonthlyHarvestDisplayProps {
-  harvestMonths: number[]; // Array berisi nomor bulan, cth: [1, 3, 8]
+  harvestMonths: number[];
 }
 
 const MONTHS = ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"];
 
 export function MonthlyHarvestDisplay({ harvestMonths }: MonthlyHarvestDisplayProps) {
   return (
-    <div className="flex gap-1">
+    <div className="flex flex-nowrap gap-1">
       {MONTHS.map((month, index) => {
         const monthNumber = index + 1;
         const hasHarvest = harvestMonths.includes(monthNumber);
