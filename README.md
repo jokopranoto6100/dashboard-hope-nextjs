@@ -323,6 +323,27 @@ Migrasi ini berfokus pada arsitektur yang lebih modern, performa, skalabilitas, 
         * Membuat dua fungsi RPC PostgreSQL (`aggregate_kabupaten_to_tahunan` dan `aggregate_provinsi_to_tahunan`).
         * Setelah impor data bulanan berhasil, Server Action secara otomatis memanggil fungsi RPC ini untuk menjumlahkan data bulanan dan melakukan `UPSERT` hasilnya ke tabel tahunan yang sesuai. Ini mengurangi pekerjaan manual dan menjamin konsistensi data.
 
+15. **Halaman Evaluasi KSA (Halaman `/evaluasi/ksa`) - (Fitur Baru & Arsitektur RPC):**
+    * **Arsitektur Berbasis RPC yang Efisien:** Seluruh pengambilan data untuk halaman ini telah direfaktor untuk menggunakan fungsi RPC PostgreSQL di Supabase. Pendekatan ini memindahkan beban agregasi data yang berat dari *frontend* ke *backend*, memungkinkan pemrosesan ratusan ribu *record* data KSA secara instan tanpa membebani *browser*. Fungsi RPC yang digunakan antara lain:
+        * `get_ksa_evaluation_stats`: Mengambil data agregat untuk KPI dan grafik utama.
+        * `get_ksa_harvest_frequency_by_kab`: Mengambil data untuk tabel distribusi frekuensi panen.
+        * `get_ksa_distinct_kabupaten`: Mengambil daftar unik kabupaten untuk filter.
+        * `get_ksa_subsegmen_detail`: Mengambil rincian data untuk modal detail.
+    * **Visualisasi Data Interaktif:**
+        * **Kartu KPI:** Menampilkan ringkasan data kunci seperti rata-rata frekuensi panen, bulan puncak tanam, dan bulan puncak panen.
+        * **Grafik Proporsi Fase Tanam:** Menggunakan *Stacked Area Chart* untuk memvisualisasikan proporsi bulanan fase amatan KSA. Kategori fase secara otomatis disederhanakan (misal, 7.1, 7.3 menjadi Fase 7) dan diurutkan secara numerik pada legenda dan lapisan grafik.
+        * **Grafik Tren Tanam vs. Panen:** Menggunakan *Line Chart* untuk membandingkan tren bulanan antara jumlah subsegmen yang melakukan tanam dan yang melakukan panen.
+    * **Tabel Distribusi Frekuensi Panen Dinamis:**
+        * Menampilkan tabel pivot yang merangkum jumlah subsegmen berdasarkan frekuensi panennya dalam setahun (misal: 1x, 2x, 3x panen).
+        * Kolom frekuensi pada tabel dibuat secara dinamis sesuai dengan data frekuensi panen maksimum yang ada pada tahun tersebut.
+        * Seluruh data kabupaten diurutkan berdasarkan `kode_kab` untuk menjaga konsistensi standar wilayah.
+    * **Fitur Drill-Down dengan Modal Detail:**
+        * Setiap baris kabupaten pada tabel frekuensi dapat diklik untuk membuka modal detail.
+        * Modal menampilkan daftar rincian subsegmen untuk kabupaten yang dipilih.
+        * Dilengkapi dengan **filter pencarian** untuk ID Subsegmen.
+        * Menyertakan **"Kalender Panen"**: sebuah visualisasi 12 bulan yang ringkas untuk menunjukkan pada bulan apa saja setiap subsegmen melakukan panen.
+    * **Desain Modular:** Disiapkan filter "Jenis Survei" (Padi/Jagung) untuk mempermudah pengembangan fitur KSA komoditas lain di masa depan.
+
 ## 📁 Struktur Folder Proyek
 Dashboard Pertanian/
 ├── README.md
