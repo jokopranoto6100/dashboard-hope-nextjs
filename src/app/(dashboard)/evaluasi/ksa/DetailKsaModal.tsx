@@ -21,7 +21,7 @@ export function DetailKsaModal({ isOpen, onClose, kabupaten }: ModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[90vw]">
+      <DialogContent className="max-w-[40vw]">
         <DialogHeader>
           <DialogTitle>Rincian Panen Subsegmen: {kabupaten}</DialogTitle>
           <DialogDescription>

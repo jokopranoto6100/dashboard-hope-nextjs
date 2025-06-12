@@ -24,8 +24,9 @@ export interface KsaLineChartData {
 }
 
 export interface PivotTableData {
+    kode_kab: string; // <-- Tambahkan kode_kab
     kabupaten: string;
-    [key: string]: string | number; // e.g., '1x': 50, '2x': 25
+    [key: string]: string | number;
 }
 
 
@@ -96,30 +97,33 @@ export const useKsaEvaluationData = () => {
       }, []);
       setAreaChartData(newAreaChartData.sort((a,b) => a.bulan - b.bulan));
 
-      // --- 2. Proses Hasil dari get_ksa_harvest_frequency_by_kab (untuk Tabel Distribusi) ---
       const longFormatData = freqResult.data || [];
-      
-      const uniqueCounts = [...new Set(longFormatData.map(d => d.panen_count))].sort((a,b) => a - b);
-      setHarvestColumns(uniqueCounts);
+            const uniqueCounts = [...new Set(longFormatData.map(d => d.panen_count))].sort((a,b) => a - b);
+            setHarvestColumns(uniqueCounts);
 
-      const pivoted = longFormatData.reduce((acc, item) => {
-        const { kabupaten, panen_count, subsegmen_count } = item;
-        if (!acc[kabupaten]) {
-            acc[kabupaten] = { kabupaten };
-        }
-        acc[kabupaten][`${panen_count}x`] = subsegmen_count;
-        return acc;
-      }, {} as { [key: string]: PivotTableData });
-      
-      setPivotTableData(Object.values(pivoted));
-      
-    } catch (err: any) {
-      console.error("Error calling RPC functions:", err);
-      setError(err.message || 'Gagal memuat data evaluasi dari server.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [isLoadingFilters, selectedYear, selectedKabupaten, supabase]);
+            const pivoted = longFormatData.reduce((acc, item) => {
+              const { kode_kab, kabupaten, panen_count, subsegmen_count } = item;
+              // Gunakan kabupaten sebagai kunci sementara untuk grouping
+              if (!acc[kabupaten]) {
+                  acc[kabupaten] = { kabupaten, kode_kab }; // Simpan juga kode_kab
+              }
+              acc[kabupaten][`${panen_count}x`] = subsegmen_count;
+              return acc;
+            }, {} as { [key: string]: PivotTableData });
+            
+            // Ubah objek menjadi array dan urutkan berdasarkan kode_kab
+            const sortedPivotData = Object.values(pivoted).sort((a, b) => 
+              a.kode_kab.localeCompare(b.kode_kab)
+            );
+            setPivotTableData(sortedPivotData);
+            
+          } catch (err: any) {
+            console.error("Error calling RPC functions:", err);
+            setError(err.message || 'Gagal memuat data evaluasi dari server.');
+          } finally {
+            setIsLoading(false);
+          }
+        }, [isLoadingFilters, selectedYear, selectedKabupaten, supabase]);
 
   useEffect(() => {
     triggerFetch();

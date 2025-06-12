@@ -99,8 +99,23 @@ export function EvaluasiKsaClient() {
             {/* Filter Bar Tetap Sama */}
             <div className="flex flex-wrap items-end gap-4">
                 <div><Label htmlFor="filter-ksa-type" className="text-xs font-medium">Jenis Survei</Label><Select value={selectedKsaType} onValueChange={(v) => setSelectedKsaType(v as 'Padi' | 'Jagung')}><SelectTrigger id="filter-ksa-type" className="mt-1"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Padi">KSA Padi</SelectItem><SelectItem value="Jagung" disabled>KSA Jagung (Segera)</SelectItem></SelectContent></Select></div>
-                <div><Label htmlFor="filter-kabupaten" className="text-xs font-medium">Wilayah</Label>{isLoadingFilters ? <Skeleton className="h-10 w-48 mt-1" /> : (<Select value={selectedKabupaten} onValueChange={setSelectedKabupaten} disabled={isLoadingFilters}><SelectTrigger id="filter-kabupaten" className="mt-1 min-w-[180px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="semua">Semua Kabupaten</SelectItem>{availableKabupaten.map(kab => <SelectItem key={kab} value={kab}>{kab}</SelectItem>)}</SelectContent></Select>)}</div>
-            </div>
+                <div>
+                    <Label htmlFor="filter-kabupaten" className="text-xs font-medium">Wilayah</Label>
+                    {isLoadingFilters ? <Skeleton className="h-10 w-48 mt-1" /> : (
+                        <Select value={selectedKabupaten} onValueChange={setSelectedKabupaten} disabled={isLoadingFilters}>
+                            <SelectTrigger id="filter-kabupaten" className="mt-1 min-w-[180px]"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="semua">Semua Kabupaten</SelectItem>
+                                {/* --- PERUBAHAN: Gunakan struktur data baru --- */}
+                                {availableKabupaten.map(kab => (
+                                    <SelectItem key={kab.kode_kab} value={kab.kabupaten}>
+                                        {kab.kabupaten}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
+                </div>            </div>
 
             {isLoading ? <Skeleton className="h-96 w-full" /> : error ? <p className="text-red-500 text-center py-8">{error}</p> : (
                 <div className="space-y-6 pt-4">

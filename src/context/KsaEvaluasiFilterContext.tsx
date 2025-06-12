@@ -5,6 +5,12 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import { createClientComponentSupabaseClient } from '@/lib/supabase';
 import { useYear } from './YearContext';
 
+// Tipe untuk struktur data kabupaten yang baru
+export interface KabupatenOption {
+  kode_kab: string;
+  kabupaten: string;
+}
+
 type KsaType = 'Padi' | 'Jagung';
 type KabupatenType = string;
 
@@ -13,7 +19,7 @@ interface KsaEvaluasiFilterContextType {
   setSelectedKsaType: (type: KsaType) => void;
   selectedKabupaten: KabupatenType;
   setSelectedKabupaten: (kab: KabupatenType) => void;
-  availableKabupaten: KabupatenType[];
+  availableKabupaten: KabupatenOption[]; // <-- Tipe diubah
   isLoadingFilters: boolean;
 }
 
@@ -25,7 +31,7 @@ export const KsaEvaluasiFilterProvider = ({ children }: { children: ReactNode })
 
   const [selectedKsaType, setSelectedKsaType] = useState<KsaType>('Padi');
   const [selectedKabupaten, setSelectedKabupaten] = useState<KabupatenType>('semua');
-  const [availableKabupaten, setAvailableKabupaten] = useState<KabupatenType[]>([]);
+  const [availableKabupaten, setAvailableKabupaten] = useState<KabupatenOption[]>([]); // <-- Tipe diubah
   const [isLoadingFilters, setIsLoadingFilters] = useState<boolean>(true);
 
   const fetchKabupatenOptions = useCallback(async (year: number) => {
