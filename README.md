@@ -375,6 +375,12 @@ Dashboard Pertanian/
 │   ├── app
 │   │   ├── (dashboard)
 │   │   │   ├── evaluasi
+│   │   │   │   ├── ksa
+│   │   │   │   │   ├── DetailKsaModal.tsx
+│   │   │   │   │   ├── DetailKsaModalContent.tsx
+│   │   │   │   │   ├── MonthlyHarvestDisplay.tsx
+│   │   │   │   │   ├── evaluasi-ksa-client.tsx
+│   │   │   │   │   └── page.tsx
 │   │   │   │   └── ubinan
 │   │   │   │       ├── DetailKabupatenModal.tsx
 │   │   │   │       ├── DetailKabupatenModalContent.tsx
@@ -473,12 +479,14 @@ Dashboard Pertanian/
 │   │       └── tooltip.tsx
 │   ├── context
 │   │   ├── AuthContext.tsx
+│   │   ├── KsaEvaluasiFilterContext.tsx
 │   │   ├── UbinanEvaluasiFilterContext.tsx
 │   │   └── YearContext.tsx
 │   ├── hooks
 │   │   ├── use-mobile.ts
 │   │   ├── useAtapStatistikData.ts
 │   │   ├── useDebounce.ts
+│   │   ├── useKsaEvaluationData.ts
 │   │   ├── useKsaMonitoringData.ts
 │   │   ├── usePadiMonitoringData.ts
 │   │   ├── usePalawijaMonitoringData.ts
