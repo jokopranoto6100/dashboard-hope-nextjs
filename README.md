@@ -329,20 +329,22 @@ Migrasi ini berfokus pada arsitektur yang lebih modern, performa, skalabilitas, 
         * `get_ksa_harvest_frequency_by_kab`: Mengambil data untuk tabel distribusi frekuensi panen.
         * `get_ksa_distinct_kabupaten`: Mengambil daftar unik kabupaten untuk filter.
         * `get_ksa_subsegmen_detail`: Mengambil rincian data untuk modal detail.
-    * **Visualisasi Data Interaktif:**
+    * **Visualisasi Data Interaktif (Tab Visualisasi Utama):**
         * **Kartu KPI:** Menampilkan ringkasan data kunci seperti rata-rata frekuensi panen, bulan puncak tanam, dan bulan puncak panen.
-        * **Grafik Proporsi Fase Tanam:** Menggunakan *Stacked Area Chart* untuk memvisualisasikan proporsi bulanan fase amatan KSA. Kategori fase secara otomatis disederhanakan (misal, 7.1, 7.3 menjadi Fase 7) dan diurutkan secara numerik pada legenda dan lapisan grafik.
+        * **Grafik Proporsi Fase Tanam:** Menggunakan *Stacked Area Chart* untuk memvisualisasikan proporsi bulanan fase amatan KSA.
         * **Grafik Tren Tanam vs. Panen:** Menggunakan *Line Chart* untuk membandingkan tren bulanan antara jumlah subsegmen yang melakukan tanam dan yang melakukan panen.
     * **Tabel Distribusi Frekuensi Panen Dinamis:**
         * Menampilkan tabel pivot yang merangkum jumlah subsegmen berdasarkan frekuensi panennya dalam setahun (misal: 1x, 2x, 3x panen).
         * Kolom frekuensi pada tabel dibuat secara dinamis sesuai dengan data frekuensi panen maksimum yang ada pada tahun tersebut.
-        * Seluruh data kabupaten diurutkan berdasarkan `kode_kab` untuk menjaga konsistensi standar wilayah.
-    * **Fitur Drill-Down dengan Modal Detail:**
-        * Setiap baris kabupaten pada tabel frekuensi dapat diklik untuk membuka modal detail.
-        * Modal menampilkan daftar rincian subsegmen untuk kabupaten yang dipilih.
-        * Dilengkapi dengan **filter pencarian** untuk ID Subsegmen.
-        * Menyertakan **"Kalender Panen"**: sebuah visualisasi 12 bulan yang ringkas untuk menunjukkan pada bulan apa saja setiap subsegmen melakukan panen.
-    * **Desain Modular:** Disiapkan filter "Jenis Survei" (Padi/Jagung) untuk mempermudah pengembangan fitur KSA komoditas lain di masa depan.
+        * Setiap baris kabupaten dapat diklik untuk membuka **Modal Detail** yang menampilkan rincian subsegmen beserta "Kalender Panen" visual per subsegmen.
+    * **Tab Validator Anomali Interaktif (Fitur Baru):** Menambahkan tab kedua yang didedikasikan untuk validasi data dan penemuan anomali fase tanam.
+        * **Deteksi Anomali di Backend:** Mengimplementasikan fungsi RPC PostgreSQL baru, `find_ksa_phase_anomalies`, yang secara cerdas mendeteksi berbagai jenis anomali (Stagnansi, Fase Mundur, Lompatan Ekstrem, dll.) langsung di level database.
+        * **Dashboard Ringkasan KPI Anomali:** Menampilkan tiga kartu KPI dinamis di bagian atas yang didesain ulang untuk visualisasi yang lebih baik: "Total Anomali" dengan ikon besar, "Ringkasan Jenis Anomali" (dalam format akordeon hierarkis yang bisa diekspansi untuk melihat detail per kabupaten), dan "Sebaran Anomali Wilayah" (menampilkan wilayah dengan anomali terbanyak dan terendah).
+        * **Tabel Anomali yang Informatif & Interaktif:** Menggunakan `TanStack Table` untuk menampilkan rincian anomali dengan fitur-fitur canggih:
+            * **Default Sorting & Paginasi:** Tabel diurutkan berdasarkan "ID Subsegmen" secara default dan dilengkapi paginasi di sisi klien.
+            * **Visualisasi Konteks Fase:** Kolom "Konteks Fase" diubah menjadi komponen visual (`PhaseTimelineVisual`) untuk memudahkan pemahaman transisi fase yang anomali.
+            * **Tooltip untuk Detail:** Kolom "Deskripsi" dihilangkan dari tampilan tabel untuk membuat UI lebih ringkas, dan informasinya dipindahkan ke dalam *tooltip* yang muncul saat kursor diarahkan ke *badge* "Kode Anomali".
+        * **Filter Bulan & Ekspor ke Excel:** Dilengkapi filter per bulan yang memperbarui data KPI dan tabel secara dinamis, serta tombol untuk mengekspor data yang telah difilter ke dalam format Excel, dengan tetap menyertakan kolom deskripsi yang tersembunyi.
 
 ## 📁 Struktur Folder Proyek
 Dashboard Pertanian/
