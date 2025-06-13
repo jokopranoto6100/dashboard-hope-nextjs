@@ -174,7 +174,7 @@ export function AnomalyValidatorTab() {
               </div>
               <div>
                   <div className="text-3xl font-bold">{kpiData.total}</div>
-                  <p className="text-xs text-muted-foreground">anomali ditemukan sesuai filter</p>
+                  <p className="text-xs text-muted-foreground">kasus ditemukan sesuai filter</p>
               </div>
           </CardContent>
         </Card>
