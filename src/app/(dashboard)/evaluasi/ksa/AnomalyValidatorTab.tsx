@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Info, Download, ArrowUpDown, AlertTriangle, Tags, MapPin, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
+import { Download, ArrowUpDown, AlertTriangle, MapPin, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
 import * as XLSX from 'xlsx';
 
 import { PhaseTimelineVisual } from "./PhaseTimelineVisual";
@@ -34,13 +34,7 @@ const ANOMALY_TYPE_MAP: Record<string, string> = {
   'T-5': 'Re-aktivasi',
 };
 
-function NoDataDisplay({ message }: { message: string }) {
-    return (
-        <div className="flex h-[200px] w-full items-center justify-center rounded-md border-2 border-dashed bg-muted/50 mt-4">
-            <div className="text-center text-muted-foreground"><Info className="mx-auto h-8 w-8" /><p className="mt-2 text-sm font-medium">{message}</p></div>
-        </div>
-    );
-}
+// Removed the unused NoDataDisplay function to resolve the error.
 
 const columns: ColumnDef<AnomalyData>[] = [
   { 
@@ -99,36 +93,46 @@ export function AnomalyValidatorTab() {
   }, [anomalies, selectedMonth]);
 
   const kpiData = useMemo(() => {
+    const defaultRegion = { name: '-', count: 0 };
+    const defaultAnomaly = { type: '-', count: 0, topDistrict: '-' };
+
     if (!filteredAnomalies || filteredAnomalies.length === 0) {
-      return { total: 0, anomalyCounts: [], topRegion: { name: '-', count: 0 } };
+      return { total: 0, topAnomaly: defaultAnomaly, topRegion: defaultRegion, bottomRegion: defaultRegion };
     }
 
+    // 1. Cari Jenis Anomali Terbanyak secara Keseluruhan
     const anomalyTypeCounts = filteredAnomalies.reduce((acc, anomaly) => {
       acc[anomaly.kode_anomali] = (acc[anomaly.kode_anomali] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
+    const topAnomalyEntry = Object.entries(anomalyTypeCounts).sort(([, a], [, b]) => b - a)[0];
+    const topAnomalyType = topAnomalyEntry ? topAnomalyEntry[0] : null;
+
+    let topDistrictForTopAnomaly = '-';
+    if (topAnomalyType) {
+      // 2. Filter anomali hanya untuk jenis yang teratas
+      const anomaliesOfTopType = filteredAnomalies.filter(a => a.kode_anomali === topAnomalyType);
+      
+      // 3. Cari kabupaten dengan anomali jenis itu yang terbanyak
+      const districtCountsForTopAnomaly = anomaliesOfTopType.reduce((acc, anomaly) => {
+        acc[anomaly.kabupaten] = (acc[anomaly.kabupaten] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      
+      const topDistrictEntry = Object.entries(districtCountsForTopAnomaly).sort(([, a], [, b]) => b - a)[0];
+      topDistrictForTopAnomaly = topDistrictEntry ? topDistrictEntry[0] : '-';
+    }
     
-    const sortedAnomalyCounts = Object.entries(anomalyTypeCounts)
-      .map(([type, count]) => ({ type, count }))
-      .sort((a, b) => b.count - a.count);
-
-    // --- PERUBAHAN UTAMA DI SINI ---
-    const regionCounts = filteredAnomalies.reduce((acc, anomaly) => {
-      acc[anomaly.kabupaten] = (acc[anomaly.kabupaten] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
+    const regionCounts = filteredAnomalies.reduce((acc, anomaly) => { acc[anomaly.kabupaten] = (acc[anomaly.kabupaten] || 0) + 1; return acc; }, {} as Record<string, number>);
     const sortedRegions = Object.entries(regionCounts).sort(([, a], [, b]) => b - a);
-
     const topRegion = sortedRegions.length > 0 ? { name: sortedRegions[0][0], count: sortedRegions[0][1] } : defaultRegion;
     const bottomRegion = sortedRegions.length > 0 ? { name: sortedRegions[sortedRegions.length - 1][0], count: sortedRegions[sortedRegions.length - 1][1] } : defaultRegion;
-    // --- AKHIR PERUBAHAN ---
-    
+
     return {
       total: filteredAnomalies.length,
-      anomalyCounts: sortedAnomalyCounts,
-      topRegion: topRegion,
-      bottomRegion: bottomRegion,
+      topAnomaly: topAnomalyEntry ? { type: topAnomalyType, count: topAnomalyEntry[1], topDistrict: topDistrictForTopAnomaly } : defaultAnomaly,
+      topRegion,
+      bottomRegion,
     };
   }, [filteredAnomalies]);
 
@@ -160,10 +164,7 @@ export function AnomalyValidatorTab() {
 
   return (
     <div className="pt-4 space-y-4">
-      {/* --- GANTI BLOK KODE INI --- */}
       <div className="grid gap-4 md:grid-cols-3">
-
-        {/* Card 1: Total Anomali - Desain Ikon Besar */}
         <Card>
           <CardHeader>
               <CardTitle className="text-sm font-medium">Total Anomali</CardTitle>
@@ -179,41 +180,22 @@ export function AnomalyValidatorTab() {
           </CardContent>
         </Card>
 
-        {/* Card 2: Ringkasan Jenis Anomali - Desain Daftar Detail */}
         <Card>
             <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                    <Tags className="h-4 w-4 text-muted-foreground" />
-                    Ringkasan Jenis Anomali
-                </CardTitle>
+                <CardTitle className="text-sm font-medium">Jenis Anomali Terbanyak</CardTitle>
             </CardHeader>
-            <CardContent className="pt-2">
-              {kpiData.anomalyCounts.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {kpiData.anomalyCounts.map(item => {
-                    // Logika untuk menentukan warna badge berdasarkan jenis anomali
-                    let variant: "destructive" | "secondary" | "default" = "default";
-                    if (['T-2', 'T-3'].includes(item.type)) {
-                      variant = "secondary"; // Merah untuk error kritis
-                    } else if (['S-1', 'T-1'].includes(item.type)) {
-                      variant = "secondary"; // Abu-abu untuk peringatan
-                    }
-                    // Biru (default) untuk anomali informasional
-
-                    return (
-                      <Badge key={item.type} variant={variant} className="text-base py-1">
-                        {item.type}: <span className="font-bold ml-1.5">{item.count}</span>
-                      </Badge>
-                    );
-                  })}
+            <CardContent className="flex items-end justify-between">
+                <div className="space-y-1">
+                    <Badge variant="destructive">{kpiData.topAnomaly.type}</Badge>
+                    <div className="text-2xl font-bold">{kpiData.topAnomaly.count} kasus</div>
                 </div>
-              ) : (
-                <p className="pt-4 text-sm text-muted-foreground text-center">Tidak ada data.</p>
-              )}
+                <div className="text-xs text-muted-foreground text-right space-y-1">
+                    <p>{kpiData.topAnomaly.type ? ANOMALY_TYPE_MAP[kpiData.topAnomaly.type] || 'Tidak ada' : 'Tidak ada'}</p>
+                    <p className="flex items-center justify-end gap-1"><MapPin className="h-3 w-3" /> Terbanyak di {kpiData.topAnomaly.topDistrict}</p>
+                </div>
             </CardContent>
         </Card>
 
-        {/* Card 3: Sebaran Wilayah - Desain Terbanyak vs Terendah */}
         <Card>
             <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -234,9 +216,7 @@ export function AnomalyValidatorTab() {
                 </div>
             </CardContent>
         </Card>
-
       </div>
-      {/* --- AKHIR BLOK KODE --- */}
         
       <div className="flex justify-between items-center pt-4">
         <div className="flex items-center gap-2">
