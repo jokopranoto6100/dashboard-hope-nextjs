@@ -152,7 +152,11 @@ export function UploaderClientComponent() {
         <input ref={fileInputRef} onChange={handleFileChange} type="file" accept=".csv" className="sr-only" />
         
         <div
-          className={`mt-2 flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer ${file ? 'border-primary bg-primary/10' : 'border-gray-300'}`}
+          className={`mt-2 flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer 
+            ${file
+              ? 'border-primary bg-primary/10 dark:bg-primary/20'
+              : 'border-gray-300 bg-gray-50 hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:hover:border-gray-500 dark:hover:bg-gray-600'}
+          `}          
           onClick={() => fileInputRef.current?.click()}
           onDragOver={handleDragOver}
           onDrop={handleDrop}
