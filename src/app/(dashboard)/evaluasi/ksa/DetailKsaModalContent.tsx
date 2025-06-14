@@ -41,7 +41,7 @@ export function DetailKsaModalContent({ kabupaten }: DetailProps) {
         });
         if (rpcError) throw rpcError;
         setData(detailData || []);
-      } catch (err: any) {
+      } catch (err: unknown) {
         setError("Gagal memuat rincian subsegmen.");
         console.error(err);
       } finally {

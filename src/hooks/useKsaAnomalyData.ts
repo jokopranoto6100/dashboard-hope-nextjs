@@ -41,7 +41,7 @@ export const useKsaAnomalyData = () => {
       if (rpcError) throw rpcError;
 
       setAnomalies(data || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error fetching KSA anomalies:", err);
       setError("Gagal memuat data anomali dari server.");
     } finally {

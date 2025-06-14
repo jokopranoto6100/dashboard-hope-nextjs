@@ -1,7 +1,7 @@
 // src/components/layout/main-layout.tsx
 'use client';
 
-import React, { useState, useEffect } from 'react'; // Import useState and useEffect
+import React, { useState, useEffect } from 'react';
 import NewSidebar from './NewSidebar';
 import { cn } from '@/lib/utils';
 import {
@@ -13,6 +13,9 @@ import {
 } from '@/components/ui/select';
 import { useYear } from '@/context/YearContext';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+
+import { useDarkMode } from '@/context/DarkModeContext';
+import { Moon, Sun } from 'lucide-react';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -33,6 +36,9 @@ export default function MainLayout({ children, isCollapsed, setIsCollapsed }: Ma
     setIsCollapsed(!open);
   };
 
+  // Dark mode hook
+  const { isDark, toggleDarkMode } = useDarkMode();
+
   return (
     <SidebarProvider 
       defaultOpen={!isCollapsed}
@@ -44,11 +50,12 @@ export default function MainLayout({ children, isCollapsed, setIsCollapsed }: Ma
 
         <div
           className={cn(
-            "flex flex-col min-h-screen", // Base classes
-            isCollapsed ? "ml-12" : "ml-64", // Margin based on state
-            mounted && "transition-all duration-200 ease-linear" // Apply transition only after mount
+            "flex flex-col min-h-screen",
+            isCollapsed ? "ml-12" : "ml-64",
+            mounted && "transition-all duration-200 ease-linear"
           )}
         >
+          {/* HEADER/TOPBAR */}
           <header className="flex items-center justify-between h-16 border-b bg-card px-4 lg:px-6 shadow-sm sticky top-0 z-30">
             <SidebarTrigger />
             <div className="flex items-center gap-4">
@@ -68,11 +75,21 @@ export default function MainLayout({ children, isCollapsed, setIsCollapsed }: Ma
                   ))}
                 </SelectContent>
               </Select>
+              {/* Tombol Toggle Dark Mode */}
+              <button
+                className="p-2 rounded-full border bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition"
+                onClick={toggleDarkMode}
+                aria-label="Toggle dark mode"
+                type="button"
+              >
+                {isDark ? <Sun size={20} /> : <Moon size={20} />}
+              </button>
             </div>
           </header>
 
+          {/* MAIN CONTENT */}
           <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 bg-muted/40 w-full">
-            {children}
+          {children}
           </main>
         </div>
       </div>

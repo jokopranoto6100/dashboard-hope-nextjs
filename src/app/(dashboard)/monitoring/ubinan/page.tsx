@@ -26,7 +26,7 @@ import {
   RowData,
 } from '@tanstack/react-table';
 
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { usePadiMonitoringData } from '@/hooks/usePadiMonitoringData';
 import { usePalawijaMonitoringData, PalawijaDataRow, PalawijaTotals } from '@/hooks/usePalawijaMonitoringData';
 
@@ -353,48 +353,73 @@ export default function UbinanMonitoringPage() {
                     )}
                   </TableBody>
                   {padiTotals && (
-                    <tfoot className="bg-gray-50 font-bold">
+                    <TableFooter>
                       <TableRow>
                         {padiTable.getVisibleLeafColumns().map(col => {
-                          const columnId = col.id as keyof PadiDataRow | 'nmkab'; 
+                          const columnId = col.id as keyof PadiDataRow | 'nmkab';
                           let displayValue: string | number | undefined;
                           let isPercentage = false;
 
-                          if (columnId === 'nmkab') displayValue = 'Total';
+                          if (columnId === 'nmkab') displayValue = 'Kalimantan Barat';
                           else if (columnId === 'persentase') {
                             const rawTotalPercentage = padiTotals.persentase;
-                            const totalPercentageValue = typeof rawTotalPercentage === 'string' ? parseFloat(rawTotalPercentage) : rawTotalPercentage;
-                            if (typeof totalPercentageValue === 'number' && !isNaN(totalPercentageValue)) {
+                            const totalPercentageValue =
+                              typeof rawTotalPercentage === 'string'
+                                ? parseFloat(rawTotalPercentage)
+                                : rawTotalPercentage;
+                            if (
+                              typeof totalPercentageValue === 'number' &&
+                              !isNaN(totalPercentageValue)
+                            ) {
                               displayValue = totalPercentageValue.toFixed(2);
                               isPercentage = true;
                             } else displayValue = '-';
-                          }
-                          else if (padiTotals[columnId as keyof PadiTotalsInterface] !== undefined && padiTotals[columnId as keyof PadiTotalsInterface] !== null) {
-                            displayValue = padiTotals[columnId as keyof PadiTotalsInterface] as string | number;
+                          } else if (
+                            padiTotals[columnId as keyof PadiTotalsInterface] !== undefined &&
+                            padiTotals[columnId as keyof PadiTotalsInterface] !== null
+                          ) {
+                            displayValue = padiTotals[columnId as keyof PadiTotalsInterface] as
+                              | string
+                              | number;
                           } else displayValue = '-';
 
                           return (
-                            <TableCell key={columnId + "_total_padi"} className={columnId === 'nmkab' ? 'px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-left' : 'px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center'} style={{ width: col.getSize(), minWidth: (col.columnDef as ColumnDef<PadiDataRow, unknown>).minSize ? `${(col.columnDef as ColumnDef<PadiDataRow, unknown>).minSize}px` : undefined }}>
-                              {isPercentage ? (
-                                (() => {
-                                  const rawNumericTotal = padiTotals.persentase;
-                                  const numericValue = typeof rawNumericTotal === 'string' ? parseFloat(rawNumericTotal) : rawNumericTotal;
-                                  if (typeof numericValue !== 'number' || isNaN(numericValue)) return <Badge variant="secondary">{displayValue === '-' ? '-' : `${displayValue}%`}</Badge>;
-                                  const showCheckmark = numericValue >= 100;
-                                  return (
-                                    // PATCH: Menggunakan komponen Badge
-                                    <Badge variant={getPercentageBadgeVariant(numericValue)}>
-                                      {showCheckmark && <CheckCircle2 />}
-                                      {displayValue}%
-                                    </Badge>
-                                  );
-                                })()
-                              ) : (displayValue)}
+                            <TableCell
+                              key={columnId + "_total_padi"}
+                              className={
+                                columnId === 'nmkab'
+                                  ? 'px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 text-left'
+                                  : 'px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 text-center'
+                              }
+                              style={{
+                                width: col.getSize(),
+                                minWidth: (col.columnDef as ColumnDef<PadiDataRow, unknown>)
+                                  .minSize
+                                  ? `${(col.columnDef as ColumnDef<PadiDataRow, unknown>).minSize}px`
+                                  : undefined,
+                              }}
+                            >
+                              {isPercentage ? (() => {
+                                const rawNumericTotal = padiTotals.persentase;
+                                const numericValue =
+                                  typeof rawNumericTotal === 'string'
+                                    ? parseFloat(rawNumericTotal)
+                                    : rawNumericTotal;
+                                if (typeof numericValue !== 'number' || isNaN(numericValue))
+                                  return <Badge variant="secondary">{displayValue === '-' ? '-' : `${displayValue}%`}</Badge>;
+                                const showCheckmark = numericValue >= 100;
+                                return (
+                                  <Badge variant={getPercentageBadgeVariant(numericValue)}>
+                                    {showCheckmark && <CheckCircle2 />}
+                                    {displayValue}%
+                                  </Badge>
+                                );
+                              })() : (displayValue)}
                             </TableCell>
                           );
                         })}
                       </TableRow>
-                    </tfoot>
+                    </TableFooter>
                   )}
                 </Table>
               </ScrollArea>
@@ -451,48 +476,66 @@ export default function UbinanMonitoringPage() {
                     )}
                   </TableBody>
                   {palawijaTotals && (
-                    <tfoot className="bg-gray-50 font-bold">
+                    <TableFooter>
                       <TableRow>
                         {palawijaTable.getVisibleLeafColumns().map(col => {
                           const columnId = col.id as keyof PalawijaDataRow | 'nmkab';
                           let displayValue: string | number | undefined;
                           let isPercentage = false;
 
-                          if (columnId === 'nmkab') displayValue = 'Total';
+                          if (columnId === 'nmkab') displayValue = 'Kalimantan Barat';
                           else if (columnId === 'persentase') {
                             const rawTotalPercentage = palawijaTotals.persentase;
-                            const totalPercentageValue = typeof rawTotalPercentage === 'string' ? parseFloat(rawTotalPercentage) : rawTotalPercentage;
+                            const totalPercentageValue = typeof rawTotalPercentage === 'string'
+                              ? parseFloat(rawTotalPercentage)
+                              : rawTotalPercentage;
                             if (typeof totalPercentageValue === 'number' && !isNaN(totalPercentageValue)) {
                               displayValue = totalPercentageValue.toFixed(2);
                               isPercentage = true;
                             } else displayValue = '-';
                           }
-                           else if (palawijaTotals[columnId as keyof PalawijaTotals] !== undefined && palawijaTotals[columnId as keyof PalawijaTotals] !== null) {
+                          else if (
+                            palawijaTotals[columnId as keyof PalawijaTotals] !== undefined &&
+                            palawijaTotals[columnId as keyof PalawijaTotals] !== null
+                          ) {
                             displayValue = palawijaTotals[columnId as keyof PalawijaTotals] as string | number;
                           } else displayValue = '-';
 
                           return (
-                            <TableCell key={columnId + "_total_palawija"} className={columnId === 'nmkab' ? 'px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-left' : 'px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center'} style={{ width: col.getSize(), minWidth: (col.columnDef as ColumnDef<PalawijaDataRow, unknown>).minSize ? `${(col.columnDef as ColumnDef<PalawijaDataRow, unknown>).minSize}px` : undefined }}>
-                               {isPercentage ? (
-                                (() => {
-                                  const rawNumericTotal = palawijaTotals.persentase;
-                                  const numericValue = typeof rawNumericTotal === 'string' ? parseFloat(rawNumericTotal) : rawNumericTotal;
-                                  if (typeof numericValue !== 'number' || isNaN(numericValue)) return <Badge variant="secondary">{displayValue === '-' ? '-' : `${displayValue}%`}</Badge>;
-                                  const showCheckmark = numericValue >= 100;
-                                  return (
-                                    // PATCH: Menggunakan komponen Badge
-                                    <Badge variant={getPercentageBadgeVariant(numericValue)}>
-                                      {showCheckmark && <CheckCircle2 />}
-                                      {displayValue}%
-                                    </Badge>
-                                  );
-                                })()
-                              ) : (displayValue)}
+                            <TableCell
+                              key={columnId + "_total_palawija"}
+                              className={
+                                columnId === 'nmkab'
+                                  ? 'px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 text-left'
+                                  : 'px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 text-center'
+                              }
+                              style={{
+                                width: col.getSize(),
+                                minWidth: (col.columnDef as ColumnDef<PalawijaDataRow, unknown>).minSize
+                                  ? `${(col.columnDef as ColumnDef<PalawijaDataRow, unknown>).minSize}px`
+                                  : undefined
+                              }}
+                            >
+                              {isPercentage ? (() => {
+                                const rawNumericTotal = palawijaTotals.persentase;
+                                const numericValue = typeof rawNumericTotal === 'string'
+                                  ? parseFloat(rawNumericTotal)
+                                  : rawNumericTotal;
+                                if (typeof numericValue !== 'number' || isNaN(numericValue))
+                                  return <Badge variant="secondary">{displayValue === '-' ? '-' : `${displayValue}%`}</Badge>;
+                                const showCheckmark = numericValue >= 100;
+                                return (
+                                  <Badge variant={getPercentageBadgeVariant(numericValue)}>
+                                    {showCheckmark && <CheckCircle2 />}
+                                    {displayValue}%
+                                  </Badge>
+                                );
+                              })() : (displayValue)}
                             </TableCell>
                           );
                         })}
                       </TableRow>
-                    </tfoot>
+                    </TableFooter>
                   )}
                 </Table>
                </ScrollArea>

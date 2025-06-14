@@ -2,6 +2,8 @@
 import React from 'react';
 import ClientLayoutWrapper from '../client-layout-wrapper'; //
 import { AuthProvider } from '@/context/AuthContext'; // <-- Impor AuthProvider
+import { DarkModeProvider } from '@/context/DarkModeContext'; // Import provider
+
 
 export default function DashboardLayout({
   children,
@@ -9,8 +11,10 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <AuthProvider> {/* Bungkus ClientLayoutWrapper dengan AuthProvider */}
-      <ClientLayoutWrapper>{children}</ClientLayoutWrapper> {/* */}
-    </AuthProvider>
+    <DarkModeProvider>
+      <AuthProvider> 
+        <ClientLayoutWrapper>{children}</ClientLayoutWrapper> {/* */}
+      </AuthProvider>
+    </DarkModeProvider>
   );
 }

@@ -50,7 +50,7 @@ export const useOfficerPerformanceData = (selectedMonth: string) => {
       if (rpcError) throw rpcError;
       setPerformanceData(data || []);
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error fetching officer performance:", err);
       setError("Gagal memuat data kinerja petugas dari server.");
     } finally {

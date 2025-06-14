@@ -113,21 +113,6 @@ export function EvaluasiUbinanClient() {
     meta: { kalimantanBaratData: kalbarStatsData, currentUnit },
   });
 
-  // Logika untuk tabel benih yang terpisah dihapus
-  // const memoizedBenihColumns = useMemo(() => benihColumns, []); // Hapus
-  // const memoizedBenihData = useMemo(() => benihPerKab, [benihPerKab]); // Hapus (benihPerKab tidak ada lagi)
-
-  // const benihTable = useReactTable({ // Hapus
-  //   data: memoizedBenihData,
-  //   columns: memoizedBenihColumns,
-  //   state: { sorting: sortingBenih },
-  //   onSortingChange: setSortingBenih,
-  //   getCoreRowModel: getCoreRowModel(),
-  //   getSortedRowModel: getSortedRowModel(),
-  //   manualPagination: false,
-  //   meta: { kalimantanBaratBenih }, // kalimantanBaratBenih tidak ada lagi
-  // });
-
   // Setup untuk tabel gabungan benih dan pupuk
   const memoizedBenihDanPupukColumns = useMemo(() => benihDanPupukColumns, []); // Gunakan kolom gabungan
   const memoizedBenihDanPupukData = useMemo(() => pupukDanBenihPerKab, [pupukDanBenihPerKab]); // Gunakan data gabungan
@@ -228,10 +213,20 @@ export function EvaluasiUbinanClient() {
                 {hasFooter && (
                   <TableFooter>
                     {tableInstance.getFooterGroups().map((footerGroup: any) => (
-                      <TableRow key={footerGroup.id} className="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 font-semibold">
+                      <TableRow
+                        key={footerGroup.id}
+                        className="bg-muted/50 dark:bg-muted/30 font-semibold"
+                      >
                         {footerGroup.headers.map((header: any) => (
-                          <TableCell key={header.id} scope="col" style={{ textAlign: 'center' }} className="whitespace-nowrap">
-                            {header.isPlaceholder ? null : flexRender(header.column.columnDef.footer, header.getContext())}
+                          <TableCell
+                            key={header.id}
+                            scope="col"
+                            style={{ textAlign: 'center' }}
+                            className="whitespace-nowrap text-gray-900 dark:text-gray-100"
+                          >
+                            {header.isPlaceholder
+                              ? null
+                              : flexRender(header.column.columnDef.footer, header.getContext())}
                           </TableCell>
                         ))}
                       </TableRow>
