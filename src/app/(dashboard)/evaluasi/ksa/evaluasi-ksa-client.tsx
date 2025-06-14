@@ -14,6 +14,7 @@ import { Area, AreaChart, CartesianGrid, Legend, Line, LineChart, ResponsiveCont
 import { ColumnDef, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DetailKsaModal } from './DetailKsaModal';
+import { OfficerPerformanceTab } from './OfficerPerformanceTab';
 
 // --- Impor komponen baru ---
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -132,10 +133,12 @@ export function EvaluasiKsaClient() {
 
             {/* --- Implementasi Tabs --- */}
             <Tabs defaultValue="visualisasi" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="visualisasi">Visualisasi Utama</TabsTrigger>
-                <TabsTrigger value="validator">Validator Anomali</TabsTrigger>
-              </TabsList>
+                {/* --- Ubah grid-cols-2 menjadi grid-cols-3 dan tambahkan trigger baru --- */}
+                <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="visualisasi">Gambaran Umum</TabsTrigger>
+                    <TabsTrigger value="validator">Anomali Amatan</TabsTrigger>
+                    <TabsTrigger value="kinerja">Kinerja Petugas</TabsTrigger>
+                </TabsList>
 
               {/* --- Konten untuk Tab Visualisasi (Konten Lama) --- */}
               <TabsContent value="visualisasi">
@@ -160,6 +163,11 @@ export function EvaluasiKsaClient() {
               {/* --- Konten untuk Tab Validator Anomali --- */}
               <TabsContent value="validator">
                 <AnomalyValidatorTab />
+              </TabsContent>
+
+              {/* --- Tambahkan TabsContent baru di sini --- */}
+              <TabsContent value="kinerja">
+                <OfficerPerformanceTab />
               </TabsContent>
             </Tabs>
             
