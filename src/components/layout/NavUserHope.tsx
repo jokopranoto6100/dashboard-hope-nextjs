@@ -1,4 +1,3 @@
-// Lokasi: src/components/layout/NavUserHope.tsx
 'use client';
 
 import * as React from 'react';
@@ -25,18 +24,25 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { Skeleton } from "@/components/ui/skeleton";
 
-export function NavUserHope() {
+// PATCH: Tambah prop onNavigate
+interface NavUserHopeProps {
+  user?: { name: string; email: string };
+  onNavigate?: () => void;
+}
+
+export function NavUserHope({ onNavigate }: NavUserHopeProps) {
   const router = useRouter();
-  const { userData, userRole, logout, isLoading } = useAuth(); // Data dari useAuth sekarang sudah kaya!
+  const { userData, userRole, logout, isLoading } = useAuth();
   const { open, isMobile } = useSidebar();
 
   const handleLogout = async () => {
     await logout();
+    if (onNavigate) onNavigate();
     router.push('/auth/login');
   };
 
   const getInitials = (name: string) => {
-    if (!name) return '??'; // Handle jika nama kosong
+    if (!name) return '??';
     const names = name.split(' ');
     let initials = names[0].substring(0, 1).toUpperCase();
     if (names.length > 1) {
@@ -64,10 +70,9 @@ export function NavUserHope() {
   }
 
   if (!userData) {
-    return null; // Tidak menampilkan apa-apa jika tidak ada sesi
+    return null;
   }
 
-  // PATCH: Semua referensi ke `userData.name` sekarang menjadi `userData.fullname`
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -85,7 +90,6 @@ export function NavUserHope() {
               </Avatar>
               {open && (
                 <div className="grid flex-1 text-sm leading-tight">
-                  {/* Di sini perubahannya */}
                   <span className="truncate font-semibold">{userData.fullname}</span>
                   <span className="truncate text-xs text-muted-foreground">
                     {userData.email}
@@ -110,7 +114,6 @@ export function NavUserHope() {
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  {/* Dan di sini juga perubahannya */}
                   <span className="truncate font-semibold">{userData.fullname}</span>
                   <span className="truncate text-xs text-muted-foreground">
                     {userData.email}
@@ -120,14 +123,14 @@ export function NavUserHope() {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link href="/profil" className="flex items-center w-full cursor-pointer">
+              <Link href="/profil" className="flex items-center w-full cursor-pointer" onClick={onNavigate}>
                 <UserIcon className="mr-2 h-4 w-4 shrink-0" />
                 <span>Profil</span>
               </Link>
             </DropdownMenuItem>
             {userRole === 'super_admin' && (
               <DropdownMenuItem asChild>
-                <Link href="/pengguna" className="flex items-center w-full cursor-pointer">
+                <Link href="/pengguna" className="flex items-center w-full cursor-pointer" onClick={onNavigate}>
                   <Settings className="mr-2 h-4 w-4 shrink-0" />
                   <span>Manajemen Pengguna</span>
                 </Link>
