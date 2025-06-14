@@ -21,9 +21,8 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { User, Clock, AlertCircle, ArrowUpDown, TrendingUp, TrendingDown } from "lucide-react";
+import { User, Clock, AlertCircle, ArrowUpDown, TrendingDown, CheckCircle2 } from "lucide-react";
 
-// Helper untuk menampilkan nama bulan
 const NAMA_BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
 function NoDataDisplay({ message }: { message: string }) {
@@ -34,15 +33,9 @@ function NoDataDisplay({ message }: { message: string }) {
     );
 }
 
-// Definisi kolom tabel
 const columns: ColumnDef<OfficerPerformanceData>[] = [
     { accessorKey: "nama_petugas", header: ({ column }) => (<Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>Nama Petugas<ArrowUpDown className="ml-2 h-4 w-4" /></Button>), cell: ({ row }) => <div className="font-medium">{row.getValue("nama_petugas")}</div> },
     { accessorKey: "kabupaten", header: () => <div className="text-center">Kabupaten</div>, cell: ({ row }) => <div className="text-center">{row.getValue("kabupaten")}</div> },
-    { 
-        accessorKey: "total_entri", 
-        header: () => <div className="text-center">Total Entri</div>, 
-        cell: ({ row }) => <div className="text-center font-mono">{row.getValue("total_entri")}</div> 
-      },
     { id: "rentang_kerja", header: () => <div className="text-center">Rentang Kerja</div>, cell: ({ row }) => {
         const tglMulai = new Date(row.original.tanggal_mulai);
         const tglSelesai = new Date(row.original.tanggal_selesai);
@@ -95,18 +88,25 @@ export function OfficerPerformanceTab() {
   const { performanceData, error } = useOfficerPerformanceData(selectedMonth);
 
   const kpiData = useMemo(() => {
-    const data = performanceData; 
-    if (!data || data.length === 0) {
-      return { totalPetugas: 0, petugasTerlama: { name: '-', durasi: 0 }, petugasTercepat: { name: '-', durasi: 0 }, petugasTeratas: { name: '-', tingkat: 0 } };
+    if (!performanceData || performanceData.length === 0) {
+      return { totalPetugas: 0, petugasTerlama: { name: '-', durasi: 0 }, petugasTercepat: { name: '-' }, petugasTeratas: { name: '-', tingkat: 0 } };
     }
-    const totalPetugas = new Set(data.map(p => p.nama_petugas)).size;
-    const petugasTerlama = [...data].sort((a, b) => (b.durasi_hari || 0) - (a.durasi_hari || 0))[0];
-    const petugasTercepat = [...data].filter(p => (p.durasi_hari || 0) > 0).sort((a, b) => (a.durasi_hari || 0) - (b.durasi_hari || 0))[0];
-    const petugasTeratas = [...data].sort((a, b) => (b.tingkat_anomali || 0) - (a.tingkat_anomali || 0))[0];
+    
+    const totalPetugas = new Set(performanceData.map(p => p.nama_petugas)).size;
+    
+    const petugasTerlama = [...performanceData].sort((a, b) => (b.durasi_hari || 0) - (a.durasi_hari || 0))[0];
+    
+    // "Tercepat" adalah yang tanggal_selesai-nya paling awal
+    const petugasTercepat = [...performanceData]
+      .filter(p => p.tanggal_selesai)
+      .sort((a, b) => new Date(a.tanggal_selesai).getTime() - new Date(b.tanggal_selesai).getTime())[0];
+
+    const petugasTeratas = [...performanceData].sort((a, b) => (b.tingkat_anomali || 0) - (a.tingkat_anomali || 0))[0];
+
     return {
       totalPetugas,
       petugasTerlama: { name: petugasTerlama.nama_petugas, durasi: petugasTerlama.durasi_hari || 0 },
-      petugasTercepat: petugasTercepat ? { name: petugasTercepat.nama_petugas, durasi: petugasTercepat.durasi_hari || 0 } : { name: '-', durasi: 0 },
+      petugasTercepat: petugasTercepat ? { name: petugasTercepat.nama_petugas } : { name: '-' },
       petugasTeratas: { name: petugasTeratas.nama_petugas, tingkat: petugasTeratas.tingkat_anomali || 0 },
     };
   }, [performanceData]);
@@ -128,23 +128,25 @@ export function OfficerPerformanceTab() {
     <div className="pt-4 space-y-4">
       <div className="grid gap-4 md:grid-cols-3">
         <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Total Petugas Aktif</CardTitle><User className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{kpiData.totalPetugas}</div><p className="text-xs text-muted-foreground">petugas pada periode ini</p></CardContent></Card>
+        
         <Card>
             <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium flex items-center gap-2"><Clock className="h-4 w-4 text-muted-foreground" />Rentang Durasi Pengerjaan</CardTitle>
+                <CardTitle className="text-sm font-medium flex items-center gap-2"><Clock className="h-4 w-4 text-muted-foreground" />Kinerja Waktu Pengerjaan</CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-2 gap-4 text-center">
                 <div>
-                    <p className="text-xs text-muted-foreground flex items-center justify-center gap-1"><TrendingDown className="h-4 w-4 text-red-500"/> Terlama</p>
+                    <p className="text-xs text-muted-foreground flex items-center justify-center gap-1"><TrendingDown className="h-4 w-4 text-orange-500"/> Terlama</p>
                     <p className="text-lg font-bold">{kpiData.petugasTerlama.name}</p>
-                    <p className="text-xs font-semibold">{kpiData.petugasTerlama.durasi} hari</p>
+                    <p className="text-xs font-semibold">{kpiData.petugasTerlama.durasi} hari rentang kerja</p>
                 </div>
                 <div className="border-l pl-4">
-                    <p className="text-xs text-muted-foreground flex items-center justify-center gap-1"><TrendingUp className="h-4 w-4 text-green-500"/> Tercepat</p>
+                    <p className="text-xs text-muted-foreground flex items-center justify-center gap-1"><CheckCircle2 className="h-4 w-4 text-green-500"/> Tercepat</p>
                     <p className="text-lg font-bold">{kpiData.petugasTercepat.name}</p>
-                    <p className="text-xs font-semibold">{kpiData.petugasTercepat.durasi} hari</p>
+                    <p className="text-xs font-semibold">Selesai paling awal</p>
                 </div>
             </CardContent>
         </Card>
+        
         <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Tingkat Anomali Tertinggi</CardTitle><AlertCircle className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{kpiData.petugasTeratas.tingkat}%</div><p className="text-xs text-muted-foreground">oleh {kpiData.petugasTeratas.name}</p></CardContent></Card>
       </div>
       

@@ -14,7 +14,8 @@ export interface OfficerPerformanceData {
   total_anomali: number;
   tingkat_anomali: number;
   durasi_hari: number;
-  tanggal_mulai: string; // Tanggal dari DB biasanya string
+  durasi_detik_presisi: number; // Tambahkan ini
+  tanggal_mulai: string;
   tanggal_selesai: string;
   rincian_anomali: Record<string, number>;
 }
