@@ -34,13 +34,53 @@ function NoDataDisplay({ message }: { message: string }) {
 }
 
 const columns: ColumnDef<OfficerPerformanceData>[] = [
-    { accessorKey: "nama_petugas", header: ({ column }) => (<Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>Nama Petugas<ArrowUpDown className="ml-2 h-4 w-4" /></Button>), cell: ({ row }) => <div className="font-medium">{row.getValue("nama_petugas")}</div> },
-    { accessorKey: "kabupaten", header: () => <div className="text-center">Kabupaten</div>, cell: ({ row }) => <div className="text-center">{row.getValue("kabupaten")}</div> },
-    { accessorKey: "bulan", header: ({ column }) => (<div className="text-center w-full"><Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>Bulan<ArrowUpDown className="ml-2 h-4 w-4" /></Button></div>), cell: ({ row }) => <div className="text-center font-mono">{NAMA_BULAN[row.getValue<number>("bulan") - 1]}</div> },
-    { accessorKey: "total_entri", header: () => <div className="text-center">Total Subsegmen</div>, cell: ({ row }) => <div className="text-center font-mono">{row.getValue("total_entri")}</div> },
-    { accessorKey: "tingkat_anomali", header: ({ column }) => (<div className="text-center w-full"><Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>Tingkat Anomali (%)<ArrowUpDown className="ml-2 h-4 w-4" /></Button></div>), cell: ({ row }) => <div className="text-center font-semibold">{row.getValue("tingkat_anomali")}%</div> },
-    { accessorKey: "durasi_hari", header: ({ column }) => (<div className="text-center w-full"><Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>Durasi (hari)<ArrowUpDown className="ml-2 h-4 w-4" /></Button></div>), cell: ({ row }) => <div className="text-center">{row.getValue("durasi_hari")}</div> },
-    { accessorKey: "rincian_anomali", header: () => <div className="text-center">Rincian Anomali</div>, cell: ({ row }) => ( <div className="text-xs text-center space-x-2">{Object.entries(row.getValue("rincian_anomali") as Record<string, number>).map(([key, value]) => (<span key={key}>{key}:<b>{value}</b></span>))}</div>), enableSorting: false },
+    { 
+      accessorKey: "nama_petugas", 
+      header: ({ column }) => (<Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>Nama Petugas<ArrowUpDown className="ml-2 h-4 w-4" /></Button>), 
+      cell: ({ row }) => <div className="font-medium">{row.getValue("nama_petugas")}</div> 
+    },
+    { 
+      accessorKey: "kabupaten", 
+      header: () => <div className="text-center">Kabupaten</div>, 
+      cell: ({ row }) => <div className="text-center">{row.getValue("kabupaten")}</div> 
+    },
+    { 
+      accessorKey: "total_entri", 
+      header: () => <div className="text-center">Total Entri</div>, 
+      cell: ({ row }) => <div className="text-center font-mono">{row.getValue("total_entri")}</div> 
+    },
+    // --- KOLOM TANGGAL MULAI & SELESAI DIGABUNG MENJADI SATU DI SINI ---
+    { 
+      id: "rentang_kerja", // ID unik untuk kolom baru
+      header: () => <div className="text-center">Rentang Kerja</div>, 
+      cell: ({ row }) => {
+        const tglMulai = new Date(row.original.tanggal_mulai);
+        const tglSelesai = new Date(row.original.tanggal_selesai);
+
+        const hariMulai = tglMulai.getDate();
+        const hariSelesai = tglSelesai.getDate();
+        // Ambil nama bulan dari salah satu tanggal
+        const namaBulan = tglMulai.toLocaleDateString('id-ID', { month: 'short' });
+
+        // Jika tanggal mulai dan selesai sama, tampilkan satu tanggal saja
+        if (hariMulai === hariSelesai) {
+          return <div className="text-center">{`${hariMulai} ${namaBulan}`}</div>;
+        }
+
+        // Jika berbeda, tampilkan sebagai rentang
+        return <div className="text-center">{`${hariMulai} - ${hariSelesai} ${namaBulan}`}</div>;
+      },
+    },
+    { 
+      accessorKey: "durasi_hari", 
+      header: ({ column }) => (<div className="text-center w-full"><Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>Durasi (hari)<ArrowUpDown className="ml-2 h-4 w-4" /></Button></div>),
+      cell: ({ row }) => <div className="text-center">{row.getValue("durasi_hari")}</div> 
+    },
+    { 
+      accessorKey: "tingkat_anomali", 
+      header: ({ column }) => (<div className="text-center w-full"><Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>Tingkat Anomali (%)<ArrowUpDown className="ml-2 h-4 w-4" /></Button></div>),
+      cell: ({ row }) => <div className="text-center font-semibold">{row.getValue("tingkat_anomali")}%</div> 
+    },
 ];
 
 export function OfficerPerformanceTab() {
@@ -51,7 +91,10 @@ export function OfficerPerformanceTab() {
   const [availableMonths, setAvailableMonths] = useState<number[]>([]);
   const [selectedMonth, setSelectedMonth] = useState<string>('0'); 
   const [isMonthLoading, setIsMonthLoading] = useState(true);
-  const [sorting, setSorting] = useState<SortingState>([{ id: 'nama_petugas', desc: false }, { id: 'bulan', desc: false }]);
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: 'durasi_hari', desc: true },
+    { id: 'nama_petugas', desc: false }
+  ]);
 
   useEffect(() => {
     async function fetchAvailableMonths() {
