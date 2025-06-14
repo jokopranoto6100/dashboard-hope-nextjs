@@ -61,7 +61,8 @@ export function DataTable<TData, TValue>({
             className="max-w-sm"
             />
       </div>
-      <div className="rounded-md border">
+      {/* ✅ PERBAIKAN UTAMA DI SINI */}
+      <div className="relative w-full overflow-x-auto rounded-md border">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (

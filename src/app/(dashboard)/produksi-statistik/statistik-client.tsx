@@ -263,12 +263,7 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
   return (
     <div className="space-y-6">
       <div className="p-4 border rounded-lg bg-slate-50 dark:bg-slate-800/50 space-y-4">
-          {/* --- AWAL PERUBAIKAN --- */}
-          {/* Container utama untuk baris filter dan tombol, dibuat responsif */}
-          <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-start sm:justify-between">
-
-            {/* Grup untuk semua filter di sisi kiri */}
-            <div className="flex flex-wrap items-center gap-4">
+          <div className="flex flex-wrap items-end gap-4">
               <div>
                 <Label htmlFor="filter-bulan" className="mb-1.5 block text-xs font-medium text-muted-foreground">Periode Bulan</Label>
                 <Select value={filters.bulan} onValueChange={(v) => handleFilterChange('bulan', v)}>
@@ -304,24 +299,20 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
                 <Select value={filters.tahunPembanding} onValueChange={(v) => handleFilterChange('tahunPembanding', v)}>
                   <SelectTrigger id="filter-tahun-pembanding"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="tidak">Tidak ada perbandingan</SelectItem>
+                    <SelectItem value="tidak">-</SelectItem>
                     <Separator className="my-1"/>
                     {generateYears().filter(y => y !== selectedYear.toString()).map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-
-            {/* Tombol Simpan Tampilan di sisi kanan */}
-            <div className="flex-shrink-0 self-end sm:self-start">
-              <SavePresetDialog onSave={handleSavePreset} />
-            </div>
+              
+              <div className="flex-shrink-0">
+                <SavePresetDialog onSave={handleSavePreset} />
+              </div>
           </div>
-          {/* --- AKHIR PERUBAIKAN --- */}
 
-          {/* Bagian untuk Tampilan Tersimpan (tidak berubah) */}
           {presets.length > 0 && (
-            <div>
+            <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
               <Label className="text-xs text-muted-foreground">Tampilan Tersimpan</Label>
               <div className="flex flex-wrap gap-2 mt-2">
                 {presets.map(preset => (
@@ -349,6 +340,7 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
         <div className="grid gap-6">
             <div className="grid gap-4 md:grid-cols-3">
                 <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Total Nilai ({filters.level === 'provinsi' ? 'Provinsi' : 'Semua Kab/Kota'})</CardTitle><TrendingUp className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="text-2xl font-bold">{formatNumber(processedData.kpi.total)}</div>{processedData.kpi.percentageChange !== null && isFinite(processedData.kpi.percentageChange) && (<Badge variant={processedData.kpi.percentageChange >= 0 ? 'default' : 'destructive'} className="flex items-center gap-1 text-xs mt-1 w-fit">{processedData.kpi.percentageChange >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}<span>{processedData.kpi.percentageChange.toFixed(2)}% vs thn pembanding</span></Badge>)}<p className="text-xs text-muted-foreground mt-2">{processedData.kpi.satuan}</p></CardContent></Card>
+                
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
                         <CardTitle className="text-sm font-medium">Wilayah Tertinggi & Terendah</CardTitle>
@@ -356,40 +348,43 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
                     </CardHeader>
                     <CardContent className="space-y-2">
                         <div className="flex items-start justify-between">
-                            <div className="flex items-center gap-2">
-                                <div className="p-1.5 bg-emerald-100 dark:bg-emerald-900 rounded-md">
+                            {/* ✅ PERBAIKAN DI SINI */}
+                            <div className="flex items-center gap-2 min-w-0">
+                                <div className="p-1.5 bg-emerald-100 dark:bg-emerald-900 rounded-md flex-shrink-0">
                                     <TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                                 </div>
-                                <div>
+                                <div className="min-w-0">
                                     <p className="text-xs text-muted-foreground">Tertinggi</p>
-                                    <p className="text-sm font-semibold">{processedData.kpi.wilayahTertinggi?.name || '-'}</p>
+                                    <p className="text-sm font-semibold truncate" title={processedData.kpi.wilayahTertinggi?.name || ''}>
+                                        {processedData.kpi.wilayahTertinggi?.name || '-'}
+                                    </p>
                                 </div>
                             </div>
-                            {/* +++ PERUBAHAN DI SINI +++ */}
-                            <p className="text-sm font-bold">
+                            <p className="text-sm font-bold flex-shrink-0 pl-2">
                               {formatNumber(Number(processedData.kpi.wilayahTertinggi?.[selectedYear.toString()] || 0))}
-                              <span className="ml-1.5 font-normal text-muted-foreground">{processedData.kpi.satuan}</span>
                             </p>
                         </div>
                         {processedData.kpi.wilayahTerendah && (
                         <div className="flex items-start justify-between">
-                            <div className="flex items-center gap-2">
-                                <div className="p-1.5 bg-red-100 dark:bg-red-900 rounded-md">
+                            {/* ✅ PERBAIKAN DI SINI */}
+                            <div className="flex items-center gap-2 min-w-0">
+                                <div className="p-1.5 bg-red-100 dark:bg-red-900 rounded-md flex-shrink-0">
                                     <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />
                                 </div>
-                                <div>
+                                <div className="min-w-0">
                                     <p className="text-xs text-muted-foreground">Terendah</p>
-                                    <p className="text-sm font-semibold">{processedData.kpi.wilayahTerendah?.name || '-'}</p>
+                                    <p className="text-sm font-semibold truncate" title={processedData.kpi.wilayahTerendah?.name || ''}>
+                                        {processedData.kpi.wilayahTerendah?.name || '-'}
+                                    </p>
                                 </div>
                             </div>
-                            {/* +++ PERUBAHAN DI SINI +++ */}
-                            <p className="text-sm font-bold">
+                            <p className="text-sm font-bold flex-shrink-0 pl-2">
                               {formatNumber(Number(processedData.kpi.wilayahTerendah?.[selectedYear.toString()] || 0))}
-                              <span className="ml-1.5 font-normal text-muted-foreground">{processedData.kpi.satuan}</span>
                             </p>
                         </div>)}
                     </CardContent>
-                </Card>                
+                </Card>     
+
                 <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Jumlah Wilayah</CardTitle><Map className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="text-2xl font-bold">{processedData.kpi.jumlahWilayah}</div><p className="text-xs text-muted-foreground">Wilayah dengan data</p></CardContent></Card>
             </div>
           
