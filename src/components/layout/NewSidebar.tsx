@@ -84,10 +84,7 @@ export default function NewSidebar({ mobile = false, onNavigate }: NewSidebarPro
     ? { name: userSession.username, email: userSession.email }
     : null;
 
-  // ✅ PATCH: Render struktur yang berbeda untuk mobile
-  // Untuk mobile, kita hanya butuh kontennya, bukan wrapper sidebar yang `position: fixed`
   if (mobile) {
-    // Tampilan Loading Skeleton khusus untuk mobile drawer
     if (isLoadingSession && !userSession) {
        return (
          <div className="flex flex-col h-full px-3 py-2">

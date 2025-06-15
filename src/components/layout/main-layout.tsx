@@ -13,8 +13,6 @@ import {
 import { useYear } from '@/context/YearContext';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { useDarkMode } from '@/context/DarkModeContext';
-// ✅ Pastikan X diimpor jika masih digunakan di tempat lain, atau hapus jika tidak.
-// Untuk kasus ini, kita tidak membutuhkannya lagi di file ini.
 import { Moon, Sun, Menu } from 'lucide-react'; 
 
 import {
@@ -61,7 +59,6 @@ export default function MainLayout({ children, isCollapsed, setIsCollapsed }: Ma
 
         <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
           <SheetContent side="left" className="p-0 w-[260px] max-w-[90vw] bg-background flex flex-col">
-            {/* ✅ PATCH: Menghapus tombol close manual dan menyederhanakan header */}
             <SheetHeader className="h-16 px-4 border-b flex items-center">
               <SheetTitle>
                 <span className="font-bold">Menu</span>
