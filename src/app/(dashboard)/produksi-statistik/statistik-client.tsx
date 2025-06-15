@@ -1,7 +1,7 @@
 // Lokasi: src/app/(dashboard)/produksi-statistik/statistik-client.tsx
 "use client";
 
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef } from "react";
 import dynamic from 'next/dynamic';
 import { useYear } from "@/context/YearContext";
 import { useAtapStatistikData } from "@/hooks/useAtapStatistikData";
@@ -24,6 +24,8 @@ import { toast } from "sonner";
 import { DataTable } from './data-table';
 import { getColumns, AugmentedAtapDataPoint } from './columns';
 import { AnnotationSheet } from './annotation-sheet'; 
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+
 
 const BarChartWrapper = dynamic(() => import('./bar-chart-wrapper'), { ssr: false, loading: () => <Skeleton className="w-full h-[300px]" /> });
 const LineChartWrapper = dynamic(() => import('./line-chart-wrapper'), { ssr: false, loading: () => <Skeleton className="w-full h-[300px]" /> });
@@ -35,6 +37,9 @@ interface Annotation {
   id: number; created_at: string; user_id: string; komentar: string; id_indikator: number;
   tahun: number; bulan: number | null; kode_wilayah: string | null; user_fullname: string | null;
 }
+
+// --- FITUR SUBROUND: Tipe data untuk tampilan waktu ---
+type TimeDataView = 'bulanan' | 'subround';
 
 const KABUPATEN_MAP: { [key: string]: string } = { "6101": "Sambas", "6102": "Bengkayang", "6103": "Landak", "6104": "Mempawah", "6105": "Sanggau", "6106": "Ketapang", "6107": "Sintang", "6108": "Kapuas Hulu", "6109": "Sekadau", "6110": "Melawi", "6111": "Kayong Utara", "6112": "Kubu Raya", "6171": "Pontianak", "6172": "Singkawang" };
 const MONTH_NAMES: { [key: string]: string } = { "1": "Jan", "2": "Feb", "3": "Mar", "4": "Apr", "5": "Mei", "6": "Jun", "7": "Jul", "8": "Agu", "9": "Sep", "10": "Okt", "11": "Nov", "12": "Des" };
@@ -61,11 +66,16 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
   const [isAnnotationSheetOpen, setIsAnnotationSheetOpen] = useState(false);
   const [selectedAnnotationPoint, setSelectedAnnotationPoint] = useState<any | null>(null);
   const [showLineChartLabels, setShowLineChartLabels] = useState(false);
+  // --- FITUR SUBROUND: State untuk mengontrol tampilan waktu ---
+  const [timeDataView, setTimeDataView] = useState<TimeDataView>('bulanan');
 
   const debouncedFilters = useDebounce(filters, 500);
 
   const handleFilterChange = (key: keyof Omit<FilterState, 'idIndikator'>, value: string) => {
     setSelectedKabupaten(null);
+    // --- FITUR SUBROUND: Reset tampilan ke bulanan jika filter utama diubah ---
+    setTimeDataView('bulanan'); 
+    
     if (key === 'indikatorNama') {
         const selectedIndicator = availableIndicators.find(i => i.nama_resmi === value);
         setFilters(prev => ({ ...prev, indikatorNama: selectedIndicator?.nama_resmi || '', idIndikator: selectedIndicator?.id || null }));
@@ -118,23 +128,25 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
     const augmentedTableData: AugmentedAtapDataPoint[] = mainData.map(d => { const nilaiTahunIni = d.nilai; const nilaiTahunLalu = compareData.find(p => p.kode_wilayah === d.kode_wilayah)?.nilai; const kontribusi = totalNilai > 0 ? (nilaiTahunIni / totalNilai) * 100 : 0; let pertumbuhan: number | null = null; if (nilaiTahunLalu !== undefined && nilaiTahunLalu > 0) { pertumbuhan = ((nilaiTahunIni - nilaiTahunLalu) / nilaiTahunLalu) * 100; } else if (nilaiTahunLalu !== undefined && nilaiTahunIni > 0) { pertumbuhan = Infinity; } return { ...d, nama_wilayah: KABUPATEN_MAP[d.kode_wilayah] || 'Provinsi', kontribusi, nilaiTahunLalu, pertumbuhan }; }).sort((a,b) => b.nilai - a.nilai);
     const pieChartData = augmentedTableData.map(d => ({ name: d.nama_wilayah, value: d.nilai || 0 }));
     const barChartData = augmentedTableData.map(d => { const barAnnotations = annotations?.filter(a => a.kode_wilayah === d.kode_wilayah && (filters.bulan === 'tahunan' ? a.bulan === null : a.bulan === parseInt(filters.bulan))) || []; return { name: d.nama_wilayah, kode_wilayah: d.kode_wilayah, [selectedYear.toString()]: d.nilai, ...(d.nilaiTahunLalu && { [filters.tahunPembanding]: d.nilaiTahunLalu }), annotations: barAnnotations }; });
-    const lineChartData = Array.from({ length: 12 }, (_, i) => i + 1).map(monthNum => { const monthStr = monthNum.toString(); const mainDataPoint = lineChartRawData?.mainData?.find(d => d.bulan?.toString() === monthStr); const compareDataPoint = lineChartRawData?.compareData?.find(d => d.bulan?.toString() === monthStr); const monthAnnotations = annotations?.filter(a => a.bulan === monthNum && a.kode_wilayah === (selectedKabupaten ? selectedKabupaten : null)) || []; return { name: MONTH_NAMES[monthStr], [selectedYear.toString()]: mainDataPoint?.nilai ?? null, ...(filters.tahunPembanding !== 'tidak' && { [filters.tahunPembanding]: compareDataPoint?.nilai ?? null }), annotations: monthAnnotations, kode_wilayah: selectedKabupaten }; });
-    const wilayahTertinggi = barChartData[0] || null; const wilayahTerendah = barChartData.length > 1 ? barChartData[barChartData.length - 1] : null; 
-    let percentageChange: number | null = null; 
-    if (filters.tahunPembanding !== 'tidak' && totalNilaiPembanding > 0) { percentageChange = ((totalNilai - totalNilaiPembanding) / totalNilaiPembanding) * 100; } else if (totalNilai > 0) { percentageChange = Infinity; }
+    
+    // --- FITUR SUBROUND: Logika untuk menyiapkan data bulanan dan subround ---
+    const monthlyLineChartData = Array.from({ length: 12 }, (_, i) => i + 1).map(monthNum => { const monthStr = monthNum.toString(); const mainDataPoint = lineChartRawData?.mainData?.find(d => d.bulan?.toString() === monthStr); const compareDataPoint = lineChartRawData?.compareData?.find(d => d.bulan?.toString() === monthStr); const monthAnnotations = annotations?.filter(a => a.bulan === monthNum && a.kode_wilayah === (selectedKabupaten ? selectedKabupaten : null)) || []; return { name: MONTH_NAMES[monthStr], [selectedYear.toString()]: mainDataPoint?.nilai ?? null, ...(filters.tahunPembanding !== 'tidak' && { [filters.tahunPembanding]: compareDataPoint?.nilai ?? null }), annotations: monthAnnotations, kode_wilayah: selectedKabupaten }; });
+
+    const subroundTemplate: { name: string; main: number; compare: number; annotations: Annotation[] }[] = [ { name: 'Subround 1', main: 0, compare: 0, annotations: [] }, { name: 'Subround 2', main: 0, compare: 0, annotations: [] }, { name: 'Subround 3', main: 0, compare: 0, annotations: [] }, ];
+    const subroundResult = JSON.parse(JSON.stringify(subroundTemplate));
+    const aggregateData = (sourceData: any[], target: typeof subroundTemplate, key: 'main' | 'compare') => { sourceData.forEach(d => { if (!d.bulan) return; if (d.bulan <= 4) target[0][key] += d.nilai || 0; else if (d.bulan <= 8) target[1][key] += d.nilai || 0; else if (d.bulan <= 12) target[2][key] += d.nilai || 0; }); };
+    aggregateData(lineChartRawData?.mainData || [], subroundResult, 'main');
+    aggregateData(lineChartRawData?.compareData || [], subroundResult, 'compare');
+    const subroundChartData = subroundResult.map(d => ({ name: d.name, [selectedYear.toString()]: d.main, ...(filters.tahunPembanding !== 'tidak' && { [filters.tahunPembanding]: d.compare }), annotations: d.annotations }));
+
+    const lineChartData = timeDataView === 'subround' ? subroundChartData : monthlyLineChartData;
+    
+    const wilayahTertinggi = barChartData[0] || null; const wilayahTerendah = barChartData.length > 1 ? barChartData[barChartData.length - 1] : null; let percentageChange: number | null = null; if (filters.tahunPembanding !== 'tidak' && totalNilaiPembanding > 0) { percentageChange = ((totalNilai - totalNilaiPembanding) / totalNilaiPembanding) * 100; } else if (totalNilai > 0) { percentageChange = Infinity; }
     
     return { kpi: { total: totalNilai, totalPembanding: totalNilaiPembanding, satuan: mainData[0]?.satuan || '', wilayahTertinggi, wilayahTerendah, jumlahWilayah: new Set(mainData.map(d => d.kode_wilayah)).size, percentageChange }, barChart: barChartData, lineChart: lineChartData, pieChart: pieChartData, tableData: augmentedTableData };
-  }, [data, dataPembanding, lineChartRawData, annotations, selectedYear, filters.bulan, filters.tahunPembanding, selectedKabupaten]);
+  }, [data, dataPembanding, lineChartRawData, annotations, selectedYear, filters.bulan, filters.tahunPembanding, selectedKabupaten, timeDataView]);
   
-  const tableColumns = useMemo(() => 
-    getColumns(
-      selectedYear, 
-      filters.tahunPembanding, 
-      processedData.kpi.total, 
-      processedData.kpi.totalPembanding
-    ), 
-    [selectedYear, filters.tahunPembanding, processedData.kpi.total, processedData.kpi.totalPembanding]
-  );
+  const tableColumns = useMemo(() => getColumns(selectedYear, filters.tahunPembanding, processedData.kpi.total, processedData.kpi.totalPembanding), [selectedYear, filters.tahunPembanding, processedData.kpi.total, processedData.kpi.totalPembanding]);
 
   const handleChartClick = (payload: any) => { if (!payload) return; setSelectedAnnotationPoint(payload); setIsAnnotationSheetOpen(true); };
   
@@ -209,11 +221,38 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
                       <CardTitle>Tren Waktu Bulanan: {filters.indikatorNama}</CardTitle>
                       <CardDescription className="mt-1">{`${selectedKabupaten ? `Data untuk ${KABUPATEN_MAP[selectedKabupaten]}` : 'Data level Provinsi'}, tahun ${selectedYear}${filters.tahunPembanding !== 'tidak' ? ` vs ${filters.tahunPembanding}`: ''}`}</CardDescription>
                     </div>
+                    
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setShowLineChartLabels(prev => !prev)} aria-label="Toggle Nilai"><Baseline className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleExportChart(lineChartCardRef, 'tren_waktu')}><Camera className="h-4 w-4" /></Button>
-                  </div>
+                  {/* --- REVISI UTAMA DENGAN TOGGLE GROUP --- */}
+                  <ToggleGroup
+                    type="single"
+                    variant="outline"
+                    size="sm"
+                    value={timeDataView}
+                    onValueChange={(value) => {
+                      if (value) setTimeDataView(value as TimeDataView);
+                    }}
+                    className="h-8"
+                  >
+                    <ToggleGroupItem value="bulanan" aria-label="Tampilan Bulanan">
+                      Bulanan
+                    </ToggleGroupItem>
+                    <ToggleGroupItem value="subround" aria-label="Tampilan Subround">
+                      Subround
+                    </ToggleGroupItem>
+                  </ToggleGroup>
+                  {/* ----------------------------------------- */}
+
+                  <Separator orientation="vertical" className="h-6"/>
+
+                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setShowLineChartLabels(prev => !prev)} aria-label="Toggle Nilai">
+                      <Baseline className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => handleExportChart(lineChartCardRef, 'tren_waktu')}>
+                      <Camera className="h-4 w-4" />
+                  </Button>
+                </div>
                 </CardHeader>
                 <CardContent>
                   {isLineChartLoading ? <Skeleton className="w-full h-[300px]" /> : <LineChartWrapper data={processedData.lineChart} dataKey1={selectedYear.toString()} dataKey2={filters.tahunPembanding !== 'tidak' ? filters.tahunPembanding : undefined} onPointClick={handleChartClick} showLabels={showLineChartLabels} />}

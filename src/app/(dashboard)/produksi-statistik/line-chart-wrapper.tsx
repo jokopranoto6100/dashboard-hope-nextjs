@@ -8,11 +8,10 @@ const formatNumber = (num: number) => new Intl.NumberFormat('id-ID').format(num)
 
 interface LineChartWrapperProps {
   data: any[];
-  dataKey1: string;
-  dataKey2?: string;
+  dataKey1: string; // Misal: "2024"
+  dataKey2?: string; // Misal: "2023"
   onPointClick: (payload: any) => void;
-  showLabels: boolean; // Prop baru untuk menampilkan label
-  selectedYear: number; // <-- TAMBAHKAN PROPERTI INI
+  showLabels: boolean;
 }
 
 const CustomActiveDot = ({ cx, cy, payload, onPointClick }: any) => {
@@ -37,8 +36,7 @@ const CustomActiveDot = ({ cx, cy, payload, onPointClick }: any) => {
   );
 };
 
-export default function LineChartWrapper({ data, dataKey1, dataKey2, onPointClick, showLabels,   selectedYear // <-- TAMBAHKAN PROPERTI INI
-}: LineChartWrapperProps) {
+export default function LineChartWrapper({ data, dataKey1, dataKey2, onPointClick, showLabels }: LineChartWrapperProps) {
   return (
     <ResponsiveContainer width="100%" height={350}>
       <LineChart 
@@ -57,7 +55,9 @@ export default function LineChartWrapper({ data, dataKey1, dataKey2, onPointClic
             type="monotone" 
             dataKey={dataKey1} 
             stroke="#8884d8" 
-            name={`Tahun ${selectedYear}`} 
+            // --- PERBAIKAN DI SINI ---
+            // Gunakan `dataKey1` yang sudah pasti berisi tahun yang benar
+            name={`Tahun ${dataKey1}`} 
             connectNulls 
             dot={false}
             activeDot={<CustomActiveDot onPointClick={onPointClick} />}
@@ -69,6 +69,7 @@ export default function LineChartWrapper({ data, dataKey1, dataKey2, onPointClic
                 type="monotone" 
                 dataKey={dataKey2} 
                 stroke="#82ca9d" 
+                // Ini sudah benar, menggunakan dataKey2
                 name={`Tahun ${dataKey2}`} 
                 connectNulls 
                 dot={false}
