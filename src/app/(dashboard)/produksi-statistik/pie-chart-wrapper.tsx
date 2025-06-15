@@ -2,6 +2,8 @@
 "use client";
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+// --- REVISI: Impor hook Anda ---
+import { useIsMobile } from '@/hooks/use-mobile'; // Pastikan path ini sesuai dengan lokasi file Anda
 
 interface PieChartData {
   name: string;
@@ -20,11 +22,15 @@ const COLORS = [
 
 const formatNumber = (num: number) => new Intl.NumberFormat('id-ID').format(num);
 
-// Tooltip diubah untuk menerima 'total' dan menghitung persentase secara manual
-const CustomTooltip = ({ active, payload, total }: any) => {
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: { name: string; value: number }[];
+  total: number;
+}
+
+const CustomTooltip = ({ active, payload, total }: CustomTooltipProps) => {
     if (active && payload && payload.length) {
       const data = payload[0];
-      // Perhitungan manual: (nilai slice / total nilai) * 100
       const percentage = total > 0 ? (data.value / total) * 100 : 0;
       return (
         <div className="p-2 text-sm bg-background/90 border rounded-md shadow-lg">
@@ -37,8 +43,10 @@ const CustomTooltip = ({ active, payload, total }: any) => {
     return null;
 };
 
-
 export default function PieChartWrapper({ data }: PieChartWrapperProps) {
+  // --- REVISI: Gunakan hook Anda ---
+  const isSmallScreen = useIsMobile();
+
   const topData = data.slice(0, 6);
   const otherValue = data.slice(6).reduce((sum, item) => sum + item.value, 0);
 
@@ -47,7 +55,6 @@ export default function PieChartWrapper({ data }: PieChartWrapperProps) {
     chartData.push({ name: 'Lainnya', value: otherValue });
   }
 
-  // Hitung total nilai dari data yang akan ditampilkan di chart
   const totalForPie = chartData.reduce((sum, item) => sum + item.value, 0);
 
   return (
@@ -55,7 +62,7 @@ export default function PieChartWrapper({ data }: PieChartWrapperProps) {
       <PieChart>
         <Pie
           data={chartData}
-          cx="50%"
+          cx={isSmallScreen ? '50%' : '35%'}
           cy="50%"
           labelLine={false}
           outerRadius={80}
@@ -69,15 +76,17 @@ export default function PieChartWrapper({ data }: PieChartWrapperProps) {
             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
           ))}
         </Pie>
-        {/* Kirim 'totalForPie' yang sudah dihitung ke CustomTooltip */}
         <Tooltip content={<CustomTooltip total={totalForPie} />} />
-        <Legend 
-            iconSize={10} 
-            layout="vertical" 
-            verticalAlign="middle" 
-            align="right" 
-            wrapperStyle={{fontSize: '12px', lineHeight: '20px'}}
-        />
+        
+        {!isSmallScreen && (
+            <Legend 
+                iconSize={10} 
+                layout="vertical" 
+                verticalAlign="middle" 
+                align="right" 
+                wrapperStyle={{fontSize: '12px', lineHeight: '20px'}}
+            />
+        )}
       </PieChart>
     </ResponsiveContainer>
   );
