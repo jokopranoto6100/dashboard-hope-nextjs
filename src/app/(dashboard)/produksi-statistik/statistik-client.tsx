@@ -1,7 +1,7 @@
 // Lokasi: src/app/(dashboard)/produksi-statistik/statistik-client.tsx
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import dynamic from 'next/dynamic';
 import { useYear } from "@/context/YearContext";
 import { useAtapStatistikData } from "@/hooks/useAtapStatistikData";
@@ -13,27 +13,24 @@ import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, Map, Download, ChevronsDownUp, Camera, ArrowBigLeftDash } from "lucide-react";
+import { TrendingUp, TrendingDown, Map, Download, ChevronsDownUp, Camera, ArrowBigLeftDash, Baseline } from "lucide-react";
+import { unparse } from "papaparse";
 import { saveAs } from "file-saver";
 import { toPng } from 'html-to-image';
 import useSWR from "swr";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 
-// --- Impor komponen ---
 import { DataTable } from './data-table';
 import { getColumns, AugmentedAtapDataPoint } from './columns';
 import { AnnotationSheet } from './annotation-sheet'; 
 
-// --- Impor komponen grafik secara dinamis ---
 const BarChartWrapper = dynamic(() => import('./bar-chart-wrapper'), { ssr: false, loading: () => <Skeleton className="w-full h-[300px]" /> });
 const LineChartWrapper = dynamic(() => import('./line-chart-wrapper'), { ssr: false, loading: () => <Skeleton className="w-full h-[300px]" /> });
 const PieChartWrapper = dynamic(() => import('./pie-chart-wrapper'), { ssr: false, loading: () => <Skeleton className="w-full h-[300px]" /> });
 
-// --- Tipe data dan konstanta ---
 interface StatistikClientProps { availableIndicators: { id: number; nama_resmi: string; }[] }
 type FilterState = { bulan: string; indikatorNama: string; idIndikator: number | null; level: 'provinsi' | 'kabupaten'; tahunPembanding: string; };
-
 interface Annotation {
   id: number; created_at: string; user_id: string; komentar: string; id_indikator: number;
   tahun: number; bulan: number | null; kode_wilayah: string | null; user_fullname: string | null;
@@ -61,9 +58,9 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
   });
   
   const [selectedKabupaten, setSelectedKabupaten] = useState<string | null>(null);
-  
   const [isAnnotationSheetOpen, setIsAnnotationSheetOpen] = useState(false);
   const [selectedAnnotationPoint, setSelectedAnnotationPoint] = useState<any | null>(null);
+  const [showLineChartLabels, setShowLineChartLabels] = useState(false);
 
   const debouncedFilters = useDebounce(filters, 500);
 
@@ -90,9 +87,7 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
               .like('level_data', 'Bulanan%')
               .in('bulan', [1,2,3,4,5,6,7,8,9,10,11,12]);
             
-            query = selectedKabupaten 
-                ? query.eq('kode_wilayah', selectedKabupaten) 
-                : query.eq('level_wilayah', 'provinsi');
+            query = selectedKabupaten ? query.eq('kode_wilayah', selectedKabupaten) : query.eq('level_wilayah', 'provinsi');
             
             const { data, error } = await query;
             if (error) throw error;
@@ -115,65 +110,43 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
   });
 
   const processedData = useMemo(() => {
-    const mainData = data || []; const compareData = dataPembanding || []; const totalNilai = mainData.reduce((sum, item) => sum + item.nilai, 0);
+    const mainData = data || []; 
+    const compareData = dataPembanding || []; 
+    const totalNilai = mainData.reduce((sum, item) => sum + item.nilai, 0);
+    const totalNilaiPembanding = compareData.reduce((sum, item) => sum + item.nilai, 0);
+    
     const augmentedTableData: AugmentedAtapDataPoint[] = mainData.map(d => { const nilaiTahunIni = d.nilai; const nilaiTahunLalu = compareData.find(p => p.kode_wilayah === d.kode_wilayah)?.nilai; const kontribusi = totalNilai > 0 ? (nilaiTahunIni / totalNilai) * 100 : 0; let pertumbuhan: number | null = null; if (nilaiTahunLalu !== undefined && nilaiTahunLalu > 0) { pertumbuhan = ((nilaiTahunIni - nilaiTahunLalu) / nilaiTahunLalu) * 100; } else if (nilaiTahunLalu !== undefined && nilaiTahunIni > 0) { pertumbuhan = Infinity; } return { ...d, nama_wilayah: KABUPATEN_MAP[d.kode_wilayah] || 'Provinsi', kontribusi, nilaiTahunLalu, pertumbuhan }; }).sort((a,b) => b.nilai - a.nilai);
     const pieChartData = augmentedTableData.map(d => ({ name: d.nama_wilayah, value: d.nilai || 0 }));
     const barChartData = augmentedTableData.map(d => { const barAnnotations = annotations?.filter(a => a.kode_wilayah === d.kode_wilayah && (filters.bulan === 'tahunan' ? a.bulan === null : a.bulan === parseInt(filters.bulan))) || []; return { name: d.nama_wilayah, kode_wilayah: d.kode_wilayah, [selectedYear.toString()]: d.nilai, ...(d.nilaiTahunLalu && { [filters.tahunPembanding]: d.nilaiTahunLalu }), annotations: barAnnotations }; });
     const lineChartData = Array.from({ length: 12 }, (_, i) => i + 1).map(monthNum => { const monthStr = monthNum.toString(); const mainDataPoint = lineChartRawData?.mainData?.find(d => d.bulan?.toString() === monthStr); const compareDataPoint = lineChartRawData?.compareData?.find(d => d.bulan?.toString() === monthStr); const monthAnnotations = annotations?.filter(a => a.bulan === monthNum && a.kode_wilayah === (selectedKabupaten ? selectedKabupaten : null)) || []; return { name: MONTH_NAMES[monthStr], [selectedYear.toString()]: mainDataPoint?.nilai ?? null, ...(filters.tahunPembanding !== 'tidak' && { [filters.tahunPembanding]: compareDataPoint?.nilai ?? null }), annotations: monthAnnotations, kode_wilayah: selectedKabupaten }; });
-    const wilayahTertinggi = barChartData[0] || null; const wilayahTerendah = barChartData.length > 1 ? barChartData[barChartData.length - 1] : null; let percentageChange: number | null = null; if (filters.tahunPembanding !== 'tidak' && compareData.length > 0) { const totalNilaiPembanding = compareData.reduce((sum, item) => sum + item.nilai, 0); if (totalNilaiPembanding > 0) percentageChange = ((totalNilai - totalNilaiPembanding) / totalNilaiPembanding) * 100; else if (totalNilai > 0) percentageChange = Infinity; }
-    return { kpi: { total: totalNilai, satuan: mainData[0]?.satuan || '', wilayahTertinggi, wilayahTerendah, jumlahWilayah: new Set(mainData.map(d => d.kode_wilayah)).size, percentageChange }, barChart: barChartData, lineChart: lineChartData, pieChart: pieChartData, tableData: augmentedTableData };
+    const wilayahTertinggi = barChartData[0] || null; const wilayahTerendah = barChartData.length > 1 ? barChartData[barChartData.length - 1] : null; 
+    let percentageChange: number | null = null; 
+    if (filters.tahunPembanding !== 'tidak' && totalNilaiPembanding > 0) { percentageChange = ((totalNilai - totalNilaiPembanding) / totalNilaiPembanding) * 100; } else if (totalNilai > 0) { percentageChange = Infinity; }
+    
+    return { kpi: { total: totalNilai, totalPembanding: totalNilaiPembanding, satuan: mainData[0]?.satuan || '', wilayahTertinggi, wilayahTerendah, jumlahWilayah: new Set(mainData.map(d => d.kode_wilayah)).size, percentageChange }, barChart: barChartData, lineChart: lineChartData, pieChart: pieChartData, tableData: augmentedTableData };
   }, [data, dataPembanding, lineChartRawData, annotations, selectedYear, filters.bulan, filters.tahunPembanding, selectedKabupaten]);
   
-  const tableColumns = useMemo(() => getColumns(selectedYear, filters.tahunPembanding), [selectedYear, filters.tahunPembanding]);
+  const tableColumns = useMemo(() => 
+    getColumns(
+      selectedYear, 
+      filters.tahunPembanding, 
+      processedData.kpi.total, 
+      processedData.kpi.totalPembanding
+    ), 
+    [selectedYear, filters.tahunPembanding, processedData.kpi.total, processedData.kpi.totalPembanding]
+  );
 
   const handleChartClick = (payload: any) => { if (!payload) return; setSelectedAnnotationPoint(payload); setIsAnnotationSheetOpen(true); };
   
-  const handleBarClick = (payload: any) => {
-    if (!payload?.activePayload?.[0]?.payload) return;
-    const clickedPayload = payload.activePayload[0].payload;
-    if (filters.level === 'kabupaten' && clickedPayload.kode_wilayah) {
-        setSelectedKabupaten(prev => prev === clickedPayload.kode_wilayah ? null : clickedPayload.kode_wilayah);
-        return;
-    }
-    handleChartClick(clickedPayload);
-  };
+  const handleBarClick = (payload: any) => { if (!payload?.activePayload?.[0]?.payload) return; const clickedPayload = payload.activePayload[0].payload; if (filters.level === 'kabupaten' && clickedPayload.kode_wilayah) { setSelectedKabupaten(prev => prev === clickedPayload.kode_wilayah ? null : clickedPayload.kode_wilayah); return; } handleChartClick(clickedPayload); };
 
-  const handleAnnotationSubmit = async (comment: string) => {
-    if (!selectedAnnotationPoint || !filters.idIndikator) { toast.error("Gagal menyimpan: Titik data tidak valid."); return; }
-    if (!authUser) { toast.error("Anda harus login untuk menambahkan komentar."); return; }
-    const bulanAngka = parseInt(Object.keys(MONTH_NAMES).find(key => MONTH_NAMES[key] === selectedAnnotationPoint.name) || '0');
-    const newAnnotation = { user_id: authUser.id, komentar: comment, id_indikator: filters.idIndikator, tahun: selectedYear, bulan: bulanAngka > 0 ? bulanAngka : null, kode_wilayah: selectedAnnotationPoint.kode_wilayah || null };
-    const { error } = await supabase.from('fenomena_anotasi').insert(newAnnotation);
-    if (error) { toast.error("Gagal menyimpan anotasi.", { description: error.message }); } else { toast.success("Anotasi berhasil ditambahkan!"); mutateAnnotations(); }
-  };
+  const handleAnnotationSubmit = async (comment: string) => { if (!selectedAnnotationPoint || !filters.idIndikator) { toast.error("Gagal menyimpan: Titik data tidak valid."); return; } if (!authUser) { toast.error("Anda harus login untuk menambahkan komentar."); return; } const bulanAngka = parseInt(Object.keys(MONTH_NAMES).find(key => MONTH_NAMES[key] === selectedAnnotationPoint.name) || '0'); const newAnnotation = { user_id: authUser.id, komentar: comment, id_indikator: filters.idIndikator, tahun: selectedYear, bulan: bulanAngka > 0 ? bulanAngka : null, kode_wilayah: selectedAnnotationPoint.kode_wilayah || null }; const { error } = await supabase.from('fenomena_anotasi').insert(newAnnotation); if (error) { toast.error("Gagal menyimpan anotasi.", { description: error.message }); } else { toast.success("Anotasi berhasil ditambahkan!"); mutateAnnotations(); } };
   
-  const handleExportChart = async (ref: React.RefObject<HTMLDivElement>, chartName: string) => {
-    if (!ref.current) { toast.error("Grafik tidak dapat ditemukan."); return; }
-    toast.info("Membuat gambar grafik...");
-    try {
-      const dataUrl = await toPng(ref.current, { cacheBust: true, backgroundColor: 'white', pixelRatio: 2 });
-      saveAs(dataUrl, `grafik_${chartName}_${filters.indikatorNama}_${selectedYear}.png`);
-      toast.success("Grafik berhasil diunduh!");
-    } catch (err) { toast.error("Gagal mengekspor grafik.", { description: (err as Error).message }); }
-  };
+  const handleExportChart = async (ref: React.RefObject<HTMLDivElement>, chartName: string) => { if (!ref.current) { toast.error("Grafik tidak dapat ditemukan."); return; } toast.info("Membuat gambar grafik..."); try { const dataUrl = await toPng(ref.current, { cacheBust: true, backgroundColor: 'white', pixelRatio: 2 }); saveAs(dataUrl, `grafik_${chartName}_${filters.indikatorNama}_${selectedYear}.png`); toast.success("Grafik berhasil diunduh!"); } catch (err) { toast.error("Gagal mengekspor grafik.", { description: (err as Error).message }); } };
 
-  const handleExport = () => {
-    if(!processedData.tableData || processedData.tableData.length === 0) { toast.error("Tidak ada data untuk diekspor."); return; }
-    const dataToExport = processedData.tableData.map(d => ({
-        "Nama Wilayah": d.nama_wilayah, "Nilai (Thn Ini)": d.nilai, "Kontribusi (%)": d.kontribusi?.toFixed(2), 
-        "Nilai (Thn Lalu)": filters.tahunPembanding !== 'tidak' ? d.nilaiTahunLalu : undefined,
-        "Pertumbuhan (%)": filters.tahunPembanding !== 'tidak' ? d.pertumbuhan?.toFixed(2) : undefined,
-        Indikator: d.indikator, Tahun: d.tahun, Bulan: d.bulan ? FULL_MONTH_NAMES[d.bulan.toString()][1] : 'Tahunan', Satuan: d.satuan,
-    }));
-    const csv = unparse(dataToExport, { columns: Object.keys(dataToExport[0]).filter(key => dataToExport[0][key] !== undefined) });
-    saveAs(new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' }), `data_rinci_${filters.indikatorNama}_${selectedYear}.csv`);
-  };
+  const handleExport = () => { if(!processedData.tableData || processedData.tableData.length === 0) { toast.error("Tidak ada data untuk diekspor."); return; } const dataToExport = processedData.tableData.map(d => ({ "Nama Wilayah": d.nama_wilayah, "Nilai (Thn Ini)": d.nilai, "Kontribusi (%)": d.kontribusi?.toFixed(2), "Nilai (Thn Lalu)": filters.tahunPembanding !== 'tidak' ? d.nilaiTahunLalu : undefined, "Pertumbuhan (%)": filters.tahunPembanding !== 'tidak' ? d.pertumbuhan?.toFixed(2) : undefined, Indikator: d.indikator, Tahun: d.tahun, Bulan: d.bulan ? FULL_MONTH_NAMES[d.bulan.toString()][1] : 'Tahunan', Satuan: d.satuan, })); const csv = unparse(dataToExport, { columns: Object.keys(dataToExport[0]).filter(key => dataToExport[0][key] !== undefined) }); saveAs(new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' }), `data_rinci_${filters.indikatorNama}_${selectedYear}.csv`); };
 
-  const generateYears = () => {
-    const years = [];
-    for (let i = new Date().getFullYear() + 1; i >= 2020; i--) years.push(i.toString());
-    return years;
-  };
+  const generateYears = () => { const years = []; for (let i = new Date().getFullYear() + 1; i >= 2020; i--) years.push(i.toString()); return years; };
 
   return (
     <div className="space-y-6">
@@ -223,107 +196,29 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
             </div>
           
             <div className="grid lg:grid-cols-3 gap-6">
-              <Card ref={barChartCardRef} className="lg:col-span-2"><CardHeader className="flex flex-row items-center justify-between"><div>
-                <CardTitle>
-                  {filters.level === 'provinsi' 
-                    ? `Data ${filters.indikatorNama} Provinsi` 
-                    : `Perbandingan ${filters.indikatorNama} Antar Kabupaten`}
-                </CardTitle>
-                <CardDescription className="mt-1">
-                  {/* Menggabungkan teks dasar dengan teks perbandingan jika ada */}
-                  {`${
-                    filters.bulan === 'tahunan'
-                      ? `Data tahunan untuk ${selectedYear}`
-                      : `Data untuk bulan ${Object.values(FULL_MONTH_NAMES).find(v => v[0] === filters.bulan)?.[1] || ''} ${selectedYear}`
-                  }${
-                    filters.tahunPembanding !== 'tidak'
-                      ? `, dibandingkan dengan ${filters.tahunPembanding}`
-                      : ''
-                  }`}
-                </CardDescription>                
-                </div><Button variant="ghost" size="icon" onClick={() => handleExportChart(barChartCardRef, 'perbandingan_wilayah')}><Camera className="h-4 w-4" /></Button></CardHeader><CardContent><BarChartWrapper data={processedData.barChart} onClick={handleBarClick} dataKey1={selectedYear.toString()} dataKey2={filters.tahunPembanding !== 'tidak' ? filters.tahunPembanding : undefined} /></CardContent></Card>
-                <Card ref={pieChartCardRef}>
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <div>
-                      {/* --- PERUBAHAN DI SINI --- */}
-                      <CardTitle>Kontribusi {filters.indikatorNama}</CardTitle>
-                        <CardDescription className="mt-1">
-                          {filters.bulan === 'tahunan'
-                            ? `Tahun ${selectedYear}`
-                            : `Bulan ${Object.values(FULL_MONTH_NAMES).find(v => v[0] === filters.bulan)?.[1] || ''} ${selectedYear}`
-                          }
-                        </CardDescription>                  
-                    </div>
-                    <Button variant="ghost" size="icon" onClick={() => handleExportChart(pieChartCardRef, 'kontribusi_wilayah')}>
-                      <Camera className="h-4 w-4" />
-                    </Button>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    {(filters.level === 'kabupaten' && processedData.pieChart.length > 0) ? (
-                      <PieChartWrapper data={processedData.pieChart} />
-                    ) : (
-                      <div className="flex items-center justify-center h-[300px] text-center text-sm text-muted-foreground">
-                        <p>Grafik kontribusi hanya tersedia<br/>untuk level Kabupaten/Kota.</p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+              <Card ref={barChartCardRef} className="lg:col-span-2"><CardHeader className="flex flex-row items-center justify-between"><div><CardTitle>{filters.level === 'provinsi' ? `Data ${filters.indikatorNama} Provinsi` : `Perbandingan ${filters.indikatorNama} Antar Kabupaten`}</CardTitle><CardDescription className="mt-1">{`${filters.bulan === 'tahunan' ? `Data tahunan untuk ${selectedYear}` : `Data untuk bulan ${Object.values(FULL_MONTH_NAMES).find(v => v[0] === filters.bulan)?.[1] || ''} ${selectedYear}`}${filters.tahunPembanding !== 'tidak' ? `, dibandingkan dengan ${filters.tahunPembanding}`: ''}`}</CardDescription></div><Button variant="ghost" size="icon" onClick={() => handleExportChart(barChartCardRef, 'perbandingan_wilayah')}><Camera className="h-4 w-4" /></Button></CardHeader><CardContent><BarChartWrapper data={processedData.barChart} onClick={handleBarClick} dataKey1={selectedYear.toString()} dataKey2={filters.tahunPembanding !== 'tidak' ? filters.tahunPembanding : undefined} /></CardContent></Card>
+              <Card ref={pieChartCardRef}><CardHeader className="flex flex-row items-center justify-between"><div><CardTitle>Kontribusi {filters.indikatorNama}</CardTitle><CardDescription className="mt-1">{filters.bulan === 'tahunan' ? `Data tahunan untuk ${selectedYear}` : `Data untuk bulan ${Object.values(FULL_MONTH_NAMES).find(v => v[0] === filters.bulan)?.[1] || ''} ${selectedYear}`}</CardDescription></div><Button variant="ghost" size="icon" onClick={() => handleExportChart(pieChartCardRef, 'kontribusi_wilayah')}><Camera className="h-4 w-4" /></Button></CardHeader><CardContent className="pt-0">{(filters.level === 'kabupaten' && processedData.pieChart.length > 0) ? (<PieChartWrapper data={processedData.pieChart} />) : (<div className="flex items-center justify-center h-[300px] text-center text-sm text-muted-foreground"><p>Grafik kontribusi hanya tersedia<br/>untuk level Kabupaten/Kota.</p></div>)}</CardContent></Card>
             </div>
 
             <div className="grid md:grid-cols-1 gap-6">
-            <Card ref={lineChartCardRef}>
-              <CardHeader className="flex flex-row items-center justify-between">
-                {/* --- AWAL PERUBAIKAN --- */}
-                <div className="flex items-center gap-2">
-                  {/* Tombol Kembali (hanya muncul saat drill-down) */}
-                  {selectedKabupaten && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 flex-shrink-0"
-                      onClick={() => setSelectedKabupaten(null)}
-                      aria-label="Kembali ke tampilan Provinsi"
-                    >
-                      <ArrowBigLeftDash className="h-4 w-4" />
-                    </Button>
-                  )}
-                  {/* Judul dan Deskripsi Dinamis */}
-                  <div>
-                    <CardTitle>
-                      Tren Waktu Bulanan: {filters.indikatorNama} {selectedYear}
-                    </CardTitle>
-                    <CardDescription className="mt-1">
-                      {`${
-                        selectedKabupaten
-                          ? `Data untuk ${KABUPATEN_MAP[selectedKabupaten]}`
-                          : 'Data level Provinsi'
-                      }${
-                        filters.tahunPembanding !== 'tidak'
-                          ? `, dibandingkan dengan ${filters.tahunPembanding}`
-                          : ''
-                      }`}
-                    </CardDescription>
+              <Card ref={lineChartCardRef}>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {selectedKabupaten && (<Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={() => setSelectedKabupaten(null)} aria-label="Kembali ke tampilan Provinsi"><ArrowBigLeftDash className="h-4 w-4" /></Button>)}
+                    <div>
+                      <CardTitle>Tren Waktu Bulanan: {filters.indikatorNama}</CardTitle>
+                      <CardDescription className="mt-1">{`${selectedKabupaten ? `Data untuk ${KABUPATEN_MAP[selectedKabupaten]}` : 'Data level Provinsi'}, tahun ${selectedYear}${filters.tahunPembanding !== 'tidak' ? ` vs ${filters.tahunPembanding}`: ''}`}</CardDescription>
+                    </div>
                   </div>
-                </div>
-                {/* --- AKHIR PERUBAIKAN --- */}
-
-                <Button variant="ghost" size="icon" onClick={() => handleExportChart(lineChartCardRef, 'tren_waktu')}>
-                  <Camera className="h-4 w-4" />
-                </Button>
-              </CardHeader>
-              <CardContent>
-                {isLineChartLoading ? (
-                  <Skeleton className="w-full h-[300px]" />
-                ) : (
-                  <LineChartWrapper
-                    data={processedData.lineChart}
-                    dataKey1={selectedYear.toString()}
-                    dataKey2={filters.tahunPembanding !== 'tidak' ? filters.tahunPembanding : undefined}
-                    onPointClick={handleChartClick}
-                  />
-                )}
-              </CardContent>
-            </Card>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setShowLineChartLabels(prev => !prev)} aria-label="Toggle Nilai"><Baseline className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => handleExportChart(lineChartCardRef, 'tren_waktu')}><Camera className="h-4 w-4" /></Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {isLineChartLoading ? <Skeleton className="w-full h-[300px]" /> : <LineChartWrapper data={processedData.lineChart} dataKey1={selectedYear.toString()} dataKey2={filters.tahunPembanding !== 'tidak' ? filters.tahunPembanding : undefined} onPointClick={handleChartClick} showLabels={showLineChartLabels} />}
+                </CardContent>
+              </Card>
             </div>
 
             <Card>
@@ -332,19 +227,13 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
                 <Button variant="outline" size="sm" onClick={handleExport} disabled={isLoading || !processedData.tableData || processedData.tableData.length === 0}><Download className="mr-2 h-4 w-4"/>Ekspor ke CSV</Button>
               </CardHeader>
               <CardContent>
-                <DataTable columns={tableColumns} data={processedData.tableData || []} />
+                <DataTable columns={tableColumns} data={processedData.tableData} />
               </CardContent>
             </Card>
         </div>
       )}
 
-      <AnnotationSheet
-        isOpen={isAnnotationSheetOpen}
-        onOpenChange={setIsAnnotationSheetOpen}
-        annotations={selectedAnnotationPoint?.annotations || []}
-        title={`Diskusi: ${filters.indikatorNama} - ${selectedAnnotationPoint?.name || ''} ${selectedYear}`}
-        onSubmit={handleAnnotationSubmit}
-      />
+      <AnnotationSheet isOpen={isAnnotationSheetOpen} onOpenChange={setIsAnnotationSheetOpen} annotations={selectedAnnotationPoint?.annotations || []} title={`Diskusi: ${filters.indikatorNama} - ${selectedAnnotationPoint?.name || ''} ${selectedYear}`} onSubmit={handleAnnotationSubmit} />
     </div>
   );
 }

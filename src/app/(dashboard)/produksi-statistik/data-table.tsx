@@ -12,7 +12,6 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table"
-
 import {
   Table,
   TableBody,
@@ -20,6 +19,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  TableFooter, // <-- Tambahkan impor Tfoot
 } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
 
@@ -51,17 +51,16 @@ export function DataTable<TData, TValue>({
 
   return (
     <div>
-        <div className="flex items-center py-4">
-            <Input
-            placeholder="Cari berdasarkan nama wilayah..."
-            value={(table.getColumn("nama_wilayah")?.getFilterValue() as string) ?? ""}
-            onChange={(event) =>
-                table.getColumn("nama_wilayah")?.setFilterValue(event.target.value)
-            }
-            className="max-w-sm"
-            />
-      </div>
-      {/* ✅ PERBAIKAN UTAMA DI SINI */}
+      <div className="flex items-center py-4">
+          <Input
+          placeholder="Cari berdasarkan nama wilayah..."
+          value={(table.getColumn("nama_wilayah")?.getFilterValue() as string) ?? ""}
+          onChange={(event) =>
+              table.getColumn("nama_wilayah")?.setFilterValue(event.target.value)
+          }
+          className="max-w-sm"
+          />
+    </div>
       <div className="relative w-full overflow-x-auto rounded-md border">
         <Table>
           <TableHeader>
@@ -104,6 +103,24 @@ export function DataTable<TData, TValue>({
               </TableRow>
             )}
           </TableBody>
+          {/* --- PENAMBAHAN BAGIAN FOOTER --- */}
+          <TableFooter>
+            {table.getFooterGroups().map((footerGroup) => (
+              <TableRow key={footerGroup.id} className="bg-muted/50 font-bold hover:bg-muted">
+                {footerGroup.headers.map((header) => (
+                  <TableCell key={header.id}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.footer,
+                          header.getContext()
+                        )}
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableFooter>
+          {/* ---------------------------------- */}
         </Table>
       </div>
     </div>

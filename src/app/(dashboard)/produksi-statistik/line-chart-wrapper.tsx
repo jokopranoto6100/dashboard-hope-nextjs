@@ -2,7 +2,7 @@
 // Lokasi: src/app/(dashboard)/produksi-statistik/line-chart-wrapper.tsx
 "use client";
 
-import { Line, LineChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Line, LineChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis, LabelList } from 'recharts';
 
 const formatNumber = (num: number) => new Intl.NumberFormat('id-ID').format(num);
 
@@ -11,6 +11,8 @@ interface LineChartWrapperProps {
   dataKey1: string;
   dataKey2?: string;
   onPointClick: (payload: any) => void;
+  showLabels: boolean; // Prop baru untuk menampilkan label
+  selectedYear: number; // <-- TAMBAHKAN PROPERTI INI
 }
 
 const CustomActiveDot = ({ cx, cy, payload, onPointClick }: any) => {
@@ -35,8 +37,8 @@ const CustomActiveDot = ({ cx, cy, payload, onPointClick }: any) => {
   );
 };
 
-
-export default function LineChartWrapper({ data, dataKey1, dataKey2, onPointClick }: LineChartWrapperProps) {
+export default function LineChartWrapper({ data, dataKey1, dataKey2, onPointClick, showLabels,   selectedYear // <-- TAMBAHKAN PROPERTI INI
+}: LineChartWrapperProps) {
   return (
     <ResponsiveContainer width="100%" height={350}>
       <LineChart 
@@ -46,25 +48,22 @@ export default function LineChartWrapper({ data, dataKey1, dataKey2, onPointClic
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis dataKey="name" fontSize={12} />
         <YAxis fontSize={12} tickFormatter={(value) => `${formatNumber(value)}`} />
-        
-        {/* --- PERBAIKAN UTAMA DI SINI --- */}
         <Tooltip 
             formatter={(value: number) => formatNumber(value)}
-            // Hanya properti ini yang ditambahkan untuk mengubah warna teks bulan
             labelStyle={{ color: 'hsl(var(--foreground))' }}
         />
-        {/* ------------------------------------ */}
-
         <Legend wrapperStyle={{fontSize: "12px"}} />
         <Line 
             type="monotone" 
             dataKey={dataKey1} 
             stroke="#8884d8" 
-            name={`Tahun ${dataKey1}`} 
+            name={`Tahun ${selectedYear}`} 
             connectNulls 
             dot={false}
             activeDot={<CustomActiveDot onPointClick={onPointClick} />}
-        />
+        >
+          {showLabels && <LabelList dataKey={dataKey1} position="top" offset={10} formatter={(value: number) => formatNumber(value)} fontSize={10} />}
+        </Line>
         {dataKey2 && (
             <Line 
                 type="monotone" 
@@ -74,7 +73,9 @@ export default function LineChartWrapper({ data, dataKey1, dataKey2, onPointClic
                 connectNulls 
                 dot={false}
                 activeDot={<CustomActiveDot onPointClick={onPointClick} />}
-            />
+            >
+                 {showLabels && <LabelList dataKey={dataKey2} position="top" offset={10} formatter={(value: number) => formatNumber(value)} fontSize={10} />}
+            </Line>
         )}
       </LineChart>
     </ResponsiveContainer>
