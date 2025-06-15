@@ -15,8 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { TrendingUp, TrendingDown, Map, Download, ChevronsDownUp, Camera, Bookmark, Trash2 } from "lucide-react";
-import { unparse } from "papaparse";
+import { TrendingUp, TrendingDown, Map, Download, ChevronsDownUp, Camera, Bookmark, Trash2, ArrowBigLeftDash } from "lucide-react";import { unparse } from "papaparse";
 import { saveAs } from "file-saver";
 import { toPng } from 'html-to-image';
 import useSWR from "swr";
@@ -261,12 +260,102 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
             </div>
           
             <div className="grid lg:grid-cols-3 gap-6">
-              <Card ref={barChartCardRef} className="lg:col-span-2"><CardHeader className="flex flex-row items-center justify-between"><div><CardTitle>{filters.level === 'provinsi' ? 'Data Provinsi' : 'Perbandingan Antar Kabupaten'}</CardTitle><CardDescription className="mt-1">{filters.bulan === 'tahunan' ? `Data tahunan untuk ${selectedYear}` : `Data untuk bulan ${Object.values(FULL_MONTH_NAMES).find(v => v[0] === filters.bulan)?.[1] || ''} ${selectedYear}`}</CardDescription></div><Button variant="ghost" size="icon" onClick={() => handleExportChart(barChartCardRef, 'perbandingan_wilayah')}><Camera className="h-4 w-4" /></Button></CardHeader><CardContent><BarChartWrapper data={processedData.barChart} onClick={handleBarClick} dataKey1={selectedYear.toString()} dataKey2={filters.tahunPembanding !== 'tidak' ? filters.tahunPembanding : undefined} /></CardContent></Card>
-              <Card ref={pieChartCardRef}><CardHeader className="flex flex-row items-center justify-between"><div><CardTitle>Kontribusi Wilayah</CardTitle><CardDescription className="mt-1">Persentase kontribusi per wilayah</CardDescription></div><Button variant="ghost" size="icon" onClick={() => handleExportChart(pieChartCardRef, 'kontribusi_wilayah')}><Camera className="h-4 w-4" /></Button></CardHeader><CardContent>{(filters.level === 'kabupaten' && processedData.pieChart.length > 0) ? (<PieChartWrapper data={processedData.pieChart} />) : (<div className="flex items-center justify-center h-[300px] text-center text-sm text-muted-foreground"><p>Grafik kontribusi hanya tersedia<br/>untuk level Kabupaten/Kota.</p></div>)}</CardContent></Card>
+              <Card ref={barChartCardRef} className="lg:col-span-2"><CardHeader className="flex flex-row items-center justify-between"><div>
+                <CardTitle>
+                  {filters.level === 'provinsi' 
+                    ? `Data ${filters.indikatorNama} Provinsi` 
+                    : `Perbandingan ${filters.indikatorNama} Antar Kabupaten`}
+                </CardTitle>
+                <CardDescription className="mt-1">
+                  {/* Menggabungkan teks dasar dengan teks perbandingan jika ada */}
+                  {`${
+                    filters.bulan === 'tahunan'
+                      ? `Data tahunan untuk ${selectedYear}`
+                      : `Data untuk bulan ${Object.values(FULL_MONTH_NAMES).find(v => v[0] === filters.bulan)?.[1] || ''} ${selectedYear}`
+                  }${
+                    filters.tahunPembanding !== 'tidak'
+                      ? `, dibandingkan dengan ${filters.tahunPembanding}`
+                      : ''
+                  }`}
+                </CardDescription>                </div><Button variant="ghost" size="icon" onClick={() => handleExportChart(barChartCardRef, 'perbandingan_wilayah')}><Camera className="h-4 w-4" /></Button></CardHeader><CardContent><BarChartWrapper data={processedData.barChart} onClick={handleBarClick} dataKey1={selectedYear.toString()} dataKey2={filters.tahunPembanding !== 'tidak' ? filters.tahunPembanding : undefined} /></CardContent></Card>
+                <Card ref={pieChartCardRef}>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                      {/* --- PERUBAHAN DI SINI --- */}
+                      <CardTitle>Kontribusi {filters.indikatorNama}</CardTitle>
+                      <CardDescription className="mt-1">
+                        Tahun {selectedYear}
+                      </CardDescription>                    </div>
+                    <Button variant="ghost" size="icon" onClick={() => handleExportChart(pieChartCardRef, 'kontribusi_wilayah')}>
+                      <Camera className="h-4 w-4" />
+                    </Button>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    {(filters.level === 'kabupaten' && processedData.pieChart.length > 0) ? (
+                      <PieChartWrapper data={processedData.pieChart} />
+                    ) : (
+                      <div className="flex items-center justify-center h-[300px] text-center text-sm text-muted-foreground">
+                        <p>Grafik kontribusi hanya tersedia<br/>untuk level Kabupaten/Kota.</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
             </div>
 
             <div className="grid md:grid-cols-1 gap-6">
-              <Card ref={lineChartCardRef}><CardHeader className="flex flex-row items-center justify-between"><div><CardTitle>{selectedKabupaten ? `Tren Waktu Bulanan: ${KABUPATEN_MAP[selectedKabupaten]}` : 'Tren Waktu Bulanan: Provinsi'}</CardTitle>{selectedKabupaten && <Button variant="link" size="sm" onClick={() => setSelectedKabupaten(null)} className="p-0 h-auto">Kembali ke tampilan Provinsi</Button>}</div><Button variant="ghost" size="icon" onClick={() => handleExportChart(lineChartCardRef, 'tren_waktu')}><Camera className="h-4 w-4" /></Button></CardHeader><CardContent>{isLineChartLoading ? <Skeleton className="w-full h-[300px]" /> : <LineChartWrapper data={processedData.lineChart} dataKey1={selectedYear.toString()} dataKey2={filters.tahunPembanding !== 'tidak' ? filters.tahunPembanding : undefined} onPointClick={handleChartClick}/>}</CardContent></Card>
+            <Card ref={lineChartCardRef}>
+              <CardHeader className="flex flex-row items-center justify-between">
+                {/* --- AWAL PERUBAIKAN --- */}
+                <div className="flex items-center gap-2">
+                  {/* Tombol Kembali (hanya muncul saat drill-down) */}
+                  {selectedKabupaten && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 flex-shrink-0"
+                      onClick={() => setSelectedKabupaten(null)}
+                      aria-label="Kembali ke tampilan Provinsi"
+                    >
+                      <ArrowBigLeftDash className="h-4 w-4" />
+                    </Button>
+                  )}
+                  {/* Judul dan Deskripsi Dinamis */}
+                  <div>
+                    <CardTitle>
+                      Tren Waktu Bulanan: {filters.indikatorNama}
+                    </CardTitle>
+                    <CardDescription className="mt-1">
+                      {`${
+                        selectedKabupaten
+                          ? `Data untuk ${KABUPATEN_MAP[selectedKabupaten]}`
+                          : 'Data level Provinsi'
+                      }${
+                        filters.tahunPembanding !== 'tidak'
+                          ? `, dibandingkan dengan ${filters.tahunPembanding}`
+                          : ''
+                      }`}
+                    </CardDescription>
+                  </div>
+                </div>
+                {/* --- AKHIR PERUBAIKAN --- */}
+
+                <Button variant="ghost" size="icon" onClick={() => handleExportChart(lineChartCardRef, 'tren_waktu')}>
+                  <Camera className="h-4 w-4" />
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {isLineChartLoading ? (
+                  <Skeleton className="w-full h-[300px]" />
+                ) : (
+                  <LineChartWrapper
+                    data={processedData.lineChart}
+                    dataKey1={selectedYear.toString()}
+                    dataKey2={filters.tahunPembanding !== 'tidak' ? filters.tahunPembanding : undefined}
+                    onPointClick={handleChartClick}
+                  />
+                )}
+              </CardContent>
+            </Card>
             </div>
 
             <Card>

@@ -2,8 +2,7 @@
 "use client";
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-// --- REVISI: Impor hook Anda ---
-import { useIsMobile } from '@/hooks/use-mobile'; // Pastikan path ini sesuai dengan lokasi file Anda
+import { useIsMobile } from '@/hooks/use-mobile'; // Menggunakan hook Anda
 
 interface PieChartData {
   name: string;
@@ -44,8 +43,7 @@ const CustomTooltip = ({ active, payload, total }: CustomTooltipProps) => {
 };
 
 export default function PieChartWrapper({ data }: PieChartWrapperProps) {
-  // --- REVISI: Gunakan hook Anda ---
-  const isSmallScreen = useIsMobile();
+  const isMobile = useIsMobile();
 
   const topData = data.slice(0, 6);
   const otherValue = data.slice(6).reduce((sum, item) => sum + item.value, 0);
@@ -58,11 +56,13 @@ export default function PieChartWrapper({ data }: PieChartWrapperProps) {
   const totalForPie = chartData.reduce((sum, item) => sum + item.value, 0);
 
   return (
+    // REVISI: Tambahkan margin bawah untuk ruang legenda
     <ResponsiveContainer width="100%" height={300}>
       <PieChart>
         <Pie
           data={chartData}
-          cx={isSmallScreen ? '50%' : '35%'}
+          // Posisi selalu di tengah container
+          cx="50%"
           cy="50%"
           labelLine={false}
           outerRadius={80}
@@ -78,13 +78,18 @@ export default function PieChartWrapper({ data }: PieChartWrapperProps) {
         </Pie>
         <Tooltip content={<CustomTooltip total={totalForPie} />} />
         
-        {!isSmallScreen && (
+        {/* --- REVISI UTAMA: Logika baru untuk legenda --- */}
+        {/* Legenda akan disembunyikan di layar mobile, dan pindah ke bawah di layar besar */}
+        {!isMobile && (
             <Legend 
                 iconSize={10} 
-                layout="vertical" 
-                verticalAlign="middle" 
-                align="right" 
-                wrapperStyle={{fontSize: '12px', lineHeight: '20px'}}
+                layout="horizontal" // 1. Layout diubah menjadi horizontal
+                verticalAlign="bottom" // 2. Posisi di bagian bawah chart
+                align="center" // 3. Rata tengah
+                wrapperStyle={{
+                    fontSize: '12px',
+                    paddingTop: '20px' // Beri jarak dari chart
+                }}
             />
         )}
       </PieChart>
