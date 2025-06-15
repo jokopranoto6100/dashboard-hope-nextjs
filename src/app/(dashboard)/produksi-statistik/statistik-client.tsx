@@ -277,15 +277,20 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
                       ? `, dibandingkan dengan ${filters.tahunPembanding}`
                       : ''
                   }`}
-                </CardDescription>                </div><Button variant="ghost" size="icon" onClick={() => handleExportChart(barChartCardRef, 'perbandingan_wilayah')}><Camera className="h-4 w-4" /></Button></CardHeader><CardContent><BarChartWrapper data={processedData.barChart} onClick={handleBarClick} dataKey1={selectedYear.toString()} dataKey2={filters.tahunPembanding !== 'tidak' ? filters.tahunPembanding : undefined} /></CardContent></Card>
+                </CardDescription>                
+                </div><Button variant="ghost" size="icon" onClick={() => handleExportChart(barChartCardRef, 'perbandingan_wilayah')}><Camera className="h-4 w-4" /></Button></CardHeader><CardContent><BarChartWrapper data={processedData.barChart} onClick={handleBarClick} dataKey1={selectedYear.toString()} dataKey2={filters.tahunPembanding !== 'tidak' ? filters.tahunPembanding : undefined} /></CardContent></Card>
                 <Card ref={pieChartCardRef}>
                   <CardHeader className="flex flex-row items-center justify-between">
                     <div>
                       {/* --- PERUBAHAN DI SINI --- */}
                       <CardTitle>Kontribusi {filters.indikatorNama}</CardTitle>
-                      <CardDescription className="mt-1">
-                        Tahun {selectedYear}
-                      </CardDescription>                    </div>
+                        <CardDescription className="mt-1">
+                          {filters.bulan === 'tahunan'
+                            ? `Tahun ${selectedYear}`
+                            : `Bulan ${Object.values(FULL_MONTH_NAMES).find(v => v[0] === filters.bulan)?.[1] || ''} ${selectedYear}`
+                          }
+                        </CardDescription>                  
+                    </div>
                     <Button variant="ghost" size="icon" onClick={() => handleExportChart(pieChartCardRef, 'kontribusi_wilayah')}>
                       <Camera className="h-4 w-4" />
                     </Button>
@@ -322,7 +327,7 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
                   {/* Judul dan Deskripsi Dinamis */}
                   <div>
                     <CardTitle>
-                      Tren Waktu Bulanan: {filters.indikatorNama}
+                      Tren Waktu Bulanan: {filters.indikatorNama} {selectedYear}
                     </CardTitle>
                     <CardDescription className="mt-1">
                       {`${
