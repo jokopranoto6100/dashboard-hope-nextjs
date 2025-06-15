@@ -25,6 +25,7 @@ import { DataTable } from './data-table';
 import { getColumns, AugmentedAtapDataPoint } from './columns';
 import { AnnotationSheet } from './annotation-sheet'; 
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { motion, AnimatePresence } from 'framer-motion';
 
 
 const BarChartWrapper = dynamic(() => import('./bar-chart-wrapper'), { ssr: false, loading: () => <Skeleton className="w-full h-[300px]" /> });
@@ -208,9 +209,68 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
             </div>
           
             <div className="grid lg:grid-cols-3 gap-6">
-              <Card ref={barChartCardRef} className="lg:col-span-2"><CardHeader className="flex flex-row items-center justify-between"><div><CardTitle>{filters.level === 'provinsi' ? `Data ${filters.indikatorNama} Provinsi` : `Perbandingan ${filters.indikatorNama} Antar Kabupaten`}</CardTitle><CardDescription className="mt-1">{`${filters.bulan === 'tahunan' ? `Data tahunan untuk ${selectedYear}` : `Data untuk bulan ${Object.values(FULL_MONTH_NAMES).find(v => v[0] === filters.bulan)?.[1] || ''} ${selectedYear}`}${filters.tahunPembanding !== 'tidak' ? `, dibandingkan dengan ${filters.tahunPembanding}`: ''}`}</CardDescription></div><Button variant="ghost" size="icon" onClick={() => handleExportChart(barChartCardRef, 'perbandingan_wilayah')}><Camera className="h-4 w-4" /></Button></CardHeader><CardContent><BarChartWrapper data={processedData.barChart} onClick={handleBarClick} dataKey1={selectedYear.toString()} dataKey2={filters.tahunPembanding !== 'tidak' ? filters.tahunPembanding : undefined} /></CardContent></Card>
-              <Card ref={pieChartCardRef}><CardHeader className="flex flex-row items-center justify-between"><div><CardTitle>Kontribusi {filters.indikatorNama}</CardTitle><CardDescription className="mt-1">{filters.bulan === 'tahunan' ? `Data tahunan untuk ${selectedYear}` : `Data untuk bulan ${Object.values(FULL_MONTH_NAMES).find(v => v[0] === filters.bulan)?.[1] || ''} ${selectedYear}`}</CardDescription></div><Button variant="ghost" size="icon" onClick={() => handleExportChart(pieChartCardRef, 'kontribusi_wilayah')}><Camera className="h-4 w-4" /></Button></CardHeader><CardContent className="pt-0">{(filters.level === 'kabupaten' && processedData.pieChart.length > 0) ? (<PieChartWrapper data={processedData.pieChart} />) : (<div className="flex items-center justify-center h-[300px] text-center text-sm text-muted-foreground"><p>Grafik kontribusi hanya tersedia<br/>untuk level Kabupaten/Kota.</p></div>)}</CardContent></Card>
-            </div>
+              {/* --- AWAL PATCH UNTUK BAR CHART --- */}
+              {/* 1. Bungkus Card dengan motion.div dan tambahkan prop 'layout' */}
+              <motion.div 
+                layout
+                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                // 2. Pindahkan className untuk layout (col-span) ke motion.div
+                className={filters.tahunPembanding !== 'tidak' ? 'lg:col-span-3' : 'lg:col-span-2'}
+              >
+                <Card ref={barChartCardRef}>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                      <CardTitle>{filters.level === 'provinsi' ? `Data ${filters.indikatorNama} Provinsi` : `Perbandingan ${filters.indikatorNama} Antar Kabupaten`}</CardTitle>
+                      <CardDescription className="mt-1">{`${filters.bulan === 'tahunan' ? `Data tahunan untuk ${selectedYear}` : `Data untuk bulan ${Object.values(FULL_MONTH_NAMES).find(v => v[0] === filters.bulan)?.[1] || ''} ${selectedYear}`}${filters.tahunPembanding !== 'tidak' ? `, dibandingkan dengan ${filters.tahunPembanding}`: ''}`}</CardDescription>
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={() => handleExportChart(barChartCardRef, 'perbandingan_wilayah')}><Camera className="h-4 w-4" /></Button>
+                  </CardHeader>
+                  <CardContent>
+                    <BarChartWrapper data={processedData.barChart} onClick={handleBarClick} dataKey1={selectedYear.toString()} dataKey2={filters.tahunPembanding !== 'tidak' ? filters.tahunPembanding : undefined} />
+                  </CardContent>
+                </Card>
+              </motion.div>
+              {/* --- AKHIR PATCH --- */}
+
+              {/* Bagian Pie Chart Anda sudah benar */}
+              <AnimatePresence>
+                {filters.tahunPembanding === 'tidak' && (
+                  <motion.div
+                    layout
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                  >
+                    <Card ref={pieChartCardRef}>
+                      <CardHeader className="flex flex-row items-center justify-between">
+                        <div>
+                          <CardTitle>Kontribusi {filters.indikatorNama}</CardTitle>
+                          <CardDescription className="mt-1">
+                            {filters.bulan === 'tahunan'
+                              ? `Data tahunan untuk ${selectedYear}`
+                              : `Data untuk bulan ${Object.values(FULL_MONTH_NAMES).find(v => v[0] === filters.bulan)?.[1] || ''} ${selectedYear}`
+                            }
+                          </CardDescription>                  
+                        </div>
+                        <Button variant="ghost" size="icon" onClick={() => handleExportChart(pieChartCardRef, 'kontribusi_wilayah')}>
+                          <Camera className="h-4 w-4" />
+                        </Button>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        {(filters.level === 'kabupaten' && processedData.pieChart.length > 0) ? (
+                          <PieChartWrapper data={processedData.pieChart} />
+                        ) : (
+                          <div className="flex items-center justify-center h-[300px] text-center text-sm text-muted-foreground">
+                            <p>Grafik kontribusi hanya tersedia<br/>untuk level Kabupaten/Kota.</p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+          </div>
 
             <div className="grid md:grid-cols-1 gap-6">
               <Card ref={lineChartCardRef}>
