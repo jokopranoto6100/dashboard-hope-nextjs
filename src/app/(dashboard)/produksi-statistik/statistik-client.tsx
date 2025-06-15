@@ -1,7 +1,7 @@
 // Lokasi: src/app/(dashboard)/produksi-statistik/statistik-client.tsx
 "use client";
 
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef } from "react";
 import dynamic from 'next/dynamic';
 import { useYear } from "@/context/YearContext";
 import { useAtapStatistikData } from "@/hooks/useAtapStatistikData";
@@ -13,9 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { TrendingUp, TrendingDown, Map, Download, ChevronsDownUp, Camera, Bookmark, Trash2, ArrowBigLeftDash } from "lucide-react";import { unparse } from "papaparse";
+import { TrendingUp, TrendingDown, Map, Download, ChevronsDownUp, Camera, ArrowBigLeftDash } from "lucide-react";
 import { saveAs } from "file-saver";
 import { toPng } from 'html-to-image';
 import useSWR from "swr";
@@ -35,7 +33,6 @@ const PieChartWrapper = dynamic(() => import('./pie-chart-wrapper'), { ssr: fals
 // --- Tipe data dan konstanta ---
 interface StatistikClientProps { availableIndicators: { id: number; nama_resmi: string; }[] }
 type FilterState = { bulan: string; indikatorNama: string; idIndikator: number | null; level: 'provinsi' | 'kabupaten'; tahunPembanding: string; };
-interface Preset { name: string; filters: FilterState; }
 
 interface Annotation {
   id: number; created_at: string; user_id: string; komentar: string; id_indikator: number;
@@ -46,13 +43,6 @@ const KABUPATEN_MAP: { [key: string]: string } = { "6101": "Sambas", "6102": "Be
 const MONTH_NAMES: { [key: string]: string } = { "1": "Jan", "2": "Feb", "3": "Mar", "4": "Apr", "5": "Mei", "6": "Jun", "7": "Jul", "8": "Agu", "9": "Sep", "10": "Okt", "11": "Nov", "12": "Des" };
 const FULL_MONTH_NAMES: { [key: string]: string[] } = { "1": ["1", "Januari"], "2": ["2", "Februari"], "3": ["3", "Maret"], "4": ["4", "April"], "5": ["5", "Mei"], "6": ["6", "Juni"], "7": ["7", "Juli"], "8": ["8", "Agustus"], "9": ["9", "September"], "10": ["10", "Oktober"], "11": ["11", "November"], "12": ["12", "Desember"] };
 const formatNumber = (num: number) => (num === null || num === undefined) ? '0' : new Intl.NumberFormat('id-ID').format(num);
-
-function SavePresetDialog({ onSave }: { onSave: (name: string) => void }) {
-    const [name, setName] = useState('');
-    const [isOpen, setIsOpen] = useState(false);
-    const handleSave = () => { if (!name.trim()) { toast.error("Nama preset tidak boleh kosong."); return; } onSave(name.trim()); setName(''); setIsOpen(false); };
-    return ( <Dialog open={isOpen} onOpenChange={setIsOpen}> <DialogTrigger asChild><Button variant="outline" size="sm"><Bookmark className="mr-2 h-4 w-4" /> Simpan Tampilan</Button></DialogTrigger> <DialogContent className="sm:max-w-[425px]"> <DialogHeader> <DialogTitle>Simpan Tampilan Filter</DialogTitle> <DialogDescription>Beri nama pada konfigurasi filter Anda saat ini untuk diakses kembali dengan cepat.</DialogDescription> </DialogHeader> <div className="grid gap-4 py-4"><div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="preset-name" className="text-right">Nama</Label><Input id="preset-name" value={name} onChange={(e) => setName(e.target.value)} className="col-span-3" placeholder="Contoh: Produksi Padi Tahunan" /></div></div> <DialogFooter><Button type="submit" onClick={handleSave}>Simpan</Button></DialogFooter> </DialogContent> </Dialog> );
-}
 
 export function StatistikClient({ availableIndicators }: StatistikClientProps) {
   const { selectedYear } = useYear();
@@ -70,17 +60,12 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
     tahunPembanding: 'tidak',
   });
   
-  const [presets, setPresets] = useState<Preset[]>([]);
   const [selectedKabupaten, setSelectedKabupaten] = useState<string | null>(null);
   
   const [isAnnotationSheetOpen, setIsAnnotationSheetOpen] = useState(false);
   const [selectedAnnotationPoint, setSelectedAnnotationPoint] = useState<any | null>(null);
 
   const debouncedFilters = useDebounce(filters, 500);
-
-  useEffect(() => {
-    try { const savedPresets = localStorage.getItem('statistik-presets'); if (savedPresets) setPresets(JSON.parse(savedPresets)); } catch (error) { console.error("Gagal memuat preset dari localStorage", error); }
-  }, []);
 
   const handleFilterChange = (key: keyof Omit<FilterState, 'idIndikator'>, value: string) => {
     setSelectedKabupaten(null);
@@ -190,26 +175,6 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
     return years;
   };
 
-  const handleSavePreset = (name: string) => {
-    const newPreset: Preset = { name, filters };
-    const updatedPresets = [...presets, newPreset];
-    setPresets(updatedPresets);
-    localStorage.setItem('statistik-presets', JSON.stringify(updatedPresets));
-    toast.success(`Tampilan "${name}" berhasil disimpan.`);
-  };
-
-  const handleApplyPreset = (presetFilters: FilterState) => {
-    setFilters(presetFilters);
-    toast.info(`Tampilan preset diterapkan.`);
-  };
-
-  const handleDeletePreset = (presetName: string) => {
-    const updatedPresets = presets.filter(p => p.name !== presetName);
-    setPresets(updatedPresets);
-    localStorage.setItem('statistik-presets', JSON.stringify(updatedPresets));
-    toast.success(`Preset "${presetName}" dihapus.`);
-  };
-
   return (
     <div className="space-y-6">
       <div className="p-4 border rounded-lg bg-slate-50 dark:bg-slate-800/50 space-y-4">
@@ -232,9 +197,7 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
                 <Select value={filters.tahunPembanding} onValueChange={(v) => handleFilterChange('tahunPembanding', v)}><SelectTrigger id="filter-tahun-pembanding"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="tidak">Tidak ada perbandingan</SelectItem><Separator className="my-1"/>{generateYears().filter(y => y !== selectedYear.toString()).map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent></Select>
             </div>
           </div>
-          <div className="flex-shrink-0"><SavePresetDialog onSave={handleSavePreset} /></div>
         </div>
-        {presets.length > 0 && ( <div className="pt-4 border-t border-slate-200 dark:border-slate-700"> <Label className="text-xs text-muted-foreground">Tampilan Tersimpan</Label> <div className="flex flex-wrap gap-2 mt-2"> {presets.map(preset => ( <div key={preset.name} className="flex items-center"> <Button variant="secondary" size="sm" onClick={() => handleApplyPreset(preset.filters)}>{preset.name}</Button> <Button variant="ghost" size="icon" className="h-7 w-7 ml-1" onClick={() => handleDeletePreset(preset.name)}> <Trash2 className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" /> </Button> </div> ))} </div> </div> )}
       </div>
       
       <Separator />
