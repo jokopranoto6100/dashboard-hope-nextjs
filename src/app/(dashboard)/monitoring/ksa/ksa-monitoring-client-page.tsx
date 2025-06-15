@@ -98,7 +98,7 @@ export default function KsaMonitoringClientPage() {
   ];
 
   // Columns for District Level Table
-  const districtColumns = useMemo<ColumnDef<ProcessedKsaDistrictData, never>[]>(() => {
+  const districtColumns = useMemo<ColumnDef<ProcessedKsaDistrictData, any>[]>(() => {
     const fixedStartCols: ColumnDef<ProcessedKsaDistrictData, any>[] = [
       {
         accessorKey: 'kabupaten',

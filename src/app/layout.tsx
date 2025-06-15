@@ -13,6 +13,7 @@ export const metadata: Metadata = {
   description: 'Statistik Produksi Pertanian BPS Kalbar',
 };
 
+
 export default function RootLayout({
   children,
 }: Readonly<{
