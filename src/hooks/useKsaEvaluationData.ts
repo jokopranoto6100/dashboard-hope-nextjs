@@ -95,13 +95,13 @@ export const useKsaEvaluationData = () => {
           monthEntry[`Fase ${item.fase}`] = (monthEntry[`Fase ${item.fase}`] || 0) + item.jumlah;
           return acc;
       }, []);
-      setAreaChartData(newAreaChartData.sort((a,b) => a.bulan - b.bulan));
+      setAreaChartData(newAreaChartData.sort((a: KsaAreaChartData, b: KsaAreaChartData) => a.bulan - b.bulan));
 
       const longFormatData = freqResult.data || [];
-            const uniqueCounts = [...new Set(longFormatData.map(d => d.panen_count))].sort((a,b) => a - b);
+            const uniqueCounts = ([...new Set(longFormatData.map((d: any) => d.panen_count as number))] as number[]).sort((a, b) => a - b);
             setHarvestColumns(uniqueCounts);
 
-            const pivoted = longFormatData.reduce((acc, item) => {
+            const pivoted = longFormatData.reduce((acc: { [key: string]: PivotTableData }, item: any) => {
               const { kode_kab, kabupaten, panen_count, subsegmen_count } = item;
               // Gunakan kabupaten sebagai kunci sementara untuk grouping
               if (!acc[kabupaten]) {
@@ -112,7 +112,7 @@ export const useKsaEvaluationData = () => {
             }, {} as { [key: string]: PivotTableData });
             
             // Ubah objek menjadi array dan urutkan berdasarkan kode_kab
-            const sortedPivotData = Object.values(pivoted).sort((a, b) => 
+            const sortedPivotData = (Object.values(pivoted) as PivotTableData[]).sort((a, b) => 
               a.kode_kab.localeCompare(b.kode_kab)
             );
             setPivotTableData(sortedPivotData);

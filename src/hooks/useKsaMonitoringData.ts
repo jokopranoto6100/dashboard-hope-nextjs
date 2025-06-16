@@ -271,7 +271,7 @@ export const useKsaMonitoringData = (
                 discoveredStatuses.add(item.status.trim());
             }
         });
-        setLastUpdated(maxTs ? maxTs.toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'long'}) : null);
+        setLastUpdated(maxTs ? (maxTs as Date).toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'long'}) : null);
         const sortedUniqueStatuses = Array.from(discoveredStatuses).sort();
         setUniqueStatusNames(sortedUniqueStatuses);
         return sortedUniqueStatuses;

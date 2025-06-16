@@ -27,7 +27,7 @@ interface FilterState {
 
 // Fungsi fetcher menerima instance supabase dari hook utama
 const fetchAtapData = async (
-  supabase, // <== Instance dari useAuth di bawah
+  supabase: any, // <== Instance dari useAuth di bawah; replace 'any' with the correct type if available
   key: string,
   filters: FilterState,
   selectedYear: number
