@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect, useTransition, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -60,7 +60,6 @@ export default function UserManagementClientPage({ initialUsers }: UserManagemen
     const [showCreateUserDialog, setShowCreateUserDialog] = useState(false);
     const [showEditUserDialog, setShowEditUserDialog] = useState(false);
     const [userToEdit, setUserToEdit] = useState<ManagedUser | null>(null);
-    const isInitialLoad = useRef(true);
 
     const form = useForm<UserFormValues>({
         resolver: zodResolver(userFormSchema),
@@ -83,10 +82,7 @@ export default function UserManagementClientPage({ initialUsers }: UserManagemen
     }, [showEditUserDialog, userToEdit, showCreateUserDialog, form]);
 
     useEffect(() => {
-        if (isInitialLoad.current) {
-            setData(initialUsers);
-            isInitialLoad.current = false;
-        }
+        setData(initialUsers);
     }, [initialUsers]);
 
     const resetRowActionState = () => {
