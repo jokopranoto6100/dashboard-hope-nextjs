@@ -77,6 +77,7 @@ export async function createUserAction(userData: UserFormData) {
     // Langsung insert ke tabel users
     const { error: profileError } = await supabaseServer.from('users').insert({
       id: newUser.id,
+      email,
       username,
       full_name,
       satker_id,

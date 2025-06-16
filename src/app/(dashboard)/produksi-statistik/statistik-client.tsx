@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Lokasi: src/app/(dashboard)/produksi-statistik/statistik-client.tsx
 "use client";
 
