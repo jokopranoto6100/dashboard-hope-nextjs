@@ -241,13 +241,14 @@ export const usePadiMonitoringData = (selectedYear: number, selectedSubround: st
       setLoadingPadi(false);
 
       if (maxTimestamp) {
-        setLastUpdate(maxTimestamp.toLocaleString('id-ID', {
+        setLastUpdate((maxTimestamp as Date).toLocaleString('id-ID', {
             year: 'numeric', month: 'long', day: 'numeric',
             hour: '2-digit', minute: '2-digit', second: '2-digit'
         }));
       } else {
         setLastUpdate('N/A');
       }
+
     };
     fetchAndProcessPadiData();
   }, [selectedYear, selectedSubround, supabase]);
