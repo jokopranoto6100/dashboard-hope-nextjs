@@ -396,7 +396,8 @@ export async function uploadMasterSampleAction(formData: FormData): Promise<Acti
       const buffer = await file.arrayBuffer();
       const workbook = xlsx.read(buffer, { type: "buffer", cellDates: true });
       const sheetName = workbook.SheetNames[0];
-      const jsonData = xlsx.utils.sheet_to_json(sheetName ? workbook.Sheets[sheetName] : undefined) as any[];
+      const worksheet = sheetName ? workbook.Sheets[sheetName] : undefined;
+      const jsonData = worksheet ? xlsx.utils.sheet_to_json(worksheet) as any[] : [];
 
       for (const record of jsonData) {
         const monthName = record.bulan?.toString().trim().toLowerCase();

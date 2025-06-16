@@ -209,12 +209,12 @@ export function UploaderClientComponent() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-6 max-h-[60vh] overflow-y-auto p-1 pr-4">
-            {analysisResult?.matchedHeaders.length > 0 && (
+            {(analysisResult?.matchedHeaders ?? []).length > 0 && (
               <div>
                 <h4 className="font-semibold flex items-center text-green-600"><CheckCircle className="h-4 w-4 mr-2"/>Kolom Cocok Otomatis</h4>
                 <p className="text-xs text-muted-foreground mb-2">Kolom ini tidak perlu diubah.</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
-                  {analysisResult.matchedHeaders.map(m => (
+                  {(analysisResult?.matchedHeaders ?? []).map(m => (
                     <div key={m.dbCol} className="grid grid-cols-2 items-center gap-2">
                       <Label htmlFor={`map-${m.dbCol}`} className="text-right text-xs">{m.dbCol}</Label>
                       <Input id={`map-${m.dbCol}`} value={m.csvHeader} disabled className="text-xs h-8"/>
@@ -223,7 +223,6 @@ export function UploaderClientComponent() {
                 </div>
               </div>
             )}
-
             {analysisResult && analysisResult.unmappedDbCols.length > 0 && (
               <div>
                 <h4 className="font-semibold flex items-center text-amber-600"><AlertCircle className="h-4 w-4 mr-2"/>Kolom Wajib (Belum Terpetakan)</h4>
