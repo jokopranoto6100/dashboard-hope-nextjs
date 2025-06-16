@@ -51,9 +51,9 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
   const { selectedYear } = useYear();
   const { supabase, user: authUser } = useAuth();
 
-  const barChartCardRef = useRef<HTMLDivElement>(null);
-  const lineChartCardRef = useRef<HTMLDivElement>(null);
-  const pieChartCardRef = useRef<HTMLDivElement>(null);
+  const barChartCardRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
+  const lineChartCardRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
+  const pieChartCardRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
 
   const [filters, setFilters] = useState<FilterState>({
     bulan: 'tahunan',
@@ -123,28 +123,46 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
   const processedData = useMemo(() => {
     const mainData = data || []; 
     const compareData = dataPembanding || []; 
-    const totalNilai = mainData.reduce((sum, item) => sum + item.nilai, 0);
+    const totalNilai = mainData.reduce((sum: number, item: any) => sum + item.nilai, 0);
     const totalNilaiPembanding = compareData.reduce((sum, item) => sum + item.nilai, 0);
     
-    const augmentedTableData: AugmentedAtapDataPoint[] = mainData.map(d => { const nilaiTahunIni = d.nilai; const nilaiTahunLalu = compareData.find(p => p.kode_wilayah === d.kode_wilayah)?.nilai; const kontribusi = totalNilai > 0 ? (nilaiTahunIni / totalNilai) * 100 : 0; let pertumbuhan: number | null = null; if (nilaiTahunLalu !== undefined && nilaiTahunLalu > 0) { pertumbuhan = ((nilaiTahunIni - nilaiTahunLalu) / nilaiTahunLalu) * 100; } else if (nilaiTahunLalu !== undefined && nilaiTahunIni > 0) { pertumbuhan = Infinity; } return { ...d, nama_wilayah: KABUPATEN_MAP[d.kode_wilayah] || 'Provinsi', kontribusi, nilaiTahunLalu, pertumbuhan }; }).sort((a,b) => b.nilai - a.nilai);
+    const augmentedTableData: AugmentedAtapDataPoint[] = mainData.map((d: any) => { const nilaiTahunIni = d.nilai; const nilaiTahunLalu = compareData.find((p: any) => p.kode_wilayah === d.kode_wilayah)?.nilai; const kontribusi = totalNilai > 0 ? (nilaiTahunIni / totalNilai) * 100 : 0; let pertumbuhan: number | null = null; if (nilaiTahunLalu !== undefined && nilaiTahunLalu > 0) { pertumbuhan = ((nilaiTahunIni - nilaiTahunLalu) / nilaiTahunLalu) * 100; } else if (nilaiTahunLalu !== undefined && nilaiTahunIni > 0) { pertumbuhan = Infinity; } return { ...d, nama_wilayah: KABUPATEN_MAP[d.kode_wilayah] || 'Provinsi', kontribusi, nilaiTahunLalu, pertumbuhan }; }).sort((a: AugmentedAtapDataPoint, b: AugmentedAtapDataPoint) => b.nilai - a.nilai);
     const pieChartData = augmentedTableData.map(d => ({ name: d.nama_wilayah, value: d.nilai || 0 }));
-    const barChartData = augmentedTableData.map(d => { const barAnnotations = annotations?.filter(a => a.kode_wilayah === d.kode_wilayah && (filters.bulan === 'tahunan' ? a.bulan === null : a.bulan === parseInt(filters.bulan))) || []; return { name: d.nama_wilayah, kode_wilayah: d.kode_wilayah, [selectedYear.toString()]: d.nilai, ...(d.nilaiTahunLalu && { [filters.tahunPembanding]: d.nilaiTahunLalu }), annotations: barAnnotations }; });
+    const barChartData = augmentedTableData.map(d => { 
+      const barAnnotations = annotations?.filter(
+        (a: Annotation) => a.kode_wilayah === d.kode_wilayah && (filters.bulan === 'tahunan' ? a.bulan === null : a.bulan === parseInt(filters.bulan))
+      ) || []; 
+      return { 
+        name: d.nama_wilayah, 
+        kode_wilayah: d.kode_wilayah, 
+        nilai: d.nilai, // <-- tambahkan ini!
+        [selectedYear.toString()]: d.nilai, 
+        ...(d.nilaiTahunLalu && { [filters.tahunPembanding]: d.nilaiTahunLalu }), 
+        annotations: barAnnotations 
+      }; 
+    });
     
     // --- FITUR SUBROUND: Logika untuk menyiapkan data bulanan dan subround ---
-    const monthlyLineChartData = Array.from({ length: 12 }, (_, i) => i + 1).map(monthNum => { const monthStr = monthNum.toString(); const mainDataPoint = lineChartRawData?.mainData?.find(d => d.bulan?.toString() === monthStr); const compareDataPoint = lineChartRawData?.compareData?.find(d => d.bulan?.toString() === monthStr); const monthAnnotations = annotations?.filter(a => a.bulan === monthNum && a.kode_wilayah === (selectedKabupaten ? selectedKabupaten : null)) || []; return { name: MONTH_NAMES[monthStr], [selectedYear.toString()]: mainDataPoint?.nilai ?? null, ...(filters.tahunPembanding !== 'tidak' && { [filters.tahunPembanding]: compareDataPoint?.nilai ?? null }), annotations: monthAnnotations, kode_wilayah: selectedKabupaten }; });
+    const monthlyLineChartData = Array.from({ length: 12 }, (_, i) => i + 1).map(monthNum => { 
+      const monthStr = monthNum.toString(); 
+      const mainDataPoint = lineChartRawData?.mainData?.find(d => d.bulan?.toString() === monthStr); 
+      const compareDataPoint = lineChartRawData?.compareData?.find(d => d.bulan?.toString() === monthStr); 
+      const monthAnnotations = annotations?.filter((a: Annotation) => a.bulan === monthNum && a.kode_wilayah === (selectedKabupaten ? selectedKabupaten : null)) || []; 
+      return { name: MONTH_NAMES[monthStr], [selectedYear.toString()]: mainDataPoint?.nilai ?? null, ...(filters.tahunPembanding !== 'tidak' && { [filters.tahunPembanding]: compareDataPoint?.nilai ?? null }), annotations: monthAnnotations, kode_wilayah: selectedKabupaten }; 
+    });
 
     const subroundTemplate: { name: string; main: number; compare: number; annotations: Annotation[] }[] = [ { name: 'Subround 1', main: 0, compare: 0, annotations: [] }, { name: 'Subround 2', main: 0, compare: 0, annotations: [] }, { name: 'Subround 3', main: 0, compare: 0, annotations: [] }, ];
     const subroundResult = JSON.parse(JSON.stringify(subroundTemplate));
     const aggregateData = (sourceData: any[], target: typeof subroundTemplate, key: 'main' | 'compare') => { sourceData.forEach(d => { if (!d.bulan) return; if (d.bulan <= 4) target[0][key] += d.nilai || 0; else if (d.bulan <= 8) target[1][key] += d.nilai || 0; else if (d.bulan <= 12) target[2][key] += d.nilai || 0; }); };
     aggregateData(lineChartRawData?.mainData || [], subroundResult, 'main');
     aggregateData(lineChartRawData?.compareData || [], subroundResult, 'compare');
-    const subroundChartData = subroundResult.map(d => ({ name: d.name, [selectedYear.toString()]: d.main, ...(filters.tahunPembanding !== 'tidak' && { [filters.tahunPembanding]: d.compare }), annotations: d.annotations }));
+    const subroundChartData = subroundResult.map((d: { name: string; main: number; compare: number; annotations: Annotation[] }) => ({ name: d.name, [selectedYear.toString()]: d.main, ...(filters.tahunPembanding !== 'tidak' && { [filters.tahunPembanding]: d.compare }), annotations: d.annotations }));
 
     const lineChartData = timeDataView === 'subround' ? subroundChartData : monthlyLineChartData;
     
     const wilayahTertinggi = barChartData[0] || null; const wilayahTerendah = barChartData.length > 1 ? barChartData[barChartData.length - 1] : null; let percentageChange: number | null = null; if (filters.tahunPembanding !== 'tidak' && totalNilaiPembanding > 0) { percentageChange = ((totalNilai - totalNilaiPembanding) / totalNilaiPembanding) * 100; } else if (totalNilai > 0) { percentageChange = Infinity; }
     
-    return { kpi: { total: totalNilai, totalPembanding: totalNilaiPembanding, satuan: mainData[0]?.satuan || '', wilayahTertinggi, wilayahTerendah, jumlahWilayah: new Set(mainData.map(d => d.kode_wilayah)).size, percentageChange }, barChart: barChartData, lineChart: lineChartData, pieChart: pieChartData, tableData: augmentedTableData };
+    return { kpi: { total: totalNilai, totalPembanding: totalNilaiPembanding, satuan: mainData[0]?.satuan || '', wilayahTertinggi, wilayahTerendah, jumlahWilayah: new Set(mainData.map((d: any) => d.kode_wilayah)).size, percentageChange }, barChart: barChartData, lineChart: lineChartData, pieChart: pieChartData, tableData: augmentedTableData };
   }, [data, dataPembanding, lineChartRawData, annotations, selectedYear, filters.bulan, filters.tahunPembanding, selectedKabupaten, timeDataView]);
   
   const tableColumns = useMemo(() => getColumns(selectedYear, filters.tahunPembanding, processedData.kpi.total, processedData.kpi.totalPembanding), [selectedYear, filters.tahunPembanding, processedData.kpi.total, processedData.kpi.totalPembanding]);
@@ -157,7 +175,47 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
   
   const handleExportChart = async (ref: React.RefObject<HTMLDivElement>, chartName: string) => { if (!ref.current) { toast.error("Grafik tidak dapat ditemukan."); return; } toast.info("Membuat gambar grafik..."); try { const dataUrl = await toPng(ref.current, { cacheBust: true, backgroundColor: 'white', pixelRatio: 2 }); saveAs(dataUrl, `grafik_${chartName}_${filters.indikatorNama}_${selectedYear}.png`); toast.success("Grafik berhasil diunduh!"); } catch (err) { toast.error("Gagal mengekspor grafik.", { description: (err as Error).message }); } };
 
-  const handleExport = () => { if(!processedData.tableData || processedData.tableData.length === 0) { toast.error("Tidak ada data untuk diekspor."); return; } const dataToExport = processedData.tableData.map(d => ({ "Nama Wilayah": d.nama_wilayah, "Nilai (Thn Ini)": d.nilai, "Kontribusi (%)": d.kontribusi?.toFixed(2), "Nilai (Thn Lalu)": filters.tahunPembanding !== 'tidak' ? d.nilaiTahunLalu : undefined, "Pertumbuhan (%)": filters.tahunPembanding !== 'tidak' ? d.pertumbuhan?.toFixed(2) : undefined, Indikator: d.indikator, Tahun: d.tahun, Bulan: d.bulan ? FULL_MONTH_NAMES[d.bulan.toString()][1] : 'Tahunan', Satuan: d.satuan, })); const csv = unparse(dataToExport, { columns: Object.keys(dataToExport[0]).filter(key => dataToExport[0][key] !== undefined) }); saveAs(new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' }), `data_rinci_${filters.indikatorNama}_${selectedYear}.csv`); };
+  const handleExport = () => {
+    if (!processedData.tableData || processedData.tableData.length === 0) {
+      toast.error("Tidak ada data untuk diekspor.");
+      return;
+    }
+    type ExportRow = {
+      "Nama Wilayah": string;
+      "Nilai (Thn Ini)": number;
+      "Kontribusi (%)": string | undefined;
+      "Nilai (Thn Lalu)"?: number | null | undefined;
+      "Pertumbuhan (%)"?: string | undefined;
+      Indikator: string;
+      Tahun: number;
+      Bulan: string;
+      Satuan: string | null;
+    };
+    const dataToExport: ExportRow[] = processedData.tableData.map(d => ({
+      "Nama Wilayah": d.nama_wilayah,
+      "Nilai (Thn Ini)": d.nilai,
+      "Kontribusi (%)": d.kontribusi?.toFixed(2),
+      ...(filters.tahunPembanding !== 'tidak' && { "Nilai (Thn Lalu)": d.nilaiTahunLalu }),
+      ...(filters.tahunPembanding !== 'tidak' && { "Pertumbuhan (%)": d.pertumbuhan?.toFixed(2) }),
+      Indikator: d.indikator,
+      Tahun: d.tahun,
+      Bulan: d.bulan ? FULL_MONTH_NAMES[d.bulan.toString()][1] : 'Tahunan',
+      Satuan: d.satuan,
+    }));
+    // Define columns as a constant array of allowed keys
+    const columns = [
+      "Nama Wilayah",
+      "Nilai (Thn Ini)",
+      "Kontribusi (%)",
+      ...(filters.tahunPembanding !== 'tidak' ? ["Nilai (Thn Lalu)", "Pertumbuhan (%)"] : []),
+      "Indikator",
+      "Tahun",
+      "Bulan",
+      "Satuan"
+    ] as const;
+    const csv = unparse(dataToExport, { columns: columns as unknown as string[] });
+    saveAs(new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' }), `data_rinci_${filters.indikatorNama}_${selectedYear}.csv`);
+  };
 
   const generateYears = () => { const years = []; for (let i = new Date().getFullYear() + 1; i >= 2020; i--) years.push(i.toString()); return years; };
 
@@ -200,10 +258,42 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
                 <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Total Nilai ({filters.level === 'provinsi' ? 'Provinsi' : 'Semua Kab/Kota'})</CardTitle><TrendingUp className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="text-2xl font-bold">{formatNumber(processedData.kpi.total)}</div>{processedData.kpi.percentageChange !== null && isFinite(processedData.kpi.percentageChange) && (<Badge variant={processedData.kpi.percentageChange >= 0 ? 'default' : 'destructive'} className="flex items-center gap-1 text-xs mt-1 w-fit">{processedData.kpi.percentageChange >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}<span>{processedData.kpi.percentageChange.toFixed(2)}% vs thn pembanding</span></Badge>)}<p className="text-xs text-muted-foreground mt-2">{processedData.kpi.satuan}</p></CardContent></Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Wilayah Tertinggi & Terendah</CardTitle><ChevronsDownUp className="h-4 w-4 text-muted-foreground"/></CardHeader>
-                    <CardContent className="space-y-2">
-                        <div className="flex items-start justify-between"><div className="flex items-center gap-2 min-w-0"><div className="p-1.5 bg-emerald-100 dark:bg-emerald-900 rounded-md flex-shrink-0"><TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /></div><div className="min-w-0"><p className="text-xs text-muted-foreground">Tertinggi</p><p className="text-sm font-semibold truncate" title={processedData.kpi.wilayahTertinggi?.name || ''}>{processedData.kpi.wilayahTertinggi?.name || '-'}</p></div></div><p className="text-sm font-bold flex-shrink-0 pl-2">{formatNumber(Number(processedData.kpi.wilayahTertinggi?.[selectedYear.toString()] || 0))}</p></div>
-                        {processedData.kpi.wilayahTerendah && (<div className="flex items-start justify-between"><div className="flex items-center gap-2 min-w-0"><div className="p-1.5 bg-red-100 dark:bg-red-900 rounded-md flex-shrink-0"><TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" /></div><div className="min-w-0"><p className="text-xs text-muted-foreground">Terendah</p><p className="text-sm font-semibold truncate" title={processedData.kpi.wilayahTerendah?.name || ''}>{processedData.kpi.wilayahTerendah?.name || '-'}</p></div></div><p className="text-sm font-bold flex-shrink-0 pl-2">{formatNumber(Number(processedData.kpi.wilayahTerendah?.[selectedYear.toString()] || 0))}</p></div>)}
-                    </CardContent>
+                      <CardContent className="space-y-2">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="p-1.5 bg-emerald-100 dark:bg-emerald-900 rounded-md flex-shrink-0">
+                              <TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-xs text-muted-foreground">Tertinggi</p>
+                              <p className="text-sm font-semibold truncate" title={processedData.kpi.wilayahTertinggi?.name || ''}>
+                                {processedData.kpi.wilayahTertinggi?.name || '-'}
+                              </p>
+                            </div>
+                          </div>
+                          <p className="text-sm font-bold flex-shrink-0 pl-2">
+                            {formatNumber(Number(processedData.kpi.wilayahTertinggi?.nilai || 0))}
+                          </p>
+                        </div>
+                        {processedData.kpi.wilayahTerendah && (
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div className="p-1.5 bg-red-100 dark:bg-red-900 rounded-md flex-shrink-0">
+                                <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-xs text-muted-foreground">Terendah</p>
+                                <p className="text-sm font-semibold truncate" title={processedData.kpi.wilayahTerendah?.name || ''}>
+                                  {processedData.kpi.wilayahTerendah?.name || '-'}
+                                </p>
+                              </div>
+                            </div>
+                            <p className="text-sm font-bold flex-shrink-0 pl-2">
+                              {formatNumber(Number(processedData.kpi.wilayahTerendah?.nilai || 0))}
+                            </p>
+                          </div>
+                        )}
+                      </CardContent>
                 </Card>     
                 <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Jumlah Wilayah</CardTitle><Map className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="text-2xl font-bold">{processedData.kpi.jumlahWilayah}</div><p className="text-xs text-muted-foreground">Wilayah dengan data</p></CardContent></Card>
             </div>
