@@ -23,12 +23,13 @@ import {
 } from '@/components/ui/sidebar';
 import { useAuth } from '@/context/AuthContext';
 import { Skeleton } from "@/components/ui/skeleton";
+import type { UserData } from '@/lib/sidebar-data';
 
-// PATCH: Tambah prop onNavigate
 interface NavUserHopeProps {
-  user?: { name: string; email: string };
+  user?: UserData;
   onNavigate?: () => void;
 }
+
 
 export function NavUserHope({ onNavigate }: NavUserHopeProps) {
   const router = useRouter();

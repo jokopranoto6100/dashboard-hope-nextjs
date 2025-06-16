@@ -26,10 +26,15 @@ interface NewSidebarProps {
 }
 
 interface UserSessionData {
+  id: string;
   role: string;
   username: string;
   email: string;
+  avatar?: string | null;
+  satker_id?: string | null;
+  fullname?: string;
 }
+
 
 export default function NewSidebar({ mobile = false, onNavigate }: NewSidebarProps) {
   const pathname = usePathname();
@@ -48,10 +53,15 @@ export default function NewSidebar({ mobile = false, onNavigate }: NewSidebarPro
         setUserSession(null);
       } else if (session) {
         setUserSession({
+          id: session.user.id, // ambil dari session.user.id
           role: session.user.user_metadata?.role || 'viewer',
           username: session.user.user_metadata?.username || 'User',
           email: session.user.email || 'N/A',
+          avatar: session.user.user_metadata?.avatar ?? null,
+          satker_id: session.user.user_metadata?.satker_id ?? null,
+          fullname: session.user.user_metadata?.fullname ?? session.user.user_metadata?.username ?? "User"
         });
+
       } else {
         setUserSession(null);
       }
@@ -62,10 +72,15 @@ export default function NewSidebar({ mobile = false, onNavigate }: NewSidebarPro
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         setUserSession({
+          id: session.user.id, // ambil dari session.user.id
           role: session.user.user_metadata?.role || 'viewer',
           username: session.user.user_metadata?.username || 'User',
           email: session.user.email || 'N/A',
+          avatar: session.user.user_metadata?.avatar ?? null,
+          satker_id: session.user.user_metadata?.satker_id ?? null,
+          fullname: session.user.user_metadata?.fullname ?? session.user.user_metadata?.username ?? "User"
         });
+
       } else {
         setUserSession(null);
       }
@@ -80,9 +95,16 @@ export default function NewSidebar({ mobile = false, onNavigate }: NewSidebarPro
     () => getNavMainItems(pathname, isSuperAdmin),
     [pathname, isSuperAdmin]
   );
-  const userDataForNav: UserData | null = userSession
-    ? { name: userSession.username, email: userSession.email }
-    : null;
+ const userDataForNav: UserData | null = userSession
+  ? {
+      id: userSession.id ?? "",
+      username: userSession.username ?? "",
+      fullname: userSession.username ?? "",
+      email: userSession.email ?? "",
+      avatar: userSession.avatar ?? null,
+      satker_id: userSession.satker_id ?? null
+    }
+  : null;
 
   if (mobile) {
     if (isLoadingSession && !userSession) {
@@ -111,7 +133,7 @@ export default function NewSidebar({ mobile = false, onNavigate }: NewSidebarPro
           <NavMainHope items={navMainData} onNavigate={onNavigate} />
         </SidebarContent>
         <SidebarFooter className="mt-auto p-2 border-t">
-          <NavUserHope user={userDataForNav} onNavigate={onNavigate} />
+            <NavUserHope user={userDataForNav ?? undefined} onNavigate={onNavigate} />
         </SidebarFooter>
       </div>
     );
@@ -130,7 +152,7 @@ export default function NewSidebar({ mobile = false, onNavigate }: NewSidebarPro
         style={{
           "--sidebar-width": "16rem",
           "--sidebar-width-icon": "3rem",
-        }}
+        } as any}
       >
         <div className={cn("h-16 flex items-center", open ? "px-4 lg:px-6 justify-start" : "px-0 justify-center")}>
           <Skeleton className={cn("rounded-md", open ? "h-8 w-8" : "h-6 w-6")} />
@@ -170,7 +192,7 @@ export default function NewSidebar({ mobile = false, onNavigate }: NewSidebarPro
         <NavMainHope items={navMainData} onNavigate={onNavigate} />
       </SidebarContent>
       <SidebarFooter className="mt-auto p-2 border-t">
-        <NavUserHope user={userDataForNav} onNavigate={onNavigate} />
+        <NavUserHope user={userDataForNav ?? undefined} onNavigate={onNavigate} />
       </SidebarFooter>
     </UiSidebar>
   );
