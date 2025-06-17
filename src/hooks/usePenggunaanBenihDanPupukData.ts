@@ -1,25 +1,16 @@
 // src/hooks/usePenggunaanBenihDanPupukData.ts
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useAuth } from '@/context/AuthContext'; //
-import { useYear } from '@/context/YearContext'; //
-import { useUbinanEvaluasiFilter } from '@/context/UbinanEvaluasiFilterContext'; //
-import { Tables } from '@/lib/database.types'; //
-import { getNamaKabupaten } from '@/lib/utils'; // Asumsi dari lib/utils
+import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import { useYear } from '@/context/YearContext';
+import { useUbinanEvaluasiFilter } from '@/context/UbinanEvaluasiFilterContext';
+import { Tables } from '@/lib/database.types';
+import { getNamaKabupaten } from '@/lib/utils';
 
-// Interface BenihRow tidak lagi diperlukan secara terpisah
-// export interface BenihRow {
-//   kab?: number;
-//   namaKabupaten: string;
-//   avgR604_m2: number | null;
-//   avgBenihPerHa_kg_ha: number | null;
-// }
-
-// Modifikasi PupukRow untuk menyertakan data benih
-export interface PupukDanBenihRow { // Ganti nama interface agar lebih jelas
+export interface PupukDanBenihRow {
   kab?: number;
   namaKabupaten: string;
-  avgR604_m2: number | null; // Rata-rata Luas Tanam (m²)
-  avgBenihPerHa_kg_ha: number | null; // TAMBAHKAN INI: Rata-rata Penggunaan Benih per Hektar (Kg/Ha)
+  avgR604_m2: number | null;
+  avgBenihPerHa_kg_ha: number | null;
   avgUreaPerHa_kg_ha: number | null;
   avgTSPerHa_kg_ha: number | null;
   avgKCLperHa_kg_ha: number | null;
@@ -27,20 +18,28 @@ export interface PupukDanBenihRow { // Ganti nama interface agar lebih jelas
   avgKomposPerHa_kg_ha: number | null;
   avgOrganikCairPerHa_liter_ha: number | null;
   avgZAPerHa_kg_ha: number | null;
+  comparison_avgR604_m2?: number | null;
+  comparison_avgBenihPerHa_kg_ha?: number | null;
+  comparison_avgUreaPerHa_kg_ha?: number | null;
+  comparison_avgTSPerHa_kg_ha?: number | null;
+  comparison_avgKCLperHa_kg_ha?: number | null;
+  comparison_avgNPKPerHa_kg_ha?: number | null;
+  comparison_avgKomposPerHa_kg_ha?: number | null;
+  comparison_avgOrganikCairPerHa_liter_ha?: number | null;
+  comparison_avgZAPerHa_kg_ha?: number | null;
+  change_avgBenihPerHa_kg_ha?: number | null;
+  change_avgUreaPerHa_kg_ha?: number | null;
+  change_avgTSPerHa_kg_ha?: number | null;
+  change_avgKCLperHa_kg_ha?: number | null;
+  change_avgNPKPerHa_kg_ha?: number | null;
+  change_avgKomposPerHa_kg_ha?: number | null;
+  change_avgOrganikCairPerHa_liter_ha?: number | null;
+  change_avgZAPerHa_kg_ha?: number | null;
 }
 
 type UbinanRawBenihPupuk = Pick<
   Tables<'ubinan_raw'>,
-  | 'kab'
-  | 'r604' // Luas Tanam (m²)
-  | 'r608' // Bibit (Kg)
-  | 'r610_1' // Urea (kg)
-  | 'r610_2' // TSP (kg)
-  | 'r610_3' // KCL (kg)
-  | 'r610_4' // NPK (kg)
-  | 'r610_5' // Kompos (kg)
-  | 'r610_6' // Organik Cair (liter)
-  | 'r610_7' // ZA (kg)
+  'tahun' | 'kab' | 'r604' | 'r608' | 'r610_1' | 'r610_2' | 'r610_3' | 'r610_4' | 'r610_5' | 'r610_6' | 'r610_7'
 >;
 
 const ITEMS_PER_PAGE = 1000;
@@ -51,153 +50,171 @@ const getAverage = (arr: (number | null | undefined)[]): number | null => {
   return validNumbers.reduce((acc, val) => acc + val, 0) / validNumbers.length;
 };
 
-export const usePenggunaanBenihDanPupukData = () => {
+export const usePenggunaanBenihDanPupukData = (comparisonYear: number | null) => {
   const { supabase } = useAuth();
-  const { selectedYear } = useYear(); //
-  const { selectedSubround, selectedKomoditas, isLoadingFilters } = useUbinanEvaluasiFilter(); //
+  const { selectedYear } = useYear();
+  const { selectedSubround, selectedKomoditas, isLoadingFilters } = useUbinanEvaluasiFilter();
 
-  const [allFetchedData, setAllFetchedData] = useState<UbinanRawBenihPupuk[]>([]);
-  const [isLoadingData, setIsLoadingData] = useState<boolean>(false);
+  const [processedData, setProcessedData] = useState<{ pupukDanBenihPerKab: PupukDanBenihRow[], kalimantanBaratPupukDanBenih: PupukDanBenihRow | null }>({
+      pupukDanBenihPerKab: [], kalimantanBaratPupukDanBenih: null,
+  });
+  const [isLoadingData, setIsLoadingData] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     if (!selectedYear || isLoadingFilters || !selectedKomoditas) {
-      setAllFetchedData([]);
+      setProcessedData({ pupukDanBenihPerKab: [], kalimantanBaratPupukDanBenih: null });
       return;
     }
     setIsLoadingData(true);
     setError(null);
+
     try {
-      let fetchedDataAccumulator: UbinanRawBenihPupuk[] = [];
+      const yearsToFetch = comparisonYear ? [selectedYear, comparisonYear] : [selectedYear];
+      let allData: UbinanRawBenihPupuk[] = [];
       let currentPage = 0;
       let hasMoreData = true;
-      const columnsToSelect = 'kab, r604, r608, r610_1, r610_2, r610_3, r610_4, r610_5, r610_6, r610_7'; //
+      const columnsToSelect = 'tahun, kab, r604, r608, r610_1, r610_2, r610_3, r610_4, r610_5, r610_6, r610_7';
+      
       while (hasMoreData) {
         const { from, to } = { from: currentPage * ITEMS_PER_PAGE, to: (currentPage + 1) * ITEMS_PER_PAGE - 1 };
-        let query = supabase.from('ubinan_raw').select(columnsToSelect)
-          .eq('tahun', selectedYear)
-          .eq('komoditas', selectedKomoditas); //
-        if (selectedSubround !== 'all') query = query.eq('subround', selectedSubround); //
+        let query = supabase.from('ubinan_raw').select(columnsToSelect).in('tahun', yearsToFetch).eq('komoditas', selectedKomoditas);
+        if (selectedSubround !== 'all') query = query.eq('subround', selectedSubround);
         const { data: pageData, error: pageError } = await query.range(from, to);
         if (pageError) throw pageError;
-        if (pageData && pageData.length > 0) fetchedDataAccumulator.push(...pageData as UbinanRawBenihPupuk[]);
+        if (pageData) allData.push(...pageData as UbinanRawBenihPupuk[]);
         if (!pageData || pageData.length < ITEMS_PER_PAGE) hasMoreData = false;
         currentPage++;
       }
-      setAllFetchedData(fetchedDataAccumulator);
+      
+      const calculateAveragesByKab = (dataForYear: UbinanRawBenihPupuk[]): Map<number, Partial<PupukDanBenihRow>> => {
+        const perRecordCalculated = dataForYear
+          .filter(d => typeof d.r604 === 'number' && d.r604 > 0)
+          .map(d => {
+            const luasHa = d.r604! / 10000;
+            return {
+              kab: d.kab,
+              avgR604_m2: d.r604,
+              avgBenihPerHa_kg_ha: typeof d.r608 === 'number' ? d.r608 / luasHa : null,
+              avgUreaPerHa_kg_ha: typeof d.r610_1 === 'number' ? d.r610_1 / luasHa : null,
+              avgTSPerHa_kg_ha: typeof d.r610_2 === 'number' ? d.r610_2 / luasHa : null,
+              avgKCLperHa_kg_ha: typeof d.r610_3 === 'number' ? d.r610_3 / luasHa : null,
+              avgNPKPerHa_kg_ha: typeof d.r610_4 === 'number' ? d.r610_4 / luasHa : null,
+              avgKomposPerHa_kg_ha: typeof d.r610_5 === 'number' ? d.r610_5 / luasHa : null,
+              avgOrganikCairPerHa_liter_ha: typeof d.r610_6 === 'number' ? d.r610_6 / luasHa : null,
+              avgZAPerHa_kg_ha: typeof d.r610_7 === 'number' ? d.r610_7 / luasHa : null,
+            };
+          });
+
+        const groupedByKab = perRecordCalculated.reduce((acc, curr) => {
+            const key = String(curr.kab);
+            if (!acc.has(key)) acc.set(key, []);
+            acc.get(key)!.push(curr);
+            return acc;
+        }, new Map<string, typeof perRecordCalculated>());
+
+        const result = new Map<number, Partial<PupukDanBenihRow>>();
+        groupedByKab.forEach((kabData, kabStr) => {
+            const kab = parseInt(kabStr, 10);
+            result.set(kab, {
+              avgR604_m2: getAverage(kabData.map(d => d.avgR604_m2)),
+              avgBenihPerHa_kg_ha: getAverage(kabData.map(d => d.avgBenihPerHa_kg_ha)),
+              avgUreaPerHa_kg_ha: getAverage(kabData.map(d => d.avgUreaPerHa_kg_ha)),
+              avgTSPerHa_kg_ha: getAverage(kabData.map(d => d.avgTSPerHa_kg_ha)),
+              avgKCLperHa_kg_ha: getAverage(kabData.map(d => d.avgKCLperHa_kg_ha)),
+              avgNPKPerHa_kg_ha: getAverage(kabData.map(d => d.avgNPKPerHa_kg_ha)),
+              avgKomposPerHa_kg_ha: getAverage(kabData.map(d => d.avgKomposPerHa_kg_ha)),
+              avgOrganikCairPerHa_liter_ha: getAverage(kabData.map(d => d.avgOrganikCairPerHa_liter_ha)),
+              avgZAPerHa_kg_ha: getAverage(kabData.map(d => d.avgZAPerHa_kg_ha)),
+            });
+        });
+        return result;
+      };
+
+      const thisYearRawData = allData.filter(d => d.tahun === selectedYear);
+      const thisYearAveragesByKab = calculateAveragesByKab(thisYearRawData);
+
+      let comparisonYearAveragesByKab: Map<number, Partial<PupukDanBenihRow>> | null = null;
+      if (comparisonYear) {
+        const comparisonYearRawData = allData.filter(d => d.tahun === comparisonYear);
+        comparisonYearAveragesByKab = calculateAveragesByKab(comparisonYearRawData);
+      }
+
+      const finalPupukDanBenihStats: PupukDanBenihRow[] = [];
+      const allKabs = new Set([...thisYearAveragesByKab.keys(), ...(comparisonYearAveragesByKab?.keys() || [])]);
+
+      allKabs.forEach(kab => {
+          const thisYearData = thisYearAveragesByKab.get(kab) || {};
+          const compYearData = comparisonYearAveragesByKab?.get(kab) || {};
+          let row: PupukDanBenihRow = {
+              kab: kab, namaKabupaten: getNamaKabupaten(kab)!,
+              avgR604_m2: null, avgBenihPerHa_kg_ha: null, avgUreaPerHa_kg_ha: null, avgTSPerHa_kg_ha: null, avgKCLperHa_kg_ha: null, avgNPKPerHa_kg_ha: null, avgKomposPerHa_kg_ha: null, avgOrganikCairPerHa_liter_ha: null, avgZAPerHa_kg_ha: null,
+          };
+          row = { ...row, ...thisYearData };
+
+          if (comparisonYear) {
+              const variables: (keyof PupukDanBenihRow)[] = ['avgR604_m2', 'avgBenihPerHa_kg_ha', 'avgUreaPerHa_kg_ha', 'avgTSPerHa_kg_ha', 'avgKCLperHa_kg_ha', 'avgNPKPerHa_kg_ha', 'avgKomposPerHa_kg_ha', 'avgOrganikCairPerHa_liter_ha', 'avgZAPerHa_kg_ha'];
+              variables.forEach(v => {
+                  const compKey = `comparison_${v}` as keyof PupukDanBenihRow;
+                  const changeKey = `change_${v}` as keyof PupukDanBenihRow;
+                  const valThisYear = thisYearData[v] as number | null;
+                  const valCompYear = compYearData[v] as number | null;
+                  (row as any)[compKey] = valCompYear;
+                  if (v !== 'avgR604_m2' && valThisYear != null && valCompYear != null && valCompYear > 0) {
+                      (row as any)[changeKey] = ((valThisYear - valCompYear) / valCompYear) * 100;
+                  }
+              });
+          }
+          finalPupukDanBenihStats.push(row);
+      });
+      
+      const getProvincialAverages = (rawData: UbinanRawBenihPupuk[]): Partial<PupukDanBenihRow> => {
+        const perRecord = rawData.filter(d => typeof d.r604 === 'number' && d.r604 > 0).map(d => {
+            const luasHa = d.r604! / 10000;
+            return {
+                avgR604_m2: d.r604, avgBenihPerHa_kg_ha: typeof d.r608 === 'number' ? d.r608 / luasHa : null, avgUreaPerHa_kg_ha: typeof d.r610_1 === 'number' ? d.r610_1 / luasHa : null, avgTSPerHa_kg_ha: typeof d.r610_2 === 'number' ? d.r610_2 / luasHa : null, avgKCLperHa_kg_ha: typeof d.r610_3 === 'number' ? d.r610_3 / luasHa : null, avgNPKPerHa_kg_ha: typeof d.r610_4 === 'number' ? d.r610_4 / luasHa : null, avgKomposPerHa_kg_ha: typeof d.r610_5 === 'number' ? d.r610_5 / luasHa : null, avgOrganikCairPerHa_liter_ha: typeof d.r610_6 === 'number' ? d.r610_6 / luasHa : null, avgZAPerHa_kg_ha: typeof d.r610_7 === 'number' ? d.r610_7 / luasHa : null,
+            };
+        });
+        if (perRecord.length === 0) return {};
+        return {
+            avgR604_m2: getAverage(perRecord.map(d => d.avgR604_m2)), avgBenihPerHa_kg_ha: getAverage(perRecord.map(d => d.avgBenihPerHa_kg_ha)), avgUreaPerHa_kg_ha: getAverage(perRecord.map(d => d.avgUreaPerHa_kg_ha)), avgTSPerHa_kg_ha: getAverage(perRecord.map(d => d.avgTSPerHa_kg_ha)), avgKCLperHa_kg_ha: getAverage(perRecord.map(d => d.avgKCLperHa_kg_ha)), avgNPKPerHa_kg_ha: getAverage(perRecord.map(d => d.avgNPKPerHa_kg_ha)), avgKomposPerHa_kg_ha: getAverage(perRecord.map(d => d.avgKomposPerHa_kg_ha)), avgOrganikCairPerHa_liter_ha: getAverage(perRecord.map(d => d.avgOrganikCairPerHa_liter_ha)), avgZAPerHa_kg_ha: getAverage(perRecord.map(d => d.avgZAPerHa_kg_ha)),
+        };
+      };
+
+      let kalbarData: PupukDanBenihRow | null = thisYearRawData.length > 0 ? { namaKabupaten: 'Kalimantan Barat', ...getProvincialAverages(thisYearRawData) } as PupukDanBenihRow : null;
+      
+      if (comparisonYear && kalbarData) {
+          const kalbarComparisonData = getProvincialAverages(allData.filter(d => d.tahun === comparisonYear));
+          const variables: (keyof PupukDanBenihRow)[] = ['avgR604_m2', 'avgBenihPerHa_kg_ha', 'avgUreaPerHa_kg_ha', 'avgTSPerHa_kg_ha', 'avgKCLperHa_kg_ha', 'avgNPKPerHa_kg_ha', 'avgKomposPerHa_kg_ha', 'avgOrganikCairPerHa_liter_ha', 'avgZAPerHa_kg_ha'];
+          variables.forEach(v => {
+              const compKey = `comparison_${v}` as keyof PupukDanBenihRow;
+              const changeKey = `change_${v}` as keyof PupukDanBenihRow;
+              const valThisYear = (kalbarData as any)[v];
+              const valCompYear = (kalbarComparisonData as any)[v];
+              (kalbarData as any)[compKey] = valCompYear;
+              if (v !== 'avgR604_m2' && valThisYear != null && valCompYear != null && valCompYear > 0) {
+                  (kalbarData as any)[changeKey] = ((valThisYear - valCompYear) / valCompYear) * 100;
+              }
+          });
+      }
+
+      setProcessedData({ 
+        pupukDanBenihPerKab: finalPupukDanBenihStats.sort((a,b) => (a.kab || 0) - (b.kab || 0)), 
+        kalimantanBaratPupukDanBenih: kalbarData
+      });
+
     } catch (err: any) {
       console.error("Error fetching benih & pupuk data:", err);
-      setError(err.message || 'Terjadi kesalahan saat mengambil data benih & pupuk.');
-      setAllFetchedData([]);
+      setError(err.message || 'Terjadi kesalahan.');
+      setProcessedData({ pupukDanBenihPerKab: [], kalimantanBaratPupukDanBenih: null });
     } finally {
       setIsLoadingData(false);
     }
-  }, [selectedYear, selectedSubround, selectedKomoditas, isLoadingFilters, supabase]);
+  }, [selectedYear, comparisonYear, selectedSubround, selectedKomoditas, isLoadingFilters, supabase]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  const processedData = useMemo(() => {
-    if (allFetchedData.length === 0) {
-      return {
-        // benihPerKab: [], // Hapus
-        pupukDanBenihPerKab: [], // Ganti nama
-        // kalimantanBaratBenih: null, // Hapus
-        kalimantanBaratPupukDanBenih: null, // Ganti nama
-      };
-    }
-
-    const dataForProcessing = allFetchedData
-      .filter(d => typeof d.r604 === 'number' && d.r604 > 0) // Pastikan r604 valid
-      .map(d => {
-        const luasHa = (d.r604 ?? 1) / 10000; // r604 sudah pasti > 0 dari filter
-        return {
-          kab: d.kab,
-          r604: d.r604, // Simpan r604 asli untuk AVG(r604)
-          benih_per_ha_record: typeof d.r608 === 'number' ? d.r608 / luasHa : null, //
-          urea_per_ha_record: typeof d.r610_1 === 'number' ? d.r610_1 / luasHa : null, //
-          tsp_per_ha_record: typeof d.r610_2 === 'number' ? d.r610_2 / luasHa : null, //
-          kcl_per_ha_record: typeof d.r610_3 === 'number' ? d.r610_3 / luasHa : null, //
-          npk_per_ha_record: typeof d.r610_4 === 'number' ? d.r610_4 / luasHa : null, //
-          kompos_per_ha_record: typeof d.r610_5 === 'number' ? d.r610_5 / luasHa : null, //
-          organikcair_per_ha_record: typeof d.r610_6 === 'number' ? d.r610_6 / luasHa : null, //
-          za_per_ha_record: typeof d.r610_7 === 'number' ? d.r610_7 / luasHa : null, //
-        };
-      });
-
-    const groupedByKab = dataForProcessing.reduce((acc, curr) => {
-      const kabKey = String(curr.kab);
-      if (!acc[kabKey]) acc[kabKey] = [];
-      acc[kabKey].push(curr);
-      return acc;
-    }, {} as Record<string, typeof dataForProcessing>);
-
-    // const benihPerKabArr: BenihRow[] = []; // Hapus
-    const pupukDanBenihPerKabArr: PupukDanBenihRow[] = []; // Ganti nama
-    
-    const uniqueKabs = new Set(dataForProcessing.map(d => d.kab).filter(k => k !== null && k !== undefined) as number[]); //
-
-    uniqueKabs.forEach(kabCode => {
-      const kabNum = Number(kabCode);
-      const namaKab = getNamaKabupaten(kabNum) || `Kode ${kabNum}`; //
-      const kabData = groupedByKab[String(kabCode)] || [];
-
-      if (kabData.length > 0) {
-        const avgR604_m2_kab = getAverage(kabData.map(d => d.r604));
-        
-        // Data benih sekarang digabung ke sini
-        pupukDanBenihPerKabArr.push({
-          kab: kabNum,
-          namaKabupaten: namaKab,
-          avgR604_m2: avgR604_m2_kab,
-          avgBenihPerHa_kg_ha: getAverage(kabData.map(d => d.benih_per_ha_record)), // Tambahkan ini
-          avgUreaPerHa_kg_ha: getAverage(kabData.map(d => d.urea_per_ha_record)),
-          avgTSPerHa_kg_ha: getAverage(kabData.map(d => d.tsp_per_ha_record)),
-          avgKCLperHa_kg_ha: getAverage(kabData.map(d => d.kcl_per_ha_record)),
-          avgNPKPerHa_kg_ha: getAverage(kabData.map(d => d.npk_per_ha_record)),
-          avgKomposPerHa_kg_ha: getAverage(kabData.map(d => d.kompos_per_ha_record)),
-          avgOrganikCairPerHa_liter_ha: getAverage(kabData.map(d => d.organikcair_per_ha_record)),
-          avgZAPerHa_kg_ha: getAverage(kabData.map(d => d.za_per_ha_record)),
-        });
-      }
-    });
-
-    // benihPerKabArr.sort((a, b) => (a.kab || 0) - (b.kab || 0)); // Hapus
-    pupukDanBenihPerKabArr.sort((a, b) => (a.kab || 0) - (b.kab || 0)); // Ganti nama array
-
-    // let kalBarBenih: BenihRow | null = null; // Hapus
-    let kalBarPupukDanBenih: PupukDanBenihRow | null = null; // Ganti nama
-
-    if (dataForProcessing.length > 0) {
-      const avgR604Kalbar = getAverage(dataForProcessing.map(d => d.r604));
-      // Data benih untuk Kalimantan Barat digabung ke sini
-      kalBarPupukDanBenih = {
-        namaKabupaten: "Kalimantan Barat",
-        avgR604_m2: avgR604Kalbar,
-        avgBenihPerHa_kg_ha: getAverage(dataForProcessing.map(d => d.benih_per_ha_record)), // Tambahkan ini
-        avgUreaPerHa_kg_ha: getAverage(dataForProcessing.map(d => d.urea_per_ha_record)),
-        avgTSPerHa_kg_ha: getAverage(dataForProcessing.map(d => d.tsp_per_ha_record)),
-        avgKCLperHa_kg_ha: getAverage(dataForProcessing.map(d => d.kcl_per_ha_record)),
-        avgNPKPerHa_kg_ha: getAverage(dataForProcessing.map(d => d.npk_per_ha_record)),
-        avgKomposPerHa_kg_ha: getAverage(dataForProcessing.map(d => d.kompos_per_ha_record)),
-        avgOrganikCairPerHa_liter_ha: getAverage(dataForProcessing.map(d => d.organikcair_per_ha_record)),
-        avgZAPerHa_kg_ha: getAverage(dataForProcessing.map(d => d.za_per_ha_record)),
-      };
-    }
-
-    return {
-      // benihPerKab: benihPerKabArr, // Hapus
-      pupukDanBenihPerKab: pupukDanBenihPerKabArr, // Ganti nama
-      // kalimantanBaratBenih: kalBarBenih, // Hapus
-      kalimantanBaratPupukDanBenih: kalBarPupukDanBenih, // Ganti nama
-    };
-  }, [allFetchedData]);
-
-  return {
-    dataBenihDanPupuk: processedData, // Ganti nama agar lebih jelas
-    isLoadingBenihPupuk: isLoadingData || isLoadingFilters,
-    errorBenihPupuk: error,
-    refreshBenihPupukData: fetchData,
-  };
+  return { dataBenihDanPupuk: processedData, isLoadingBenihPupuk: isLoadingData, errorBenihPupuk: error };
 };
