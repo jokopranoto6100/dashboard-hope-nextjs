@@ -12,8 +12,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Download, Loader2 } from "lucide-react"; // Impor ikon
-import { toast } from "sonner"; // Impor untuk notifikasi
+import { Download, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 // Impor konteks dan hooks kustom
 import { useUbinanEvaluasiFilter } from '@/context/UbinanEvaluasiFilterContext';
@@ -30,13 +30,17 @@ import { downloadAnomaliExcelAction } from './_actions';
 
 // Impor utilitas dan komponen lain
 import { useReactTable, getCoreRowModel, getSortedRowModel, flexRender, SortingState, RowData } from "@tanstack/react-table";
+
+// --- DIUBAH: Impor kedua modal ---
 import { DetailKabupatenModal } from './DetailKabupatenModal';
+import { HasilUbinanDetailModal } from './HasilUbinanDetailModal'; 
 
 declare module '@tanstack/react-table' {
   interface TableMeta<TData extends unknown> {
     kalimantanBaratData?: DescriptiveStatsRow | null;
     kalimantanBaratPupukDanBenih?: PupukDanBenihRow | null;
     currentUnit?: string;
+    selectedKomoditas?: string | null; // BARU
   }
 }
 
@@ -56,10 +60,16 @@ export function EvaluasiUbinanClient() {
   const [useKuHa, setUseKuHa] = useState(false);
   const [sortingStats, setSortingStats] = React.useState<SortingState>([]);
   const [sortingBenihDanPupuk, setSortingBenihDanPupuk] = React.useState<SortingState>([]);
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  // State untuk modal detail benih & pupuk
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedKabForDetail, setSelectedKabForDetail] = useState<{ code: number; name: string; } | null>(null);
-  const [isDownloading, setIsDownloading] = useState(false); // State untuk loading download
 
+  // --- BARU: State untuk modal detail hasil ubinan ---
+  const [isHasilUbinanModalOpen, setIsHasilUbinanModalOpen] = useState(false);
+  const [selectedKabForHasilUbinan, setSelectedKabForHasilUbinan] = useState<{ code: number; name: string; } | null>(null);
+  
   // Konversi dan unit
   const conversionFactor = useKuHa ? 16 : 1;
   const currentUnit = useKuHa ? 'ku/ha' : 'kg/plot';
@@ -94,7 +104,12 @@ export function EvaluasiUbinanClient() {
     onSortingChange: setSortingStats,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    meta: { kalimantanBaratData: kalbarStatsData, currentUnit },
+    // --- DIUBAH: Tambahkan selectedKomoditas ke meta ---
+    meta: { 
+        kalimantanBaratData: kalbarStatsData, 
+        currentUnit,
+        selectedKomoditas, // BARU
+    },
   });
 
   const benihDanPupukTable = useReactTable({
@@ -112,6 +127,7 @@ export function EvaluasiUbinanClient() {
   const handleKomoditasChange = (value: string) => setSelectedKomoditas(value);
   const isKomoditasDisabled = isLoadingFilters || availableKomoditas.length === 0;
 
+  // Handler untuk modal detail benih & pupuk (tetap ada)
   const handleOpenDetailModal = (rowData: RowData) => {
     const kabData = rowData as PupukDanBenihRow;
     if (kabData.kab !== undefined && kabData.kab !== null) {
@@ -120,6 +136,15 @@ export function EvaluasiUbinanClient() {
     }
   };
   
+  // --- BARU: Handler untuk modal detail hasil ubinan ---
+  const handleOpenHasilUbinanModal = (rowData: RowData) => {
+    const statsData = rowData as DescriptiveStatsRow;
+    if (statsData.kab !== undefined && statsData.kab !== null) {
+      setSelectedKabForHasilUbinan({ code: statsData.kab, name: statsData.namaKabupaten });
+      setIsHasilUbinanModalOpen(true);
+    }
+  };
+
   // Fungsi untuk menangani download Excel
   const handleDownloadAnomali = async () => {
     setIsDownloading(true);
@@ -128,10 +153,9 @@ export function EvaluasiUbinanClient() {
     });
 
     try {
-      const result = await downloadAnomaliExcelAction(selectedYear);
+      const result = await downloadAnomaliExcelAction(selectedYear as number); //
 
       if (result.success && result.data) {
-        // Konversi Base64 ke file dan picu download
         const byteCharacters = atob(result.data);
         const byteNumbers = new Array(byteCharacters.length);
         for (let i = 0; i < byteCharacters.length; i++) {
@@ -165,7 +189,7 @@ export function EvaluasiUbinanClient() {
     }
   };
 
-  // Fungsi render generik untuk tabel
+// --- DIUBAH: Fungsi renderTable dengan skeleton yang lebih baik ---
   const renderTable = (
     tableInstance: any, title: string, description: string, isLoading: boolean,
     errorMsg: string | null, showUnitSwitcher = false, footerData?: PupukDanBenihRow | DescriptiveStatsRow | null,
@@ -173,6 +197,9 @@ export function EvaluasiUbinanClient() {
   ) => {
     const noData = !isLoading && !errorMsg && tableInstance.getRowModel().rows.length === 0;
     const hasFooter = footerData && tableInstance.getRowModel().rows.length > 0;
+    
+    // BARU: Tentukan jumlah baris skeleton. Jika sudah ada data, pakai jumlah itu. Jika belum (initial load), pakai 5.
+    const skeletonRowCount = tableInstance.getRowModel().rows.length > 0 ? tableInstance.getRowModel().rows.length : 5;
 
     return (
       <Card className="mt-6">
@@ -187,10 +214,14 @@ export function EvaluasiUbinanClient() {
           )}
         </CardHeader>
         <CardContent>
-          {isLoading && (<div className="space-y-2">{[...Array(3)].map((_, i) => (<Skeleton key={i} className="h-12 w-full" />))}</div>)}
+          {/* DIHAPUS: Blok skeleton lama yang statis dihapus dari sini.
+            {isLoading && (<div className="space-y-2">{[...Array(3)].map((_, i) => (<Skeleton key={i} className="h-12 w-full" />))}</div>)} 
+          */}
           {!isLoading && errorMsg && (<p className="text-red-600 dark:text-red-400 text-center py-4">Error: {errorMsg}</p>)}
           {noData && (<p className="text-center text-gray-500 dark:text-gray-400 py-4">Tidak ada data untuk ditampilkan.</p>)}
-          {!isLoading && !errorMsg && tableInstance.getRowModel().rows.length > 0 && (
+          
+          {/* DIUBAH: Tampilkan tabel bahkan saat loading untuk menjaga struktur */}
+          {(!noData || isLoading) && !errorMsg && (
             <div className="rounded-md border overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -206,21 +237,37 @@ export function EvaluasiUbinanClient() {
                   ))}
                 </TableHeader>
                 <TableBody>
-                  {tableInstance.getRowModel().rows.map((row: any) => (
-                    <TableRow 
-                      key={row.id} 
-                      onClick={onRowClickHandler ? () => onRowClickHandler(row.original) : undefined}
-                      className={onRowClickHandler ? "cursor-pointer hover:bg-muted/50" : ""}
-                    >
-                      {row.getVisibleCells().map((cell: any) => (
-                        <TableCell key={cell.id} style={{ textAlign: 'center' }} className="whitespace-nowrap">
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))}
+                  {/* BARU: Logika untuk menampilkan baris skeleton atau baris data asli */}
+                  {isLoading ? (
+                    // Tampilkan baris skeleton
+                    [...Array(skeletonRowCount)].map((_, i) => (
+                      <TableRow key={`skeleton-${i}`}>
+                        {tableInstance.getAllLeafColumns().map((column: any) => (
+                          <TableCell key={column.id} style={{ textAlign: 'center' }} className="whitespace-nowrap">
+                            <Skeleton className="h-5 w-full" />
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))
+                  ) : (
+                    // Tampilkan baris data asli (logika yang sudah ada)
+                    tableInstance.getRowModel().rows.map((row: any) => (
+                      <TableRow 
+                        key={row.id} 
+                        onClick={onRowClickHandler ? () => onRowClickHandler(row.original) : undefined}
+                        className={onRowClickHandler ? "cursor-pointer hover:bg-muted/50" : ""}
+                      >
+                        {row.getVisibleCells().map((cell: any) => (
+                          <TableCell key={cell.id} style={{ textAlign: 'center' }} className="whitespace-nowrap">
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
-                {hasFooter && (
+                {/* Footer tidak ditampilkan saat loading */}
+                {hasFooter && !isLoading && (
                   <TableFooter>
                     {tableInstance.getFooterGroups().map((footerGroup: any) => (
                       <TableRow key={footerGroup.id} className="bg-muted/50 font-semibold">
@@ -244,7 +291,6 @@ export function EvaluasiUbinanClient() {
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-center gap-x-4 gap-y-2 mb-4">
-        {/* Tombol Download di Kiri */}
         <div>
           <Button onClick={handleDownloadAnomali} disabled={isDownloading} variant="outline">
             {isDownloading ? (
@@ -256,7 +302,6 @@ export function EvaluasiUbinanClient() {
           </Button>
         </div>
 
-        {/* Filter yang sudah ada di Kanan */}
         <div className="flex flex-col sm:flex-row items-center gap-x-4 gap-y-2">
           <div>
             {isLoadingFilters ? (<Skeleton className="h-10 w-36 sm:w-40" />) : (
@@ -282,7 +327,17 @@ export function EvaluasiUbinanClient() {
         </div>
       </div>
 
-      {renderTable(statsTable, "Statistik Deskriptif Hasil Ubinan (r701)", `Pilih tahun melalui filter global di header. Data pada tabel di bawah ini difilter berdasarkan subround dan komoditas yang dipilih di atas. Statistik mencakup entri r701 yang tidak kosong. Ubah satuan ke kuintal/hektar menggunakan tombol di pojok kanan atas.`, isLoadingStatsData, statsDataError, true, kalbarStatsData)}
+      {/* --- DIUBAH: Panggilan renderTable untuk statsTable menggunakan handler baru --- */}
+      {renderTable(
+          statsTable, 
+          "Statistik Deskriptif Hasil Ubinan (r701)", 
+          `Pilih tahun melalui filter global di header. Data pada tabel di bawah ini difilter berdasarkan subround dan komoditas yang dipilih di atas. Statistik mencakup entri r701 yang tidak kosong. Ubah satuan ke kuintal/hektar menggunakan tombol di pojok kanan atas.`, 
+          isLoadingStatsData, 
+          statsDataError, 
+          true, 
+          kalbarStatsData,
+          handleOpenHasilUbinanModal
+      )}
       
       {renderTable(
         benihDanPupukTable,
@@ -295,12 +350,26 @@ export function EvaluasiUbinanClient() {
         handleOpenDetailModal
       )}
 
+      {/* Modal untuk Benih & Pupuk (tetap ada) */}
       {selectedKabForDetail && (
         <DetailKabupatenModal
           isOpen={isDetailModalOpen}
           onClose={() => { setIsDetailModalOpen(false); setSelectedKabForDetail(null); }}
           kabCode={selectedKabForDetail.code}
           namaKabupaten={selectedKabForDetail.name}
+          selectedYear={selectedYear}
+          selectedSubround={selectedSubround}
+          selectedKomoditas={selectedKomoditas}
+        />
+      )}
+
+      {/* --- BARU: Render modal detail hasil ubinan --- */}
+      {selectedKabForHasilUbinan && (
+        <HasilUbinanDetailModal
+          isOpen={isHasilUbinanModalOpen}
+          onClose={() => { setIsHasilUbinanModalOpen(false); setSelectedKabForHasilUbinan(null); }}
+          kabCode={selectedKabForHasilUbinan.code}
+          namaKabupaten={selectedKabForHasilUbinan.name}
           selectedYear={selectedYear}
           selectedSubround={selectedSubround}
           selectedKomoditas={selectedKomoditas}
