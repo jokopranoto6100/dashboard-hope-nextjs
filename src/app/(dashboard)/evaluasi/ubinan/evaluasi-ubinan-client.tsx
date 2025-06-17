@@ -30,6 +30,7 @@ import { downloadAnomaliExcelAction } from './_actions';
 
 // Impor utilitas dan komponen lain
 import { useReactTable, getCoreRowModel, getSortedRowModel, flexRender, SortingState, RowData } from "@tanstack/react-table";
+import { UbinanBoxPlot } from './UbinanBoxPlot'; // BARU: Impor komponen Box Plot
 
 // --- DIUBAH: Impor kedua modal ---
 import { DetailKabupatenModal } from './DetailKabupatenModal';
@@ -76,11 +77,13 @@ export function EvaluasiUbinanClient() {
 
   // Pengambilan data
   const {
-    data: statsDataPerKab,
-    kalimantanBaratData: kalbarStatsData,
-    isLoadingData: isLoadingStatsData,
+    descriptiveStats,
+    boxPlotData,
+  kalimantanBaratData: kalbarStatsData, // <--- Tambahkan alias di sini
+    isLoadingData,
     error: statsDataError,
   } = useUbinanDescriptiveStatsData(conversionFactor);
+
 
   const {
     dataBenihDanPupuk,
@@ -92,7 +95,7 @@ export function EvaluasiUbinanClient() {
 
   // Memoization untuk tabel
   const memoizedStatsColumns = useMemo(() => descriptiveStatsTableColumns, []);
-  const memoizedStatsData = useMemo(() => statsDataPerKab, [statsDataPerKab]);
+  const memoizedStatsData = useMemo(() => descriptiveStats, [descriptiveStats]);
   const memoizedBenihDanPupukColumns = useMemo(() => benihDanPupukColumns, []);
   const memoizedBenihDanPupukData = useMemo(() => pupukDanBenihPerKab, [pupukDanBenihPerKab]);
 
@@ -332,12 +335,19 @@ export function EvaluasiUbinanClient() {
           statsTable, 
           "Statistik Deskriptif Hasil Ubinan (r701)", 
           `Pilih tahun melalui filter global di header. Data pada tabel di bawah ini difilter berdasarkan subround dan komoditas yang dipilih di atas. Statistik mencakup entri r701 yang tidak kosong. Ubah satuan ke kuintal/hektar menggunakan tombol di pojok kanan atas.`, 
-          isLoadingStatsData, 
-          statsDataError, 
-          true, 
+          isLoadingData,
+          statsDataError,
+          true,
           kalbarStatsData,
           handleOpenHasilUbinanModal
       )}
+
+      {/* BARU: Tampilkan komponen Box Plot di sini */}
+      <UbinanBoxPlot 
+        data={boxPlotData} 
+        currentUnit={currentUnit} 
+        isLoading={isLoadingData} 
+      />
       
       {renderTable(
         benihDanPupukTable,

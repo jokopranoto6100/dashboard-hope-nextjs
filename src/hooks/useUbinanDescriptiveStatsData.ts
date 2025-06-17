@@ -14,10 +14,11 @@ import {
   calculateQuartile,
 } from '@/lib/utils';
 
+// Interface untuk tabel statistik deskriptif
 export interface DescriptiveStatsRow {
   kab?: number;
   namaKabupaten: string;
-  count: number; // Jumlah sampel tidak berubah oleh konversi unit
+  count: number;
   mean: number | null;
   median: number | null;
   min: number | null;
@@ -27,30 +28,94 @@ export interface DescriptiveStatsRow {
   q3: number | null;
 }
 
-type UbinanRawFiltered = Pick<Tables<'ubinan_raw'>, 'kab' | 'r701'>;
-const ITEMS_PER_PAGE = 1000;
+// Interface untuk data yang dibutuhkan oleh Box Plot
+export interface BoxPlotStatsRow {
+  kab?: number;
+  namaKabupaten: string;
+  boxPlotData: (number | null)[]; // Format [min, q1, median, q3, max]
+  outliers: (number | null)[][]; // Format ECharts: [[index_kategori, nilai_outlier]]
+  count: number;
+}
 
+// Interface untuk output hook yang sekarang berisi kedua jenis data
 export interface UbinanDescriptiveStatsOutput {
-  perKabupatenData: DescriptiveStatsRow[];
+  descriptiveStats: DescriptiveStatsRow[];
+  boxPlotStats: BoxPlotStatsRow[];
   kalimantanBaratData: DescriptiveStatsRow | null;
 }
 
-// Tambahkan parameter conversionFactor
-export const useUbinanDescriptiveStatsData = (conversionFactor: number = 1) => {
+type UbinanRawFiltered = Pick<Tables<'ubinan_raw'>, 'kab' | 'r701'>;
+const ITEMS_PER_PAGE = 1000;
+
+// Fungsi utility untuk kalkulasi data Box Plot
+const calculateBoxPlotData = (data: number[]) => {
+  if (data.length === 0) {
+    return {
+      boxPlotData: [0, 0, 0, 0, 0],
+      outliers: []
+    };
+  }
+
+  const sortedData = [...data].sort((a, b) => a - b);
+  const q1 = calculateQuartile(sortedData, 0.25);
+  const median = calculateMedian(sortedData);
+  const q3 = calculateQuartile(sortedData, 0.75);
+
+  // Handle null case for q1/q3
+  if (q1 === null || q3 === null) {
+      return {
+          boxPlotData: [
+              calculateMin(sortedData),
+              q1,
+              median,
+              q3,
+              calculateMax(sortedData)
+          ],
+          outliers: []
+      };
+  }
+
+  const iqr = q3 - q1;
+  const lowerWhisker = q1 - 1.5 * iqr;
+  const upperWhisker = q3 + 1.5 * iqr;
+
+  const outliers: number[][] = [];
+  const validData: number[] = [];
+
+  sortedData.forEach((value) => {
+    if (value < lowerWhisker || value > upperWhisker) {
+      outliers.push([0, value]); // Format ECharts [index_kategori, nilai]
+    } else {
+      validData.push(value);
+    }
+  });
+
+  const min = validData.length > 0 ? Math.min(...validData) : lowerWhisker;
+  const max = validData.length > 0 ? Math.max(...validData) : upperWhisker;
+
+  return {
+    boxPlotData: [min, q1, median, q3, max],
+    outliers,
+  };
+};
+
+
+export const useUbinanDescriptiveStatsData = (conversionFactor: number) => {
   const { supabase } = useAuth();
   const { selectedYear } = useYear();
   const { selectedSubround, selectedKomoditas, isLoadingFilters } = useUbinanEvaluasiFilter();
-
+  
   const [processedData, setProcessedData] = useState<UbinanDescriptiveStatsOutput>({
-    perKabupatenData: [],
+    descriptiveStats: [],
+    boxPlotStats: [],
     kalimantanBaratData: null,
   });
-  const [isLoadingData, setIsLoadingData] = useState<boolean>(false);
+  const [isLoadingData, setIsLoadingData] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchDataAndProcess = useCallback(async () => {
     if (!selectedYear || isLoadingFilters || !selectedKomoditas) {
-      setProcessedData({ perKabupatenData: [], kalimantanBaratData: null });
+      setProcessedData({ descriptiveStats: [], boxPlotStats: [], kalimantanBaratData: null });
       return;
     }
 
@@ -58,17 +123,13 @@ export const useUbinanDescriptiveStatsData = (conversionFactor: number = 1) => {
     setError(null);
 
     try {
-      let allRawDataForProcessing: number[] = [];
-      let allRawDataPerKab: { kab: number; r701Converted: number }[] = []; // Simpan r701 yang sudah dikonversi
+      let allData: UbinanRawFiltered[] = [];
       let currentPage = 0;
       let hasMoreData = true;
 
       while (hasMoreData) {
-        const { from, to } = {
-          from: currentPage * ITEMS_PER_PAGE,
-          to: (currentPage + 1) * ITEMS_PER_PAGE - 1,
-        };
-
+        const { from, to } = { from: currentPage * ITEMS_PER_PAGE, to: (currentPage + 1) * ITEMS_PER_PAGE - 1 };
+        
         let query = supabase
           .from('ubinan_raw')
           .select('kab, r701')
@@ -80,59 +141,65 @@ export const useUbinanDescriptiveStatsData = (conversionFactor: number = 1) => {
           query = query.eq('subround', selectedSubround);
         }
         
-        query = query.range(from, to);
-        const { data: pageData, error: pageError } = await query;
+        const { data: pageData, error: pageError } = await query.range(from, to);
 
         if (pageError) throw pageError;
-
-        if (pageData && pageData.length > 0) {
-          pageData.forEach(item => {
-            if (item.r701 !== null) {
-              const r701Converted = item.r701 * conversionFactor; // Terapkan konversi di sini
-              allRawDataForProcessing.push(r701Converted);
-              if (item.kab !== null) {
-                allRawDataPerKab.push({ kab: item.kab, r701Converted });
-              }
-            }
-          });
-        }
+        if (pageData) allData.push(...pageData as UbinanRawFiltered[]);
+        if (!pageData || pageData.length < ITEMS_PER_PAGE) hasMoreData = false;
         
-        if (!pageData || pageData.length < ITEMS_PER_PAGE) {
-          hasMoreData = false;
-        }
         currentPage++;
       }
       
-      const groupedByKab = allRawDataPerKab.reduce((acc, curr) => {
+      const allRawDataForProcessing = allData.map(d => d.r701! * conversionFactor);
+      
+      const groupedByKab = allData.reduce((acc, curr) => {
         const kabStr = String(curr.kab);
-        if (!acc[kabStr]) acc[kabStr] = [];
-        acc[kabStr].push(curr.r701Converted); // Gunakan nilai yang sudah dikonversi
+        if (!acc.has(kabStr)) acc.set(kabStr, []);
+        acc.get(kabStr)!.push(curr);
         return acc;
-      }, {} as Record<string, number[]>);
+      }, new Map<string, UbinanRawFiltered[]>());
+      
+      const perKabupatenStats: DescriptiveStatsRow[] = [];
+      const perKabupatenBoxPlot: BoxPlotStatsRow[] = [];
 
-      const perKabupatenStats: DescriptiveStatsRow[] = Object.entries(groupedByKab)
-        .map(([kabCode, r701Values]) => { // r701Values di sini sudah dikonversi
-          const kabNumber = parseInt(kabCode, 10);
-          return {
-            kab: kabNumber,
-            namaKabupaten: getNamaKabupaten(kabNumber) || `Kode ${kabNumber}`,
-            count: r701Values.length, // Count tetap jumlah sampel asli
-            mean: calculateMean(r701Values),
-            median: calculateMedian(r701Values),
-            min: calculateMin(r701Values),
-            max: calculateMax(r701Values),
-            stdDev: calculateStandardDeviation(r701Values),
-            q1: calculateQuartile(r701Values, 0.25),
-            q3: calculateQuartile(r701Values, 0.75),
-          };
-        })
-        .sort((a, b) => (a.kab || 0) - (b.kab || 0));
+      groupedByKab.forEach((data, kabStr) => {
+        const kab = parseInt(kabStr, 10);
+        const dataForProcessing = data.map(d => d.r701! * conversionFactor);
+        const namaKabupaten = getNamaKabupaten(kab);
 
+        // 1. Kalkulasi untuk tabel deskriptif
+        perKabupatenStats.push({
+          kab,
+          namaKabupaten,
+          count: dataForProcessing.length,
+          mean: calculateMean(dataForProcessing),
+          median: calculateMedian(dataForProcessing),
+          min: calculateMin(dataForProcessing),
+          max: calculateMax(dataForProcessing),
+          stdDev: calculateStandardDeviation(dataForProcessing),
+          q1: calculateQuartile(dataForProcessing, 0.25),
+          q3: calculateQuartile(dataForProcessing, 0.75),
+        });
+
+        // 2. Kalkulasi untuk Box Plot
+        const { boxPlotData, outliers } = calculateBoxPlotData(dataForProcessing);
+        perKabupatenBoxPlot.push({
+            kab,
+            namaKabupaten,
+            count: dataForProcessing.length,
+            boxPlotData,
+            outliers
+        });
+      });
+
+      perKabupatenStats.sort((a,b) => (a.kab || 0) - (b.kab || 0));
+      perKabupatenBoxPlot.sort((a,b) => (a.kab || 0) - (b.kab || 0));
+      
       let kalimantanBaratStats: DescriptiveStatsRow | null = null;
-      if (allRawDataForProcessing.length > 0) { // allRawDataForProcessing sudah berisi nilai yang dikonversi
+      if (allRawDataForProcessing.length > 0) {
         kalimantanBaratStats = {
           namaKabupaten: "Kalimantan Barat",
-          count: allRawDataForProcessing.length, // Count tetap jumlah sampel asli
+          count: allRawDataForProcessing.length,
           mean: calculateMean(allRawDataForProcessing),
           median: calculateMedian(allRawDataForProcessing),
           min: calculateMin(allRawDataForProcessing),
@@ -144,29 +211,29 @@ export const useUbinanDescriptiveStatsData = (conversionFactor: number = 1) => {
       }
       
       setProcessedData({
-        perKabupatenData: perKabupatenStats,
+        descriptiveStats: perKabupatenStats,
+        boxPlotStats: perKabupatenBoxPlot,
         kalimantanBaratData: kalimantanBaratStats,
       });
 
     } catch (err: any) {
       console.error("Error fetching or processing descriptive stats data:", err);
       setError(err.message || 'Terjadi kesalahan saat mengambil data statistik.');
-      setProcessedData({ perKabupatenData: [], kalimantanBaratData: null });
+      setProcessedData({ descriptiveStats: [], boxPlotStats: [], kalimantanBaratData: null });
     } finally {
       setIsLoadingData(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedYear, selectedSubround, selectedKomoditas, isLoadingFilters, supabase, conversionFactor]); // Tambahkan conversionFactor sebagai dependency
+  }, [selectedYear, selectedSubround, selectedKomoditas, isLoadingFilters, supabase, conversionFactor]);
 
   useEffect(() => {
     fetchDataAndProcess();
-  }, [fetchDataAndProcess]); // fetchFilterOptions tidak ada di sini, fetchDataAndProcess yang benar
+  }, [fetchDataAndProcess]);
 
   return { 
-    data: processedData.perKabupatenData,
+    descriptiveStats: processedData.descriptiveStats,
+    boxPlotData: processedData.boxPlotStats,
     kalimantanBaratData: processedData.kalimantanBaratData,
     isLoadingData, 
-    error, 
-    refreshData: fetchDataAndProcess 
+    error 
   };
 };
