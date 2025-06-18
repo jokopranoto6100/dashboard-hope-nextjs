@@ -2,7 +2,7 @@
 "use client";
 
 import { ColumnDef, Table as TanstackTable } from "@tanstack/react-table";
-import { DescriptiveStatsRow } from '@/hooks/useUbinanDescriptiveStatsData'; 
+import { DescriptiveStatsRow } from './types'; // DIPERBARUI
 import { ShieldAlert } from 'lucide-react';
 
 const AMBANG_BATAS = {

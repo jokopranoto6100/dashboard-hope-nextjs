@@ -132,6 +132,32 @@ export async function uploadKsaAction(formData: FormData): Promise<ActionResult>
       return { success: false, message: "Gagal memproses data KSA di database.", errorDetails: rpcError.message };
     }
 
+    // --- AWAL PERUBAHAN ---
+    // 2. Refresh Materialized Views setelah data berhasil diunggah
+    // Kita jalankan secara konkuren untuk efisiensi
+    console.log("Data KSA berhasil diunggah. Memulai refresh materialized views...");
+    
+    const [refreshChartResult, refreshKondisiResult] = await Promise.all([
+        supabaseServer.rpc('refresh_materialized_view', { view_name: 'chart_amatan_summary' }),
+        supabaseServer.rpc('refresh_materialized_view', { view_name: 'kondisi_panen' })
+    ]);
+
+    if (refreshChartResult.error) {
+        console.error("Gagal me-refresh materialized view 'chart_amatan_summary':", refreshChartResult.error);
+        // Anda bisa memilih untuk mengembalikan error atau hanya mencatatnya
+        // return { success: false, message: "Data berhasil diunggah, namun gagal me-refresh chart_amatan_summary.", errorDetails: refreshChartResult.error.message };
+    } else {
+        console.log("'chart_amatan_summary' berhasil di-refresh.");
+    }
+
+    if (refreshKondisiResult.error) {
+        console.error("Gagal me-refresh materialized view 'kondisi_panen':", refreshKondisiResult.error);
+        // return { success: false, message: "Data berhasil diunggah, namun gagal me-refresh kondisi_panen.", errorDetails: refreshKondisiResult.error.message };
+    } else {
+        console.log("'kondisi_panen' berhasil di-refresh.");
+    }
+    // --- AKHIR PERUBAHAN ---
+
     revalidatePath("/update-data/ksa");
     revalidatePath("/monitoring/ksa");
 

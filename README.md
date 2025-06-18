@@ -127,116 +127,82 @@ Migrasi ini berfokus pada arsitektur yang lebih modern, performa, skalabilitas, 
     * **Informasi "Terakhir Diperbarui":** Menampilkan *timestamp* dari kolom `tanggal` maksimum data yang ditampilkan, diletakkan di `CardDescription`.
     * **Layout & Styling:** Mengikuti konsistensi desain dengan halaman Monitoring Ubinan.
 
-9.  **Evaluasi Ubinan (Halaman `/evaluasi/ubinan`) - (Fitur Baru):**
-    * **Tujuan Halaman**: Menyajikan analisis statistik deskriptif dari data ubinan mentah (`ubinan_raw`).
+9.  **Evaluasi Ubinan (Halaman `/evaluasi/ubinan`)**
+    * **Tujuan Halaman**: Menyediakan dashboard analitik interaktif untuk melakukan evaluasi statistik terhadap data ubinan mentah. Halaman ini dirancang untuk memberikan wawasan mendalam mengenai produktivitas (`r701`), penggunaan benih, dan pupuk, baik dalam satu periode waktu maupun perbandingan antar waktu.
+
+    * **Struktur & Alur Data**:
         * **`src/app/(dashboard)/evaluasi/ubinan/page.tsx`**:
-            * Bertindak sebagai Server Component dan entry point untuk halaman.
-            * Menyediakan `UbinanEvaluasiFilterProvider` untuk manajemen state filter halaman.
+            * Bertindak sebagai Server Component dan *entry point* untuk halaman.
+            * Menyediakan `UbinanEvaluasiFilterProvider` dan `YearProvider` untuk manajemen state filter global.
 
         * **`src/app/(dashboard)/evaluasi/ubinan/evaluasi-ubinan-client.tsx`**:
-            * Client Component utama yang bertanggung jawab untuk merender seluruh UI interaktif.
-            * Menampilkan filter halaman dan tiga tabel data utama:
-                1.  Tabel Statistik Deskriptif Ubinan (`r701`).
-                2.  Tabel Gabungan Rata-Rata Penggunaan Benih dan Pupuk per Kabupaten/Kota.
-            * Mengelola interaksi pengguna seperti perubahan filter, sorting tabel, dan pemicu modal detail.
+            * Client Component utama yang mengorkestrasi seluruh UI interaktif dan logika halaman.
+            * Mengelola state utama seperti **Mode Analisis** (`detail` vs `comparison`).
+            * Secara dinamis memilih set kolom yang akan ditampilkan di tabel berdasarkan mode yang aktif.
+            * Merender semua komponen UI, termasuk `Tabs` untuk mode analisis, filter, chart, tabel, dan modal.
+
+        * **`src/context/YearContext.tsx`**:
+            * Menyediakan `selectedYear` dan daftar `availableYears` (diambil dari database menggunakan RPC `get_unique_years`) secara global ke seluruh aplikasi.
 
         * **`src/context/UbinanEvaluasiFilterContext.tsx`**:
-            * React Context yang mengelola state untuk filter spesifik halaman ini: **Subround** dan **Komoditas**.
-            * Mengambil daftar opsi unik untuk filter Subround dan Komoditas dari database (tabel `ubinan_raw`) secara paginasi untuk memastikan semua opsi termuat.
+            * Mengelola state untuk filter spesifik halaman ini: **Subround** dan **Komoditas**.
+            * Mengambil daftar opsi filter unik dari tabel `ubinan_raw`.
 
         * **`src/hooks/useUbinanDescriptiveStatsData.ts`**:
-            * Custom hook untuk mengambil dan memproses data statistik deskriptif.
-            * Mengambil data dari `ubinan_raw` berdasarkan filter global **Tahun** (dari `YearContext`) dan filter halaman **Subround** serta **Komoditas** (dari `UbinanEvaluasiFilterContext`).
-            * Memproses hanya record di mana `r701` (hasil ubinan/produksi per plot) tidak null.
-            * Menerapkan faktor konversi pada `r701` jika pengguna mengubah unit tampilan melalui UI (kg/plot atau kuintal/hektar).
-            * Menghitung statistik deskriptif (Jumlah Sampel, Rata-rata, Median, Min, Max, Standar Deviasi, Kuartil 1, Kuartil 3) untuk `r701` yang dikelompokkan per kabupaten/kota.
-            * Menghitung statistik deskriptif agregat untuk "Kalimantan Barat".
-            * Mengelola paginasi internal saat mengambil data dari Supabase untuk memastikan semua record yang relevan terambil.
+            * *Custom hook* yang menerima `comparisonYear` sebagai argumen.
+            * Jika `comparisonYear` **null** (Mode Detail): Menghitung statistik deskriptif lengkap dan mempersiapkan data untuk **Box Plot**.
+            * Jika `comparisonYear` **diisi** (Mode Perbandingan): Mengambil data untuk dua tahun, lalu menghitung nilai perbandingan dan persentase perubahan (`meanChange`).
 
         * **`src/hooks/usePenggunaanBenihDanPupukData.ts`**:
-            * Custom hook untuk mengambil dan memproses data penggunaan benih dan pupuk.
-            * Mengambil data dari `ubinan_raw` (kolom `r604` - Luas Tanam, `r608` - Bibit, `r610_1` s/d `r610_7` - Jenis Pupuk) berdasarkan filter global **Tahun** dan filter halaman **Subround** serta **Komoditas**.
-            * Memproses hanya record di mana `r604` valid dan lebih dari 0.
-            * Menghitung rata-rata luas tanam (m²), rata-rata penggunaan benih per hektar (Kg/Ha), dan rata-rata penggunaan berbagai jenis pupuk per hektar (Kg/Ha atau Liter/Ha) yang dikelompokkan per kabupaten/kota.
-            * Menghitung nilai agregat yang sama untuk "Kalimantan Barat".
-            * Mengelola paginasi internal saat mengambil data dari Supabase.
-            * Menghasilkan satu set data gabungan dalam format `PupukDanBenihRow` untuk tabel utama.
+            * Hook serupa yang menerima `comparisonYear` untuk mengambil dan memproses data penggunaan benih dan pupuk.
+            * Menghitung rata-rata penggunaan per hektar untuk semua input pertanian.
+            * Menghasilkan data perbandingan dan persentase perubahan untuk setiap variabel saat di "Mode Perbandingan".
 
         * **`src/app/(dashboard)/evaluasi/ubinan/descriptive-stats-columns.tsx`**:
-            * Definisi kolom untuk `TanStack Table` yang menampilkan tabel statistik deskriptif.
-            * Termasuk rendering data statistik dan baris footer untuk agregat "Kalimantan Barat".
-            * Semua kolom data numerik dan header diatur rata tengah. Header kolom yang relevan menampilkan satuan unit (misalnya, (kg/plot)) pada baris kedua.
+            * **Telah direfaktor**: Mengekspor dua set kolom terpisah: `detailStatsColumns` dan `comparisonStatsColumns` untuk digunakan secara dinamis di setiap mode.
 
         * **`src/app/(dashboard)/evaluasi/ubinan/penggunaan-benih-dan-pupuk-columns.tsx`**:
-            * Definisi kolom untuk `TanStack Table` yang menampilkan tabel gabungan rata-rata penggunaan benih dan pupuk.
-            * Kolom mencakup "Nama Kabupaten/Kota", "Rata-rata Luas Tanam (m²)", "Rata-rata Benih (Kg/Ha)", dan kolom untuk setiap jenis pupuk per hektar.
-            * Header memiliki dua baris (nama metrik dan satuan).
-            * Sel data menampilkan nilai rata-rata. Jika nilai rata-rata tersebut melebihi ambang batas yang telah ditentukan, ikon `ShieldAlert` (dari `lucide-react`) akan ditampilkan di samping nilai.
-            * Baris footer menampilkan data agregat "Kalimantan Barat" dengan logika indikator ikon `ShieldAlert` yang sama.
-            * Semua kolom data numerik dan header diatur rata tengah.
+            * **Telah direfaktor**: Mengekspor `detailFertilizerColumns` untuk mode detail, dan sebuah fungsi `getComparisonFertilizerColumns(selectedVariables)` yang secara dinamis menghasilkan kolom perbandingan.
 
-        * **`src/app/(dashboard)/evaluasi/ubinan/DetailKabupatenModal.tsx`**:
-            * Komponen wrapper yang menggunakan `<Dialog>` dari `shadcn/ui`.
-            * Bertanggung jawab untuk menampilkan dan menyembunyikan modal detail per record.
+        * **`UbinanBoxPlot.tsx` & `UbinanComparisonChart.tsx`**:
+            * Komponen chart terpisah. `UbinanBoxPlot` menggunakan **ECharts**, sedangkan `UbinanComparisonChart` menggunakan **Recharts**. Keduanya dirender secara kondisional berdasarkan `analysisMode`.
 
-        * **`src/app/(dashboard)/evaluasi/ubinan/DetailKabupatenModalContent.tsx`**:
-            * Komponen yang menangani logika dan tampilan konten di dalam modal detail.
-            * Memanggil fungsi RPC Supabase (`get_ubinan_detail_sorted_paginated`) untuk mengambil data detail per record berdasarkan kabupaten yang dipilih dan filter aktif (Tahun, Subround, Komoditas).
-            * Hanya record dengan `r111` (Nama Responden) tidak null yang akan diambil dan ditampilkan.
-            * Menampilkan tabel data detail per record dengan kolom-kolom seperti "Nama Responden", "Luas Tanam (m²)", dan penggunaan benih serta setiap jenis pupuk **per hektar**.
-            * Mengimplementasikan **server-side sorting** untuk semua kolom di tabel detail. Pengguna dapat mengklik header kolom untuk mengurutkan data di seluruh dataset yang relevan (melalui pemanggilan ulang RPC dengan parameter sorting).
-            * Menyediakan komponen `<Select>` (`shadcn/ui`) yang memungkinkan pengguna memilih jumlah record yang ditampilkan per halaman (opsi: 10, 20, 50, 100).
-            * Mengimplementasikan komponen `<Pagination>` (`shadcn/ui`) untuk navigasi antar halaman data detail.
-            * Menampilkan skeleton loading pada baris-baris `TableBody` saat data sedang di-refresh (misalnya, saat sorting, pindah halaman, atau perubahan ukuran halaman).
+        * **`HasilUbinanDetailModal.tsx` & `DetailKabupatenModal.tsx`**:
+            * Dua komponen modal berbeda untuk kebutuhan *drill-down* yang berbeda.
+            * Satu untuk detail hasil ubinan (`r701`, `r702`), dan satu lagi untuk detail penggunaan input pertanian per hektar.
+            * Keduanya memiliki konten (`...ModalContent.tsx`) dan definisi kolom (`...-columns.tsx`) masing-masing.
 
-        * **`src/app/(dashboard)/evaluasi/ubinan/detail-record-columns.tsx`**:
-            * Definisi kolom untuk tabel detail di dalam modal.
-            * Kolom menampilkan data per hektar untuk benih dan setiap jenis pupuk.
-            * Ikon `ShieldAlert` ditampilkan di samping nilai per hektar jika penggunaan individu tersebut melebihi ambang batas spesifik yang telah ditentukan untuk masing-masing jenis benih/pupuk.
-            * Header memiliki dua baris (nama metrik dan satuan).
+        * **Fungsi RPC (PostgreSQL)**:
+            * **`get_hasil_ubinan_detail_paginated`**: Mengambil data detail responden (`r111`, `r701`, `r702`, segmen) untuk modal dari tabel statistik.
+            * **`get_ubinan_detail_sorted_paginated`**: Mengambil data detail penggunaan input per hektar untuk modal dari tabel benih & pupuk.
+            * **`get_unique_years`**: Fungsi yang dipanggil oleh `YearContext` untuk mengambil daftar unik semua tahun yang ada di tabel `ubinan_raw`. Hasilnya digunakan untuk mengisi pilihan pada filter "Tahun" dan "Tahun Pembanding".
 
-        * **Fungsi RPC `get_ubinan_detail_sorted_paginated` (PostgreSQL)**:
-            * Fungsi database yang dibuat di PostgreSQL dan dipanggil melalui Supabase.
-            * Bertanggung jawab untuk:
-                * Menerima parameter filter (kabupaten, tahun, komoditas, subround).
-                * Menerima parameter sorting (kolom target dan arah).
-                * Menerima parameter paginasi (limit dan offset).
-                * Mengambil data dari `ubinan_raw`, memfilter `r111 IS NOT NULL`.
-                * Menghitung nilai penggunaan benih/pupuk per hektar secara dinamis.
-                * Melakukan sorting berdasarkan nilai kalkulasi per hektar di sisi server.
-                * Menerapkan paginasi.
-                * Mengembalikan set data yang sudah diproses dan total jumlah record yang cocok dengan filter (untuk keperluan paginasi di client).
+    ### Fitur Interaktif & Analitik
+    * **Mode Analisis**:
+        * Komponen `<Tabs>` memungkinkan pengguna beralih antara **"Analisis Detail"** dan **"Perbandingan Waktu"**.
+        * Perpindahan mode mengubah seluruh tata letak halaman, termasuk tabel dan chart yang ditampilkan.
 
-        ### Fitur Interaktif
+    * **Visualisasi Data Interaktif**:
+        * **Box Plot (ECharts)**: Di "Mode Analisis Detail", chart ini memvisualisasikan sebaran data `r701` per kabupaten, lengkap dengan deteksi *outlier*.
+        * **Grouped Bar Chart (Recharts)**: Di "Mode Perbandingan Waktu", chart ini menampilkan perbandingan rata-rata hasil ubinan antara dua tahun.
 
-        * **Filter Halaman (Kanan Atas, di luar Card Tabel)**:
-            * **Filter Subround**: Komponen `<Select>` (`shadcn/ui`) memungkinkan pengguna memilih subround tertentu atau "Semua Subround".
-            * **Filter Komoditas**: Komponen `<Select>` (`shadcn/ui`) memungkinkan pengguna memilih komoditas. Default ke komoditas pertama yang tersedia; tidak ada opsi "Semua Komoditas".
+    * **Tabel Dinamis**:
+        * **Tabel Statistik Deskriptif**: Menampilkan set kolom yang berbeda tergantung mode. Dilengkapi *unit switcher*, penanda anomali kondisional untuk komoditas padi, dan *drill-down* ke modal detail hasil ubinan.
+        * **Tabel Penggunaan Benih & Pupuk**: Menampilkan set kolom berbeda tergantung mode. Dilengkapi penanda anomali untuk rata-rata penggunaan dan *drill-down* ke modal detail input per hektar.
 
-        * **Tabel Statistik Deskriptif (`r701`)**:
-            * Menampilkan statistik (Jumlah Sampel, Rata-rata, Median, Min, Max, Standar Deviasi, Q1, Q3) untuk `r701` yang dikelompokkan berdasarkan Kabupaten/Kota. Nama kabupaten diambil menggunakan pemetaan dari `src/lib/utils.ts`.
-            * Semua kolom data dan header di tabel diatur rata tengah.
-            * **Tombol Switch Unit**: Komponen `<Switch>` (`shadcn/ui`) di pojok kanan atas kartu tabel untuk mengubah satuan `r701` antara "kg/plot" (default) dan "kuintal/hektar" (nilai `r701` dikalikan 16). Perubahan unit ini memicu perhitungan ulang statistik pada tabel. Header kolom yang relevan (Mean, Median, dll.) juga menampilkan unit yang aktif pada baris kedua.
-            * **Baris Footer "Kalimantan Barat"**: Menampilkan nilai agregat statistik deskriptif untuk seluruh Provinsi Kalimantan Barat berdasarkan data yang terfilter.
-            * Data tabel dapat diurutkan (sorting client-side).
+    * **Filtering & Kontrol Lanjutan**:
+        * **Filter Global**: `Select` untuk **Tahun**, **Subround**, dan **Komoditas**.
+        * **Filter Perbandingan**: `Select` untuk **Tahun Pembanding** yang hanya aktif di "Mode Perbandingan".
+        * **Filter Variabel**: Komponen **Multi-select Popover** dengan *checkbox* di dalamnya, memungkinkan pengguna memilih variabel benih & pupuk mana yang akan dibandingkan saat di "Mode Perbandingan".
 
-        * **Tabel Gabungan Rata-Rata Penggunaan Benih dan Pupuk**:
-            * Menampilkan data rata-rata penggunaan benih dan berbagai jenis pupuk per hektar, serta rata-rata luas tanam, per Kabupaten/Kota.
-            * Sel data menampilkan ikon `ShieldAlert` jika nilai rata-rata melebihi ambang batas yang ditentukan.
-            * Header kolom diatur rata tengah dengan satuan pada baris kedua.
-            * Baris Footer "Kalimantan Barat" untuk agregat provinsi, juga dengan logika indikator ikon `ShieldAlert`.
-            * Data tabel dapat diurutkan (sorting client-side).
-            * **Interaksi Klik Baris**: Setiap baris kabupaten dapat diklik untuk memunculkan **Modal Detail** penggunaan benih dan pupuk per record.
+    * **Modal Detail (Keduanya)**:
+        * Menampilkan data dalam tabel dengan **server-side sorting**.
+        * Menyediakan opsi untuk mengubah **jumlah data per halaman**.
+        * Dilengkapi komponen **paginasi** untuk navigasi.
+        * Menampilkan **skeleton loading** yang presisi saat data sedang diperbarui.
 
-        * **Modal Detail Penggunaan Benih & Pupuk (per Record)**:
-            * Judul modal dinamis menampilkan nama kabupaten yang sedang dilihat detailnya.
-            * Menampilkan tabel data per record (responden) untuk kabupaten yang dipilih.
-            * Kolom mencakup "Nama Responden", "Luas Tanam (m²)", dan penggunaan benih serta setiap jenis pupuk **per hektar**.
-            * Ikon `ShieldAlert` ditampilkan di samping nilai per hektar jika penggunaan individu tersebut melebihi ambang batas yang telah ditentukan.
-            * **Server-side sorting** aktif untuk semua kolom di tabel detail, memungkinkan pengurutan data yang akurat di seluruh dataset yang relevan.
-            * Pengguna dapat memilih **jumlah record per halaman** (10, 20, 50, 100) melalui komponen `<Select>`.
-            * Komponen `<Pagination>` penuh untuk navigasi antar halaman data detail.
-            * Skeleton loading ditampilkan pada baris-baris tabel (`TableBody`) saat data sedang di-refresh (misalnya, saat sorting, pindah halaman, atau perubahan ukuran halaman).
+    * **Fitur Ekspor**:
+        * Tombol "Download Anomali" untuk mengunduh data anomali pada tahun terpilih dalam format Excel (`.xlsx`).
 
 10. **Halaman Update Data (`/update-data/ubinan`) - (Fitur Diperluas Secara Signifikan):**
     * **Struktur Halaman dengan Tabs**: Halaman ini dirombak total menggunakan komponen `Tabs` dari `shadcn/ui` untuk memisahkan dua fungsi impor yang berbeda: "Import Data Transaksi (Raw)" dan "Import Master Sampel".

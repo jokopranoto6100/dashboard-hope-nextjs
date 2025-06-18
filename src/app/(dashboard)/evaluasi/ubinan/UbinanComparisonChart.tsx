@@ -1,9 +1,9 @@
-// src/app/(dashboard)/evaluasi/ubinan/UbinanComparisonRechart.tsx
+// src/app/(dashboard)/evaluasi/ubinan/UbinanComparisonChart.tsx
 "use client";
 
-import React from 'react';
-import { DescriptiveStatsRow } from '@/hooks/useUbinanDescriptiveStatsData';
-import BarChartWrapper from '@/app/(dashboard)/produksi-statistik/bar-chart-wrapper'; // Sesuaikan path jika perlu
+import React, { useMemo } from 'react'; // DIPERBARUI
+import { DescriptiveStatsRow } from './types';
+import BarChartWrapper from '@/app/(dashboard)/produksi-statistik/bar-chart-wrapper';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -12,17 +12,16 @@ interface UbinanComparisonRechartProps {
   currentYear: number;
   comparisonYear: number | null;
   isLoading: boolean;
-  // Kita bisa tambahkan fungsi onClick jika diperlukan nanti
 }
 
 export function UbinanComparisonChart({ data, currentYear, comparisonYear, isLoading }: UbinanComparisonRechartProps) {
 
-  // 1. Transformasi data agar sesuai dengan BarChartWrapper
-  const chartData = data.map(item => ({
+  // DIPERBARUI: Transformasi data dibungkus dengan useMemo
+  const chartData = useMemo(() => data.map(item => ({
     name: item.namaKabupaten,
     [String(currentYear)]: item.mean,
     ...(comparisonYear && { [String(comparisonYear)]: item.comparisonMean }),
-  }));
+  })), [data, currentYear, comparisonYear]); // Dependensi: hanya kalkulasi ulang jika input berubah
 
   if (isLoading) {
     return (
@@ -32,7 +31,7 @@ export function UbinanComparisonChart({ data, currentYear, comparisonYear, isLoa
                 <CardDescription>Memuat data perbandingan rata-rata hasil ubinan...</CardDescription>
             </CardHeader>
             <CardContent>
-                <div className="h-[300px] w-full bg-gray-200 animate-pulse rounded-md"></div>
+                <Skeleton className="h-[300px] w-full" />
             </CardContent>
         </Card>
     );

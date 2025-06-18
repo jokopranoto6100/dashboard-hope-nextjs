@@ -16,14 +16,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
-import { SlidersHorizontal, Download, Loader2 } from 'lucide-react';
+import { SlidersHorizontal, Download, Loader2, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { toast } from "sonner";
 
 // Impor konteks dan hooks kustom
 import { useUbinanEvaluasiFilter } from '@/context/UbinanEvaluasiFilterContext';
-import { useUbinanDescriptiveStatsData, DescriptiveStatsRow } from '@/hooks/useUbinanDescriptiveStatsData';
-import { usePenggunaanBenihDanPupukData, PupukDanBenihRow } from '@/hooks/usePenggunaanBenihDanPupukData';
+import { useUbinanDescriptiveStatsData } from '@/hooks/useUbinanDescriptiveStatsData';
+import { usePenggunaanBenihDanPupukData } from '@/hooks/usePenggunaanBenihDanPupukData';
 import { useYear } from '@/context/YearContext';
+import { DescriptiveStatsRow, PupukDanBenihRow } from './types';
 
 // Impor definisi kolom tabel
 import { detailStatsColumns, comparisonStatsColumns } from './descriptive-stats-columns';
@@ -33,7 +34,7 @@ import { detailFertilizerColumns, getComparisonFertilizerColumns } from './pengg
 import { downloadAnomaliExcelAction } from './_actions';
 
 // Impor utilitas dan komponen lain
-import { useReactTable, getCoreRowModel, getSortedRowModel, flexRender, SortingState, RowData, VisibilityState } from "@tanstack/react-table";
+import { useReactTable, getCoreRowModel, getSortedRowModel, flexRender, SortingState, RowData } from "@tanstack/react-table";
 import { DetailKabupatenModal } from './DetailKabupatenModal';
 import { HasilUbinanDetailModal } from './HasilUbinanDetailModal';
 import { UbinanBoxPlot } from './UbinanBoxPlot';
@@ -51,6 +52,8 @@ declare module '@tanstack/react-table' {
 const FERTILIZER_VARIABLES = [
     { id: 'avgBenihPerHa_kg_ha', label: 'Benih' }, { id: 'avgUreaPerHa_kg_ha', label: 'Urea' }, { id: 'avgTSPerHa_kg_ha', label: 'TSP/SP36' }, { id: 'avgKCLperHa_kg_ha', label: 'KCL' }, { id: 'avgNPKPerHa_kg_ha', label: 'NPK' }, { id: 'avgKomposPerHa_kg_ha', label: 'Kompos' }, { id: 'avgOrganikCairPerHa_liter_ha', label: 'Organik Cair' }, { id: 'avgZAPerHa_kg_ha', label: 'ZA' },
 ];
+
+const JUMLAH_KABUPATEN_KOTA = 14; // [PERBAIKAN] Definisikan konstanta
 
 export function EvaluasiUbinanClient() {
   const { selectedSubround, setSelectedSubround, availableSubrounds, selectedKomoditas, setSelectedKomoditas, availableKomoditas, isLoadingFilters } = useUbinanEvaluasiFilter();
@@ -112,10 +115,14 @@ export function EvaluasiUbinanClient() {
   };
 
   const handleDownloadAnomali = async () => {
+    if (!selectedYear) {
+      toast.error("Tahun belum dipilih", { description: "Silakan pilih tahun terlebih dahulu." });
+      return;
+    }
     setIsDownloading(true);
     toast.info("Mempersiapkan file Excel...", { description: `Data anomali untuk tahun ${selectedYear} sedang diambil.` });
     try {
-      const result = await downloadAnomaliExcelAction(selectedYear as number);
+      const result = await downloadAnomaliExcelAction(selectedYear);
       if (result.success && result.data) {
         const byteCharacters = atob(result.data);
         const byteNumbers = new Array(byteCharacters.length);
@@ -154,7 +161,9 @@ export function EvaluasiUbinanClient() {
   ) => {
     const noData = !isLoading && !errorMsg && tableInstance.getRowModel().rows.length === 0;
     const hasFooter = footerData; 
-    const skeletonRowCount = tableInstance.getRowModel().rows.length > 0 ? tableInstance.getRowModel().rows.length : 5;
+    
+    // [PERBAIKAN] Gunakan konstanta untuk fallback saat loading awal
+    const skeletonRowCount = tableInstance.getRowModel().rows.length > 0 ? tableInstance.getRowModel().rows.length : JUMLAH_KABUPATEN_KOTA;
 
     return (
       <Card className="mt-6">
@@ -184,8 +193,14 @@ export function EvaluasiUbinanClient() {
                     <TableRow key={headerGroup.id}>
                       {headerGroup.headers.map((header: any) => (
                         <TableHead key={header.id} onClick={header.column.getToggleSortingHandler()} className={`whitespace-nowrap ${header.column.getCanSort() ? "cursor-pointer select-none" : ""}`} style={{ textAlign: 'center' }}>
-                          {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                          {{ asc: ' 🔼', desc: ' 🔽' }[header.column.getIsSorted() as string] ?? null}
+                            <div className="flex items-center justify-center">
+                                {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                                {header.column.getCanSort() && (
+                                    header.column.getIsSorted() === 'asc' ? <ArrowUp className="ml-2 h-4 w-4" /> :
+                                    header.column.getIsSorted() === 'desc' ? <ArrowDown className="ml-2 h-4 w-4" /> :
+                                    <ArrowUpDown className="ml-2 h-4 w-4 opacity-30" />
+                                )}
+                            </div>
                         </TableHead>
                       ))}
                     </TableRow>
@@ -234,13 +249,10 @@ export function EvaluasiUbinanClient() {
     </Popover>
   );
 
-  console.log("Data untuk Footer (Kalbar Stats):", kalbarStatsData);
-
-
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-center gap-x-4 gap-y-2 mb-4">
-        <div><Button onClick={handleDownloadAnomali} disabled={isDownloading} variant="outline">{isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}Download Anomali</Button></div>
+        <div><Button onClick={handleDownloadAnomali} disabled={isDownloading || !selectedYear} variant="outline">{isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}Download Anomali</Button></div>
         <div className="flex flex-col sm:flex-row items-center gap-x-4 gap-y-2">
           <div>{isLoadingFilters ? (<Skeleton className="h-10 w-36 sm:w-40" />) : (<Select value={selectedSubround === 'all' ? 'all' : String(selectedSubround)} onValueChange={handleSubroundChange} disabled={isLoadingFilters || availableSubrounds.length === 0}><SelectTrigger id="subround-filter" className="w-full sm:w-auto min-w-[150px]"><SelectValue placeholder="Pilih Subround" /></SelectTrigger><SelectContent><SelectItem value="all">Semua Subround</SelectItem>{availableSubrounds.map((subround) => (<SelectItem key={subround} value={String(subround)}>Subround {subround}</SelectItem>))}</SelectContent></Select>)}</div>
           <div>{isLoadingFilters ? (<Skeleton className="h-10 w-36 sm:w-40" />) : (<Select value={selectedKomoditas || ""} onValueChange={handleKomoditasChange} disabled={isKomoditasDisabled}><SelectTrigger id="komoditas-filter" className="w-full sm:w-auto min-w-[150px]"><SelectValue placeholder={isKomoditasDisabled ? "Tidak ada komoditas" : "Pilih Komoditas"} /></SelectTrigger><SelectContent>{availableKomoditas.map((komoditas) => (<SelectItem key={komoditas} value={komoditas}>{komoditas}</SelectItem>))}</SelectContent></Select>)}</div>

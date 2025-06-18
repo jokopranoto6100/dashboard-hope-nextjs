@@ -1,10 +1,12 @@
 // src/app/(dashboard)/evaluasi/ubinan/UbinanBoxPlot.tsx
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
+import { useDarkMode } from '@/context/DarkModeContext'; // Pastikan path ini benar
 import ReactECharts from 'echarts-for-react';
-import { BoxPlotStatsRow } from '@/hooks/useUbinanDescriptiveStatsData';
+import { BoxPlotStatsRow } from './types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface UbinanBoxPlotProps {
   data: BoxPlotStatsRow[];
@@ -13,54 +15,59 @@ interface UbinanBoxPlotProps {
 }
 
 export function UbinanBoxPlot({ data, currentUnit, isLoading }: UbinanBoxPlotProps) {
-  const getOption = () => {
-    // Siapkan data untuk ECharts
+  const { isDark } = useDarkMode();
+
+  const chartOption = useMemo(() => {
+    // Definisikan warna dinamis berdasarkan tema
+    const textColor = isDark ? 'hsl(210 40% 96.1%)' : 'hsl(222.2 47.4% 11.2%)';
+    const subtleTextColor = isDark ? 'hsl(215 20.2% 65.1%)' : 'hsl(215.4 16.3% 46.9%)';
+    const gridLineColor = isDark ? 'hsl(214.3 31.8% 15.1%)' : 'hsl(214.3 31.8% 91.4%)';
+    const boxFillColor = isDark ? 'hsl(224 71.4% 4.1%)' : '#FFFFFF';
+    
+    // =======================================================================
+    // [WARNA BOX PLOT DIUBAH] Mengganti warna border/garis box plot
+    // =======================================================================
+    const boxBorderColor = isDark ? 'hsl(210 40% 98%)' : 'hsl(222.2 84% 4.9%)'; // Putih di dark mode, Hitam di light mode
+
     const axisData = data.map(item => item.namaKabupaten);
     const boxPlotChartData = data.map(item => item.boxPlotData);
-    const outliersData = data.flatMap((item, index) => 
-        item.outliers.map(outlier => [index, outlier[1]])
-    );
 
     return {
       title: {
         text: 'Sebaran Data Hasil Ubinan per Kabupaten/Kota',
         left: 'center',
+        textStyle: { color: textColor, fontSize: 18, fontWeight: 'bold' }
       },
-      tooltip: {
-        trigger: 'item',
-        axisPointer: {
-          type: 'shadow'
-        }
+      tooltip: { 
+        trigger: 'item', 
+        axisPointer: { type: 'shadow' },
+        backgroundColor: isDark ? 'rgba(0,0,0,0.8)' : 'rgba(50,50,50,0.7)',
+        borderColor: gridLineColor,
+        textStyle: { color: '#fff' }
       },
-      grid: {
-        left: '10%',
-        right: '10%',
-        bottom: '15%'
-      },
+      grid: { left: '10%', right: '10%', bottom: '15%' },
       xAxis: {
-        type: 'category',
-        data: axisData,
-        boundaryGap: true,
-        nameGap: 30,
-        axisLabel: {
-            interval: 0,
-            rotate: 30
-        }
+        type: 'category', data: axisData, boundaryGap: true, nameGap: 30,
+        axisLabel: { interval: 0, rotate: 30, color: subtleTextColor },
+        axisLine: { lineStyle: { color: gridLineColor } }
       },
-      yAxis: {
-        type: 'value',
-        name: `Hasil Ubinan (${currentUnit})`,
-        splitArea: {
-          show: true
-        }
+      yAxis: { 
+        type: 'value', name: `Hasil Ubinan (${currentUnit})`, 
+        nameTextStyle: { color: textColor, fontWeight: 'bold', fontSize: 14 },
+        axisLabel: { color: subtleTextColor },
+        splitArea: { show: false },
+        splitLine: { lineStyle: { type: 'dashed', color: gridLineColor } }
       },
       series: [
         {
-          name: 'BoxPlot',
-          type: 'boxplot',
-          data: boxPlotChartData,
+          name: 'BoxPlot', type: 'boxplot', data: boxPlotChartData,
+          itemStyle: { 
+            color: boxFillColor, 
+            borderColor: boxBorderColor // Menggunakan variabel warna yang baru
+          },
           tooltip: {
             formatter: (param: any) => {
+              if (!param.value || param.value.length < 6) return '';
               const values = param.value;
               return [
                 `<strong>${param.name}</strong><br/>`,
@@ -73,14 +80,9 @@ export function UbinanBoxPlot({ data, currentUnit, isLoading }: UbinanBoxPlotPro
             }
           }
         },
-        {
-          name: 'Outlier',
-          type: 'scatter',
-          data: outliersData
-        }
       ]
     };
-  };
+  }, [data, currentUnit, isDark]);
 
   if (isLoading) {
     return (
@@ -90,14 +92,14 @@ export function UbinanBoxPlot({ data, currentUnit, isLoading }: UbinanBoxPlotPro
                 <CardDescription>Memuat data sebaran hasil ubinan per kabupaten...</CardDescription>
             </CardHeader>
             <CardContent>
-                <div className="h-[400px] w-full bg-gray-200 animate-pulse rounded-md"></div>
+                <Skeleton className="h-[500px] w-full" />
             </CardContent>
         </Card>
     );
   }
 
   if (!data || data.length === 0) {
-    return null; // Jangan tampilkan apa-apa jika tidak ada data
+    return null;
   }
 
   return (
@@ -107,7 +109,7 @@ export function UbinanBoxPlot({ data, currentUnit, isLoading }: UbinanBoxPlotPro
             <CardDescription>Visualisasi sebaran data hasil ubinan, menunjukkan median, kuartil, dan pencilan (outlier) untuk setiap kabupaten.</CardDescription>
         </CardHeader>
         <CardContent>
-            <ReactECharts option={getOption()} style={{ height: '500px', width: '100%' }} />
+            <ReactECharts option={chartOption} style={{ height: '500px', width: '100%' }} />
         </CardContent>
     </Card>
   );

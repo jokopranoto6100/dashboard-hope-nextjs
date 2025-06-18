@@ -2,16 +2,7 @@
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
-
-// DIUBAH: Tambahkan id_segmen dan subsegmen ke dalam interface
-export interface HasilUbinanDetailRow {
-  r111: string | null;
-  r701: number | null;
-  r702: number | null;
-  id_segmen: string | null; // BARU
-  subsegmen: string | null; // BARU
-  total_records: number;
-}
+import { HasilUbinanDetailRow } from "./types"; // DIPERBARUI
 
 const formatNumber = (value: number | null | undefined, decimalPlaces: number = 2): string => {
   if (value === null || value === undefined || isNaN(value)) return "-";

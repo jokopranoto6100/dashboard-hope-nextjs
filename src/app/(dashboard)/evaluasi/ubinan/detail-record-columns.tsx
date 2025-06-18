@@ -3,29 +3,7 @@
 
 import { ColumnDef } from "@tanstack/react-table";
 import { ShieldAlert } from 'lucide-react';
-
-// Tipe ini HARUS SESUAI dengan struktur yang dikembalikan oleh RPC get_ubinan_detail_sorted_paginated
-export interface DetailRecordRowProcessed {
-  r111: string | null;
-  r604: number | null;
-  r608_bibit_kg_mentah: number | null;
-  r610_1_urea_kg_mentah: number | null;
-  r610_2_tsp_kg_mentah: number | null;
-  r610_3_kcl_kg_mentah: number | null;
-  r610_4_npk_kg_mentah: number | null;
-  r610_5_kompos_kg_mentah: number | null;
-  r610_6_organik_cair_liter_mentah: number | null;
-  r610_7_za_kg_mentah: number | null;
-  benih_kg_ha: number | null; // Ini adalah alias benih_kg_ha_calc dari RPC
-  urea_kg_ha: number | null;   // Ini adalah alias urea_kg_ha_calc dari RPC
-  tsp_kg_ha: number | null;    // dst.
-  kcl_kg_ha: number | null;
-  npk_kg_ha: number | null;
-  kompos_kg_ha: number | null;
-  organik_cair_liter_ha: number | null;
-  za_kg_ha: number | null;
-  total_records: number; // Ini juga dikembalikan oleh RPC
-}
+import { DetailRecordRowProcessed } from "./types"; // DIPERBARUI
 
 const formatNumber = (value: number | null | undefined, decimalPlaces: number = 1): string => { // Default desimal 1
   if (value === null || value === undefined || isNaN(value)) return "-";
