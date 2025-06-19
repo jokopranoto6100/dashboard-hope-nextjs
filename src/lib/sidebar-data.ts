@@ -20,6 +20,8 @@ import {
     items?: NavSubItem[]; // Untuk submenu
     isCollapsible?: boolean; // Menandakan apakah ini grup collapsible
     adminOnly?: boolean; // Untuk menandai menu khusus admin
+    disabled?: boolean; // <-- [PERUBAHAN 1] TAMBAHKAN PROPERTI INI
+
   }
   
   export interface NavSubItem {
@@ -120,11 +122,12 @@ export interface UserData {
           },
         ],
       },
-            {
+      {
         title: "Crawling FASIH",
         url: "/crawling-fasih",
         icon: BotMessageSquare,
         isActive: (currentPath) => currentPath === "/crawling-fasih",
+        disabled: true, // <-- [PERUBAHAN 2] TAMBAHKAN PROPERTI INI
       },
     ];
   
