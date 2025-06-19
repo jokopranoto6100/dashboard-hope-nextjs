@@ -27,7 +27,7 @@ const crawlSchema = getPeriodsSchema.extend({
   kdkab: z.string().optional().transform(e => e === "" ? undefined : e),
 });
 
-// Template Request Body yang sudah divalidasi
+// Template Request Body (tidak berubah)
 const baseAssignmentRequestBody = {
     draw: 1,
     columns: [
@@ -67,8 +67,12 @@ export async function getInitialConfig(formData: FormData): Promise<{
   districtIdMap?: { [key: string]: string };
   error?: string;
 }> {
+  console.log('[ACTION] Memulai getInitialConfig...');
   const validatedFields = getPeriodsSchema.safeParse(Object.fromEntries(formData.entries()));
-  if (!validatedFields.success) return { error: 'Input tidak valid.' };
+  if (!validatedFields.success) {
+    console.error('[ERROR] Input tidak valid:', validatedFields.error.flatten().fieldErrors);
+    return { error: 'Input tidak valid.' };
+  }
   
   const { surveyId, cookie, xsrfToken } = validatedFields.data;
   const kdprov = "61"; // Asumsi Kalbar
@@ -77,34 +81,54 @@ export async function getInitialConfig(formData: FormData): Promise<{
   try {
     // 1. Ambil Detail Survei (termasuk periode)
     const surveyUrl = `https://fasih-sm.bps.go.id/survey/api/v1/surveys/${surveyId}`;
+    console.log(`[FETCH 1] Mencoba mengambil detail survei dari: ${surveyUrl}`);
+    console.log(`[FETCH 1] Headers: Cookie-length=${cookie.length}, XSRF-TOKEN-length=${xsrfToken.length}`);
     const surveyResponse = await fetch(surveyUrl, { headers });
-    if (!surveyResponse.ok) throw new Error(`Gagal mengambil detail survei (Status: ${surveyResponse.status})`);
+    console.log(`[FETCH 1] [STATUS] ${surveyResponse.status} ${surveyResponse.statusText}`);
+
+    if (!surveyResponse.ok) {
+        const errorText = await surveyResponse.text();
+        console.error(`[FETCH 1] [ERROR] Gagal mengambil detail survei. Body:`, errorText);
+        throw new Error(`Gagal mengambil detail survei (Status: ${surveyResponse.status})`);
+    }
     const surveyData = await surveyResponse.json();
+    console.log('[FETCH 1] [SUCCESS] Berhasil mendapatkan detail survei.');
     if (!surveyData.success) throw new Error('Respons detail survei tidak berhasil.');
 
     const periods: SurveyPeriod[] = surveyData.data?.surveyPeriods?.map((p: any) => ({ id: p.id, name: p.name })) || [];
     const regionGroupId = surveyData.data.regionGroupId;
+    console.log(`[INFO] Ditemukan ${periods.length} periode. regionGroupId: ${regionGroupId}`);
     if (!regionGroupId) throw new Error('regionGroupId tidak ditemukan.');
 
     // 2. Ambil ID Provinsi
     const provUrl = `https://fasih-sm.bps.go.id/region/api/v1/region/level1?groupId=${regionGroupId}`;
+    console.log(`[FETCH 2] Mencoba mengambil ID Provinsi dari: ${provUrl}`);
     const provResponse = await fetch(provUrl, { headers });
+    console.log(`[FETCH 2] [STATUS] ${provResponse.status} ${provResponse.statusText}`);
+    if (!provResponse.ok) throw new Error(`Gagal mengambil data provinsi (Status: ${provResponse.status})`);
     const provData = await provResponse.json();
     const province = provData.data.find((p: any) => p.fullCode === kdprov);
     if (!province) throw new Error(`Provinsi dengan kode ${kdprov} tidak ditemukan.`);
     const provinceId = province.id;
+    console.log(`[INFO] Ditemukan ID Provinsi untuk ${kdprov}: ${provinceId}`);
     
     // 3. Ambil Peta ID Kabupaten
     const kabUrl = `https://fasih-sm.bps.go.id/region/api/v1/region/level2?groupId=${regionGroupId}&level1FullCode=${kdprov}`;
+    console.log(`[FETCH 3] Mencoba mengambil ID Kabupaten dari: ${kabUrl}`);
     const kabResponse = await fetch(kabUrl, { headers });
+    console.log(`[FETCH 3] [STATUS] ${kabResponse.status} ${kabResponse.statusText}`);
+    if (!kabResponse.ok) throw new Error(`Gagal mengambil data kabupaten (Status: ${kabResponse.status})`);
     const kabData = await kabResponse.json();
     const districtIdMap = kabData.data.reduce((acc: any, curr: any) => {
         acc[curr.fullCode] = curr.id;
         return acc;
     }, {});
+    console.log(`[INFO] Ditemukan ${Object.keys(districtIdMap).length} pemetaan ID kabupaten.`);
 
+    console.log('[SUCCESS] getInitialConfig selesai dengan sukses.');
     return { periods, provinceId, districtIdMap };
   } catch (error) {
+    console.error('[FATAL] Terjadi kesalahan fatal di getInitialConfig:', error);
     return { error: error instanceof Error ? error.message : 'Kesalahan tidak diketahui' };
   }
 }
@@ -122,6 +146,7 @@ export async function crawlSingleDistrict(
     districtBpsCode: string;
   }
 ): Promise<{ data?: FasihDataRow[]; error?: string }> {
+  console.log(`\n[ACTION] Memulai crawlSingleDistrict untuk wilayah: ${params.districtBpsCode}`);
   const headers = { 
     'Content-Type': 'application/json;charset=utf-8',
     'Cookie': auth.cookie,
@@ -131,8 +156,9 @@ export async function crawlSingleDistrict(
   try {
     let allAssignments: any[] = [];
     let start = 0;
-    const length = 1000; // Bisa diubah jika mau batch lebih kecil/besar
+    const length = 1000;
 
+    console.log('[INFO] Memulai loop pengambilan daftar assignment...');
     while (true) {
       const assignmentListUrl = "https://fasih-sm.bps.go.id/analytic/api/v2/assignment/datatable-all-user-survey-periode";
       const assignmentBody = JSON.parse(JSON.stringify(baseAssignmentRequestBody));
@@ -141,31 +167,43 @@ export async function crawlSingleDistrict(
       assignmentBody.assignmentExtraParam.surveyPeriodId = params.surveyPeriodId;
       assignmentBody.assignmentExtraParam.region1Id = params.provinceId;
       assignmentBody.assignmentExtraParam.region2Id = params.districtId;
-
+      
+      console.log(`[FETCH-ASSIGNMENT] Mencoba mengambil batch assignment. Start: ${start}, Length: ${length}`);
       const listResponse = await fetch(assignmentListUrl, {
         method: 'POST',
         headers,
         body: JSON.stringify(assignmentBody),
       });
+      console.log(`[FETCH-ASSIGNMENT] [STATUS] ${listResponse.status} ${listResponse.statusText}`);
 
-      if (!listResponse.ok)
+      if (!listResponse.ok) {
+        const errorText = await listResponse.text();
+        console.error(`[FETCH-ASSIGNMENT] [ERROR] Gagal. Body:`, errorText);
         throw new Error(`Gagal mengambil daftar assignment untuk wilayah ${params.districtBpsCode} (status: ${listResponse.status})`);
+      }
 
       const listData = await listResponse.json();
       const assignmentsOnPage = listData.searchData || [];
+      console.log(`[FETCH-ASSIGNMENT] [SUCCESS] Ditemukan ${assignmentsOnPage.length} assignment di halaman ini.`);
       allAssignments.push(...assignmentsOnPage);
 
       if (assignmentsOnPage.length < length) {
-        // Sudah sampai data terakhir
+        console.log('[INFO] Mencapai halaman terakhir dari daftar assignment. Mengakhiri loop.');
         break;
       }
       start += length;
     }
 
+    console.log(`[INFO] Total ${allAssignments.length} assignment ditemukan untuk wilayah ${params.districtBpsCode}. Memulai pengambilan detail...`);
     const districtCrawledData: FasihDataRow[] = [];
-    for (const assignment of allAssignments) {
+    for (const [index, assignment] of allAssignments.entries()) {
       const detailUrl = `https://fasih-sm.bps.go.id/assignment-general/api/assignment/get-by-id-with-data-for-scm?id=${assignment.id}`;
+      // Log hanya untuk item pertama, terakhir, dan setiap item ke-50 untuk mengurangi noise
+      if (index === 0 || index === allAssignments.length - 1 || (index + 1) % 50 === 0) {
+        console.log(`[FETCH-DETAIL] Mengambil detail untuk assignment #${index + 1}/${allAssignments.length} (ID: ${assignment.id})`);
+      }
       const detailResponse = await fetch(detailUrl, { headers });
+      
       if (detailResponse.ok) {
         const detailDataRaw = await detailResponse.json();
         if (detailDataRaw.data && detailDataRaw.data.data) {
@@ -178,10 +216,14 @@ export async function crawlSingleDistrict(
           flatData.code_identity = assignment.codeIdentity;
           districtCrawledData.push(flatData);
         }
+      } else {
+        console.warn(`[WARN] Gagal mengambil detail untuk assignment ID ${assignment.id}. Status: ${detailResponse.status}. Melanjutkan ke item berikutnya.`);
       }
     }
+    console.log(`[SUCCESS] crawlSingleDistrict untuk wilayah ${params.districtBpsCode} selesai. Total data berhasil di-crawl: ${districtCrawledData.length}`);
     return { data: districtCrawledData };
   } catch (error) {
+    console.error(`[FATAL] Terjadi kesalahan fatal di crawlSingleDistrict untuk wilayah ${params.districtBpsCode}:`, error);
     return { error: error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui' };
   }
 }
