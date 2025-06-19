@@ -1,10 +1,12 @@
 // src/lib/sidebar-data.ts
 import {
     LayoutDashboard,
-    FolderKanban,
-    FlaskConical,
+    Table2,
     Scale,
-    Database,
+    BetweenHorizontalEnd,
+    BotMessageSquare,
+    Binoculars,
+    ChartNoAxesCombined,
     // Impor ikon lain yang Anda perlukan dari lucide-react
     // ChevronDown, // Mungkin tidak perlu di sini, akan ditangani oleh komponen Collapsible
   } from 'lucide-react';
@@ -49,7 +51,7 @@ export interface UserData {
       },
       {
         title: "Monitoring",
-        icon: FolderKanban,
+        icon: Binoculars,
         isCollapsible: true,
         isActive: (currentPath) => currentPath.startsWith("/monitoring"),
         items: [
@@ -72,7 +74,7 @@ export interface UserData {
       },
       {
         title: "Evaluasi",
-        icon: FlaskConical,
+        icon: ChartNoAxesCombined,
         isCollapsible: true,
         isActive: (currentPath) => currentPath.startsWith("/evaluasi"),
         items: [
@@ -91,12 +93,12 @@ export interface UserData {
       {
         title: "Statistik Produksi",
         url: "/produksi-statistik",
-        icon: Scale,
+        icon: Table2,
         isActive: (currentPath) => currentPath === "/produksi-statistik",
       },
       {
         title: "Update Data",
-        icon: Database,
+        icon: BetweenHorizontalEnd,
         isCollapsible: true,
         adminOnly: true, // Tandai ini sebagai menu admin
         isActive: (currentPath) => currentPath.startsWith("/update"),
@@ -119,10 +121,10 @@ export interface UserData {
         ],
       },
             {
-        title: "Analisis Data",
-        url: "/analisis-data",
-        icon: FlaskConical,
-        isActive: (currentPath) => currentPath === "/analisis-data",
+        title: "Crawling FASIH",
+        url: "/crawling-fasih",
+        icon: BotMessageSquare,
+        isActive: (currentPath) => currentPath === "/crawling-fasih",
       },
     ];
   
