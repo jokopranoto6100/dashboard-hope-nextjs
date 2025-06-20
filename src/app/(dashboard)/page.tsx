@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useYear } from '@/context/YearContext';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from "@/components/ui/button"; // LANGKAH 1: Impor Button
+import { Button } from "@/components/ui/button";
 import { usePadiMonitoringData } from '@/hooks/usePadiMonitoringData';
 import { usePalawijaMonitoringData } from '@/hooks/usePalawijaMonitoringData';
 import { useKsaMonitoringData } from '@/hooks/useKsaMonitoringData'; 
@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { PackagePlus } from "lucide-react";
 
 const getMonthName = (monthNumberStr: string | undefined): string => {
-  if (!monthNumberStr || monthNumberStr.toLowerCase() === "semua") return "Semua Bulan (Tahunan)";
+  if (!monthNumberStr || monthNumberStr.toLowerCase() === "semua") return "Data Tahunan";
   const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", 
                       "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
   const monthIndex = parseInt(monthNumberStr, 10) - 1;
@@ -44,28 +44,23 @@ export default function HomePage() {
     lastUpdatePalawija
   } = usePalawijaMonitoringData(selectedYear, ubinanSubround);
 
-  const currentJsMonth = new Date().getMonth(); 
-  const currentMonthParam = String(currentJsMonth + 1); 
-
+  // ✅ PERBAIKAN: Panggil hook tanpa parameter dan ambil nilai yang benar.
   const { 
     districtTotals: ksaTotals, 
     isLoading: loadingKsa, 
     error: errorKsa, 
     lastUpdated: lastUpdatedKsa,
-    effectiveDisplayMonth, 
+    displayMonth: ksaDisplayMonth, // Menggantikan effectiveDisplayMonth
     uniqueStatusNames: ksaUniqueStatusNames
-  } = useKsaMonitoringData(currentMonthParam, 'autoFallback'); 
-
-  // LANGKAH 2: Fungsi getKpiBadge tidak diperlukan lagi di sini
+  } = useKsaMonitoringData(); 
 
   return (
     <>
-      <div className="grid gap-4 md:grid-cols-3 mb-6">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-6">
         {/* Card 1: Ubinan Padi */}
         <Card className="h-full">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Ubinan Padi ({selectedYear})</CardTitle>
-            {/* LANGKAH 3: Ganti Badge dengan Button Link */}
             <Button asChild variant="outline" size="sm">
               <Link href="/monitoring/ubinan">Lihat Detail</Link>
             </Button>
@@ -83,7 +78,7 @@ export default function HomePage() {
               </>
             ) : errorPadi ? (
               <p className="text-xs text-red-500">Error: {errorPadi}</p>
-            ) : padiTotals ? (
+            ) : padiTotals && typeof padiTotals.persentase === 'number' ? (
               <>
                 <div className="flex-grow">
                   <div className="text-2xl font-bold">{padiTotals.persentase.toFixed(2)}%</div>
@@ -92,16 +87,16 @@ export default function HomePage() {
                   </p>
                   <div className="flex flex-col md:flex-row md:gap-6">
                       <p className="text-xs text-muted-foreground mt-1 flex items-center flex-wrap">
-                          Total Lewat Panen:&nbsp;
-                          <Badge variant={padiTotals.lewatPanen > 0 ? "destructive" : "success"}>
-                              {padiTotals.lewatPanen}
-                          </Badge>
+                        Total Lewat Panen:&nbsp;
+                        <Badge variant={padiTotals.lewatPanen > 0 ? "destructive" : "success"}>
+                            {padiTotals.lewatPanen}
+                        </Badge>
                       </p>
                       <p className="text-xs text-muted-foreground mt-1 flex items-center flex-wrap">
-                          Jumlah Anomali:&nbsp;
-                          <Badge variant={padiTotals.anomali > 0 ? "destructive" : "success"}>
-                              {padiTotals.anomali}
-                          </Badge>
+                        Jumlah Anomali:&nbsp;
+                        <Badge variant={padiTotals.anomali > 0 ? "destructive" : "success"}>
+                            {padiTotals.anomali}
+                        </Badge>
                       </p>
                   </div>
                 </div>
@@ -136,7 +131,6 @@ export default function HomePage() {
         <Card className="h-full">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Ubinan Palawija ({selectedYear})</CardTitle>
-            {/* LANGKAH 3: Ganti Badge dengan Button Link */}
             <Button asChild variant="outline" size="sm">
               <Link href="/monitoring/ubinan">Lihat Detail</Link>
             </Button>
@@ -151,10 +145,10 @@ export default function HomePage() {
               </>
             ) : errorPalawija ? (
               <p className="text-xs text-red-500">Error: {errorPalawija}</p>
-            ) : palawijaTotals ? (
+            ) : palawijaTotals && typeof palawijaTotals.persentase === 'number' ? (
               <>
                 <div className="flex-grow">
-                    <div className="text-2xl font-bold">{parseFloat(palawijaTotals.persentase.toString()).toFixed(2)}%</div>
+                    <div className="text-2xl font-bold">{palawijaTotals.persentase.toFixed(2)}%</div>
                     <p className="text-xs text-muted-foreground">
                     Realisasi: {palawijaTotals.realisasi} dari {palawijaTotals.target} Target
                     </p>
@@ -187,9 +181,9 @@ export default function HomePage() {
         <Card className="h-full">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              KSA Padi ({selectedYear}) - {getMonthName(effectiveDisplayMonth)}
+              {/* ✅ Gunakan 'ksaDisplayMonth' untuk menampilkan bulan */}
+              KSA Padi ({selectedYear}) - {getMonthName(ksaDisplayMonth)}
             </CardTitle>
-            {/* LANGKAH 3: Ganti Badge dengan Button Link */}
             <Button asChild variant="outline" size="sm">
               <Link href="/monitoring/ksa">Lihat Detail</Link>
             </Button>
@@ -250,11 +244,10 @@ export default function HomePage() {
                               );
                           }
                           return null;
-                      })}
+                        })}
                     </div>
                   </div>
                 )}
-
                 {lastUpdatedKsa && <p className="text-xs text-muted-foreground mt-1">Data per: {lastUpdatedKsa}</p>}
               </>
             ) : (
@@ -262,22 +255,9 @@ export default function HomePage() {
             )}
           </CardContent>
         </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Kegiatan Lainnya</CardTitle>
-            <Badge variant="outline"><PackagePlus /></Badge> 
-          </CardHeader>
-          <CardContent>
-            <Skeleton className="h-8 w-3/4 mb-1" />
-            <Skeleton className="h-4 w-full mb-1" />
-            <Skeleton className="h-4 w-1/2" />
-          </CardContent>
-        </Card>
       </div>
-
-      <p className="mt-12 text-gray-600 text-center text-sm">
-        Ini adalah halaman utama dashboard Anda. Anda dapat menambahkan kartu lainnya di masa mendatang.
+      <p className="mt-6 text-gray-500 text-center text-xs">
+        Selamat datang di dashboard pemantauan Anda.
       </p>
     </>
   );
