@@ -4,6 +4,9 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from "@/context/AuthContext";
 
+// Impor tipe dari lokasi baru di dalam folder fitur
+import { PadiDataRow, PadiTotals } from '@/app/(dashboard)/monitoring/ubinan/types';
+
 const toTitleCase = (str: string) => {
   if (!str) return '';
   return str.toLowerCase().split(' ').map((word) => {
@@ -28,22 +31,9 @@ const mapStatusToGroup = (rawStatus: string): 'Approved' | 'Rejected' | 'Submitt
   return 'Lainnya'; // Fallback untuk status yang tidak terduga
 };
 
-interface PadiTotals {
-  targetUtama: number;
-  cadangan: number;
-  realisasi: number;
-  lewatPanen: number;
-  faseGeneratif: number;
-  faseGeneratif_G1: number;
-  faseGeneratif_G2: number;
-  faseGeneratif_G3: number;
-  anomali: number;
-  persentase: number;
-  statuses?: { [key: string]: number };
-}
-
+// Definisikan tipe untuk return value hook ini
 interface PadiMonitoringDataHook {
-  processedPadiData: any[] | null;
+  processedPadiData: PadiDataRow[] | null;
   padiTotals: PadiTotals | null;
   loadingPadi: boolean;
   errorPadi: string | null;
@@ -54,7 +44,7 @@ interface PadiMonitoringDataHook {
 export const usePadiMonitoringData = (selectedYear: number, selectedSubround: string): PadiMonitoringDataHook => {
   const { supabase } = useAuth();
 
-  const [processedPadiData, setProcessedPadiData] = useState<any[] | null>(null);
+  const [processedPadiData, setProcessedPadiData] = useState<PadiDataRow[] | null>(null);
   const [padiTotals, setPadiTotals] = useState<PadiTotals | null>(null);
   const [loadingPadi, setLoadingPadi] = useState(true);
   const [errorPadi, setErrorPadi] = useState<string | null>(null);
@@ -120,12 +110,7 @@ export const usePadiMonitoringData = (selectedYear: number, selectedSubround: st
 
       const rawPadiData = allRawPadiData;
       const groupedData: {
-        [key: string]: {
-          nmkab: string; kab_sort_key: string; targetUtama: number; cadangan: number; realisasi: number;
-          lewatPanen: number; faseGeneratif: number; anomali: number;
-          faseGeneratif_G1: number; faseGeneratif_G2: number; faseGeneratif_G3: number;
-          statuses: { [key: string]: number }; 
-        }
+        [key: string]: PadiDataRow
       } = {};
 
       let totalTargetUtama = 0;
@@ -156,7 +141,8 @@ export const usePadiMonitoringData = (selectedYear: number, selectedSubround: st
                           nmkab: cleanedNmkab, kab_sort_key: kabSortKeyValue, targetUtama: 0, cadangan: 0, realisasi: 0,
                           lewatPanen: 0, faseGeneratif: 0, anomali: 0,
                           faseGeneratif_G1: 0, faseGeneratif_G2: 0, faseGeneratif_G3: 0,
-                          statuses: {} 
+                          statuses: {},
+                          persentase: 0
                       };
                   }
 
@@ -167,20 +153,14 @@ export const usePadiMonitoringData = (selectedYear: number, selectedSubround: st
                       groupedData[originalNmkab].cadangan += 1; totalCadangan += 1;
                   }
 
-                  let isRealisasiEntry = false; // Tandai apakah entri ini merupakan realisasi
                   if (row.r701 !== null && row.r701 !== undefined && String(row.r701).trim() !== '') {
                       groupedData[originalNmkab].realisasi += 1; 
                       totalRealisasi += 1;
-                      isRealisasiEntry = true; // Entri ini adalah realisasi
 
-                      // Proses kolom status HANYA JIKA r701 tidak null (merupakan entri realisasi)
                       if (row.status && typeof row.status === 'string' && String(row.status).trim() !== '') {
                           const rawStatus = String(row.status).trim();
-                          const groupedStatus = mapStatusToGroup(rawStatus); // Panggil fungsi mapping kita
-
-                          // Agregasi per nmkab (menggunakan status yang sudah dikelompokkan)
+                          const groupedStatus = mapStatusToGroup(rawStatus);
                           groupedData[originalNmkab].statuses[groupedStatus] = (groupedData[originalNmkab].statuses[groupedStatus] || 0) + 1;
-                          // Agregasi total (menggunakan status yang sudah dikelompokkan)
                           aggregatedStatuses[groupedStatus] = (aggregatedStatuses[groupedStatus] || 0) + 1;
                       }
                   }
@@ -196,14 +176,14 @@ export const usePadiMonitoringData = (selectedYear: number, selectedSubround: st
                   if (faseGeneratifValue !== null && faseGeneratifValue !== undefined) {
                       const strValue = String(faseGeneratifValue).trim();
                       if (strValue === '3.1') {
-                          groupedData[originalNmkab].faseGeneratif_G1 += 1; totalFaseGeneratif_G1 += 1;
-                          groupedData[originalNmkab].faseGeneratif += 1; totalFaseGeneratif += 1;
+                          groupedData[originalNmkab].faseGeneratif_G1! += 1; totalFaseGeneratif_G1 += 1;
+                          groupedData[originalNmkab].faseGeneratif! += 1; totalFaseGeneratif += 1;
                       } else if (strValue === '3.2') {
-                          groupedData[originalNmkab].faseGeneratif_G2 += 1; totalFaseGeneratif_G2 += 1;
-                          groupedData[originalNmkab].faseGeneratif += 1; totalFaseGeneratif += 1;
+                          groupedData[originalNmkab].faseGeneratif_G2! += 1; totalFaseGeneratif_G2 += 1;
+                          groupedData[originalNmkab].faseGeneratif! += 1; totalFaseGeneratif += 1;
                       } else if (strValue === '3.3') {
-                          groupedData[originalNmkab].faseGeneratif_G3 += 1; totalFaseGeneratif_G3 += 1;
-                          groupedData[originalNmkab].faseGeneratif += 1; totalFaseGeneratif += 1;
+                          groupedData[originalNmkab].faseGeneratif_G3! += 1; totalFaseGeneratif_G3 += 1;
+                          groupedData[originalNmkab].faseGeneratif! += 1; totalFaseGeneratif += 1;
                       }
                   }
 
@@ -233,7 +213,9 @@ export const usePadiMonitoringData = (selectedYear: number, selectedSubround: st
           faseGeneratif_G1: totalFaseGeneratif_G1,
           faseGeneratif_G2: totalFaseGeneratif_G2,
           faseGeneratif_G3: totalFaseGeneratif_G3,
-          anomali: totalAnomali, persentase: parseFloat(totalPersentase.toFixed(2)),
+          anomali: totalAnomali,
+          // ✅ PERUBAHAN DI SINI: Ubah dari string kembali ke number
+          persentase: parseFloat(totalPersentase.toFixed(2)),
           statuses: aggregatedStatuses 
       });
       setProcessedPadiData(finalProcessedData);

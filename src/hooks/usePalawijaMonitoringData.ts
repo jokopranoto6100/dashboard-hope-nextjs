@@ -3,6 +3,9 @@ import { useState, useEffect } from 'react';
 import { useAuth } from "@/context/AuthContext";
 import { toast } from 'sonner';
 
+// Impor tipe dari lokasi baru di dalam folder fitur
+import { PalawijaDataRow, PalawijaTotals } from '@/app/(dashboard)/monitoring/ubinan/types';
+
 const KAB_CODE_TO_NAME: { [key: string]: string } = {
   '1': 'Sambas',
   '2': 'Bengkayang',
@@ -20,26 +23,7 @@ const KAB_CODE_TO_NAME: { [key: string]: string } = {
   '72': 'Singkawang',
 };
 
-export interface PalawijaDataRow {
-  nmkab: string;
-  kab_sort_key: string;
-  target: number;
-  realisasi: number;
-  clean: number;
-  warning: number;
-  error: number;
-  persentase: number | string;
-}
-
-export interface PalawijaTotals {
-  target: number;
-  realisasi: number;
-  clean: number;
-  warning: number;
-  error: number;
-  persentase: number | string;
-}
-
+// Definisikan tipe untuk return value hook ini
 interface PalawijaMonitoringDataHook {
   processedPalawijaData: PalawijaDataRow[] | null;
   palawijaTotals: PalawijaTotals | null;
@@ -191,20 +175,17 @@ export const usePalawijaMonitoringData = (selectedYear: number, selectedSubround
         const isBFallback = b.kab_sort_key === fallbackSortString;
 
         if (isAFallback && isBFallback) return 0;
-        if (isAFallback) return 1; // Fallback 'a' goes after 'b'
-        if (isBFallback) return -1; // Fallback 'b' goes after 'a' (so 'a' comes first)
+        if (isAFallback) return 1;
+        if (isBFallback) return -1;
 
-        // At this point, neither is a fallback, so they are numeric strings like "1", "10", "72"
         const numA = parseInt(a.kab_sort_key, 10);
         const numB = parseInt(b.kab_sort_key, 10);
 
-        // It's possible parseInt results in NaN if kab_sort_key was unexpectedly non-numeric
-        // and not the fallback string. This handles such edge cases.
-        if (isNaN(numA) && isNaN(numB)) return a.kab_sort_key.localeCompare(b.kab_sort_key); // Both NaN, sort as string
-        if (isNaN(numA)) return 1;  // NaN 'a' goes after numeric 'b'
-        if (isNaN(numB)) return -1; // NaN 'b' goes after numeric 'a' (so 'a' comes first)
+        if (isNaN(numA) && isNaN(numB)) return a.kab_sort_key.localeCompare(b.kab_sort_key);
+        if (isNaN(numA)) return 1;
+        if (isNaN(numB)) return -1;
 
-        return numA - numB; // Standard numerical comparison
+        return numA - numB;
       });
 
       const totalPersentase = totalTarget > 0 ? ((totalRealisasi / totalTarget) * 100) : 0;
