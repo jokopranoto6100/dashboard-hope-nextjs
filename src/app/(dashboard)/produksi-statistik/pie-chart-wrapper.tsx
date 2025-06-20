@@ -2,7 +2,6 @@
 "use client";
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import { useIsMobile } from '@/hooks/use-mobile'; // Menggunakan hook Anda
 
 interface PieChartData {
   name: string;
@@ -11,6 +10,7 @@ interface PieChartData {
 
 interface PieChartWrapperProps {
   data: PieChartData[];
+  isMobile: boolean; // <-- PATCH: Terima prop isMobile
 }
 
 const COLORS = [
@@ -42,8 +42,8 @@ const CustomTooltip = ({ active, payload, total }: CustomTooltipProps) => {
     return null;
 };
 
-export default function PieChartWrapper({ data }: PieChartWrapperProps) {
-  const isMobile = useIsMobile();
+export default function PieChartWrapper({ data, isMobile }: PieChartWrapperProps) {
+  // PATCH: Tidak perlu memanggil useIsMobile() di sini lagi
 
   const topData = data.slice(0, 6);
   const otherValue = data.slice(6).reduce((sum, item) => sum + item.value, 0);
@@ -56,12 +56,10 @@ export default function PieChartWrapper({ data }: PieChartWrapperProps) {
   const totalForPie = chartData.reduce((sum, item) => sum + item.value, 0);
 
   return (
-    // REVISI: Tambahkan margin bawah untuk ruang legenda
     <ResponsiveContainer width="100%" height={300}>
       <PieChart>
         <Pie
           data={chartData}
-          // Posisi selalu di tengah container
           cx="50%"
           cy="50%"
           labelLine={false}
@@ -78,17 +76,16 @@ export default function PieChartWrapper({ data }: PieChartWrapperProps) {
         </Pie>
         <Tooltip content={<CustomTooltip total={totalForPie} />} />
         
-        {/* --- REVISI UTAMA: Logika baru untuk legenda --- */}
-        {/* Legenda akan disembunyikan di layar mobile, dan pindah ke bawah di layar besar */}
+        {/* PATCH: Logika legenda menggunakan prop isMobile */}
         {!isMobile && (
             <Legend 
                 iconSize={10} 
-                layout="horizontal" // 1. Layout diubah menjadi horizontal
-                verticalAlign="bottom" // 2. Posisi di bagian bawah chart
-                align="center" // 3. Rata tengah
+                layout="horizontal"
+                verticalAlign="bottom"
+                align="center"
                 wrapperStyle={{
                     fontSize: '12px',
-                    paddingTop: '20px' // Beri jarak dari chart
+                    paddingTop: '20px'
                 }}
             />
         )}

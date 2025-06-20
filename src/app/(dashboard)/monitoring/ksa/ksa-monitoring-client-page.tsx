@@ -1,7 +1,7 @@
 // src/app/(dashboard)/monitoring/ksa/ksa-monitoring-client-page.tsx
 "use client";
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useYear } from '@/context/YearContext';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";

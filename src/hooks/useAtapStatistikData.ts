@@ -27,6 +27,7 @@ interface FilterState {
 
 // Fungsi fetcher menerima instance supabase dari hook utama
 const fetchAtapData = async (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any, // <== Instance dari useAuth di bawah; replace 'any' with the correct type if available
   key: string,
   filters: FilterState,

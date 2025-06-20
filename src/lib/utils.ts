@@ -116,3 +116,21 @@ export const calculateMax = (arr: number[]): number | null => {
   if (validArr.length === 0) return null;
   return Math.max(...validArr);
 };
+
+export const formatNumber = (num: number | null | undefined, options?: Intl.NumberFormatOptions): string => {
+  if (num === null || num === undefined || isNaN(num)) {
+    return '-';
+  }
+  // Opsi default untuk menampilkan 2 digit desimal, bisa di-override.
+  const defaultOptions: Intl.NumberFormatOptions = {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+      ...options,
+  };
+  // Jika angka adalah 0, tidak perlu desimal.
+  if (num === 0) {
+      defaultOptions.minimumFractionDigits = 0;
+      defaultOptions.maximumFractionDigits = 0;
+  }
+  return new Intl.NumberFormat('id-ID', defaultOptions).format(num);
+};

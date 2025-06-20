@@ -20,20 +20,29 @@ export interface AugmentedAtapDataPoint {
   pertumbuhan?: number | null;
 }
 
-const formatNumber = (num: number) => new Intl.NumberFormat('id-ID').format(num);
+// PATCH: Modifikasi fungsi formatNumber untuk menampilkan 2 digit desimal
+const formatNumber = (num: number) => {
+    if (num === null || num === undefined) return '-';
+    return new Intl.NumberFormat('id-ID', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    }).format(num);
+};
 
 export const getColumns = (
   selectedYear: number, 
   tahunPembanding: string,
   totalNilai: number,
-  totalNilaiPembanding: number
+  totalNilaiPembanding: number,
+  isMobile: boolean,
+  showAllColumns: boolean
 ): ColumnDef<AugmentedAtapDataPoint>[] => {
   const hasPerbandingan = tahunPembanding !== 'tidak';
 
   const baseColumns: ColumnDef<AugmentedAtapDataPoint>[] = [
     {
       accessorKey: "nama_wilayah",
-      header: "Nama Wilayah",
+      header: "Kabupaten/Kota",
       cell: ({ row }) => <div className="font-medium">{row.getValue("nama_wilayah")}</div>,
       footer: () => <div className="text-left font-bold">Total</div>,
     },
@@ -89,8 +98,8 @@ export const getColumns = (
       footer: () => null,
     }
   ];
-
-  if (hasPerbandingan) {
+  
+  if (hasPerbandingan && (!isMobile || showAllColumns)) {
     return [...baseColumns, ...perbandinganColumns];
   }
   
