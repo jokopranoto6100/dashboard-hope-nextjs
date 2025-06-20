@@ -3,26 +3,28 @@ import * as React from "react"
 
 const MOBILE_BREAKPOINT = 768
 
-export function useIsMobile() {
-  // ✅ 1. State awal sekarang bisa undefined
+// ✅ TAMBAHKAN TIPE RETURN ': boolean' DI SINI
+export function useIsMobile(): boolean {
   const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined)
 
   React.useEffect(() => {
     const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`)
     
-    // Fungsi ini akan dipanggil saat ada perubahan DAN saat pertama kali
     const onChange = () => {
-      setIsMobile(mql.matches)
+      // Pengecekan 'window' untuk keamanan ekstra
+      if (typeof window !== "undefined") {
+        setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
+      }
     }
 
-    mql.addEventListener("change", onChange)
+    // Panggil sekali di awal saat komponen dimuat di client
+    onChange();
     
-    // Panggil sekali saat pertama kali untuk mengatur state awal
-    onChange()
+    mql.addEventListener("change", onChange)
 
+    // Fungsi cleanup untuk menghapus event listener
     return () => mql.removeEventListener("change", onChange)
   }, [])
 
-  // ✅ 2. Kembalikan nilainya langsung (bisa true, false, atau undefined)
-  return isMobile
+  return !!isMobile
 }
