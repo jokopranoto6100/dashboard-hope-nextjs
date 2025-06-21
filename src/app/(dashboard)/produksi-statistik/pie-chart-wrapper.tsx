@@ -10,7 +10,6 @@ interface PieChartData {
 
 interface PieChartWrapperProps {
   data: PieChartData[];
-  isMobile: boolean; // <-- PATCH: Terima prop isMobile
 }
 
 const COLORS = [
@@ -42,9 +41,7 @@ const CustomTooltip = ({ active, payload, total }: CustomTooltipProps) => {
     return null;
 };
 
-export default function PieChartWrapper({ data, isMobile }: PieChartWrapperProps) {
-  // PATCH: Tidak perlu memanggil useIsMobile() di sini lagi
-
+export default function PieChartWrapper({ data }: PieChartWrapperProps) {
   const topData = data.slice(0, 6);
   const otherValue = data.slice(6).reduce((sum, item) => sum + item.value, 0);
 
@@ -76,19 +73,16 @@ export default function PieChartWrapper({ data, isMobile }: PieChartWrapperProps
         </Pie>
         <Tooltip content={<CustomTooltip total={totalForPie} />} />
         
-        {/* PATCH: Logika legenda menggunakan prop isMobile */}
-        {!isMobile && (
-            <Legend 
-                iconSize={10} 
-                layout="horizontal"
-                verticalAlign="bottom"
-                align="center"
-                wrapperStyle={{
-                    fontSize: '12px',
-                    paddingTop: '20px'
-                }}
-            />
-        )}
+        <Legend 
+            iconSize={10} 
+            layout="horizontal"
+            verticalAlign="bottom"
+            align="center"
+            wrapperStyle={{
+                fontSize: '12px',
+                paddingTop: '20px'
+            }}
+        />
       </PieChart>
     </ResponsiveContainer>
   );

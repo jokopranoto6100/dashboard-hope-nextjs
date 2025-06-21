@@ -20,7 +20,6 @@ export interface AugmentedAtapDataPoint {
   pertumbuhan?: number | null;
 }
 
-// PATCH: Modifikasi fungsi formatNumber untuk menampilkan 2 digit desimal
 const formatNumber = (num: number) => {
     if (num === null || num === undefined) return '-';
     return new Intl.NumberFormat('id-ID', {
@@ -34,8 +33,6 @@ export const getColumns = (
   tahunPembanding: string,
   totalNilai: number,
   totalNilaiPembanding: number,
-  isMobile: boolean,
-  showAllColumns: boolean
 ): ColumnDef<AugmentedAtapDataPoint>[] => {
   const hasPerbandingan = tahunPembanding !== 'tidak';
 
@@ -99,7 +96,7 @@ export const getColumns = (
     }
   ];
   
-  if (hasPerbandingan && (!isMobile || showAllColumns)) {
+  if (hasPerbandingan) {
     return [...baseColumns, ...perbandinganColumns];
   }
   

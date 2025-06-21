@@ -22,24 +22,15 @@ import {
   TableFooter,
 } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button" // <-- PATCH: Import Button
-import { Eye, EyeOff } from "lucide-react" // <-- PATCH: Import ikon
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
-  // PATCH: Tambahkan props baru untuk fungsionalitas responsif
-  isMobile: boolean
-  showAllColumns: boolean
-  onToggleColumns: () => void
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
-  isMobile,
-  showAllColumns,
-  onToggleColumns,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
@@ -58,8 +49,6 @@ export function DataTable<TData, TValue>({
     },
   })
 
-  const hasComparison = columns.some(c => 'id' in c && c.id === 'pertumbuhan');
-
   return (
     <div>
       <div className="flex items-center justify-between py-4 gap-2">
@@ -71,22 +60,15 @@ export function DataTable<TData, TValue>({
             }
             className="max-w-sm"
           />
-          {/* PATCH: Tombol untuk toggle kolom di mobile */}
-          {isMobile && hasComparison && (
-            <Button variant="outline" size="sm" onClick={onToggleColumns}>
-              {showAllColumns ? <EyeOff className="mr-2 h-4 w-4" /> : <Eye className="mr-2 h-4 w-4" />}
-              {showAllColumns ? "Ringkas" : "Lengkap"}
-            </Button>
-          )}
       </div>
       <div className="relative w-full overflow-x-auto rounded-md border">
-        <Table>
+        <Table className="min-w-full table-auto">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead key={header.id}>
+                    <TableHead key={header.id} className="whitespace-nowrap text-xs">
                       {header.isPlaceholder
                         ? null
                         : flexRender(
@@ -107,8 +89,8 @@ export function DataTable<TData, TValue>({
                   data-state={row.getIsSelected() && "selected"}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    <TableCell key={cell.id} className="whitespace-nowrap text-sm">
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
                 </TableRow>
