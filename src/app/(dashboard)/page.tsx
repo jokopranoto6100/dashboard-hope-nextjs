@@ -12,7 +12,6 @@ import { usePalawijaMonitoringData } from '@/hooks/usePalawijaMonitoringData';
 import { useKsaMonitoringData } from '@/hooks/useKsaMonitoringData'; 
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { PackagePlus } from "lucide-react";
 
 const getMonthName = (monthNumberStr: string | undefined): string => {
   if (!monthNumberStr || monthNumberStr.toLowerCase() === "semua") return "Data Tahunan";

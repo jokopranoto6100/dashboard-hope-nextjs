@@ -152,7 +152,7 @@ export default function NewSidebar({ mobile = false, onNavigate }: NewSidebarPro
         style={{
           "--sidebar-width": "16rem",
           "--sidebar-width-icon": "3rem",
-        } as any}
+        } as React.CSSProperties}
       >
         <div className={cn("h-16 flex items-center", open ? "px-4 lg:px-6 justify-start" : "px-0 justify-center")}>
           <Skeleton className={cn("rounded-md", open ? "h-8 w-8" : "h-6 w-6")} />

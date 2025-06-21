@@ -2,7 +2,6 @@
 import {
     LayoutDashboard,
     Table2,
-    Scale,
     BetweenHorizontalEnd,
     BotMessageSquare,
     Binoculars,
@@ -50,6 +49,12 @@ export interface UserData {
         url: "/",
         icon: LayoutDashboard,
         isActive: (currentPath) => currentPath === "/",
+      },
+      {
+        title: "Bahan Produksi",
+        url: "/bahan-produksi",
+        icon: Table2,
+        isActive: (currentPath) => currentPath === "/bahan-produksi",
       },
       {
         title: "Monitoring",

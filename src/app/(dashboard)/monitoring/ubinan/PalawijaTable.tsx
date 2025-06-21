@@ -5,7 +5,6 @@ import * as React from 'react';
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronRight, CheckCircle2, Eye, EyeOff } from "lucide-react";
@@ -22,6 +21,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 import { PalawijaDataRow, PalawijaTotals } from './types';
+
 
 interface PalawijaTableProps {
   data: PalawijaDataRow[];
@@ -60,7 +60,7 @@ const PalawijaTableSkeleton = ({ columns }: { columns: ColumnDef<PalawijaDataRow
     </div>
 );
 
-export function PalawijaMonitoringTable({ data, totals, isLoading, error, lastUpdate, selectedYear, selectedSubround }: PalawijaTableProps) {
+export function PalawijaMonitoringTable({ data, totals, isLoading, error, lastUpdate, }: PalawijaTableProps) {
   const isMobile = useIsMobile();
   const [showAllColumns, setShowAllColumns] = React.useState(false);
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -155,23 +155,30 @@ export function PalawijaMonitoringTable({ data, totals, isLoading, error, lastUp
         {isLoading && <PalawijaTableSkeleton columns={skeletonColumns} />}
         {error && <p className="text-red-500 text-center">Error: {error}</p>}
         {!isLoading && !error && (
-           <ScrollArea className="w-full rounded-md border">
-            <Table>
+          <div className="w-full overflow-x-auto rounded-md border">
+            <div
+              className="inline-block align-middle"
+              style={{
+                minWidth: showAllColumns ? `${finalColumns.length * 120}px` : "100%",
+              }}
+            >
+              <Table className="w-full table-fixed">
                 <TableHeader>
-                    {table.getHeaderGroups().map(headerGroup => (
-                        <TableRow key={headerGroup.id}>
-                          {headerGroup.headers.map(header => (
-                              <TableHead
-                                key={header.id}
-                                style={{ width: header.getSize() }}
-                                className="p-2"
-                              >
-                                {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                              </TableHead>
-                          ))}
-                        </TableRow>
-                    ))}
+                  {table.getHeaderGroups().map(headerGroup => (
+                    <TableRow key={headerGroup.id}>
+                      {headerGroup.headers.map(header => (
+                        <TableHead
+                          key={header.id}
+                          style={{ width: header.getSize() }}
+                          className="p-2"
+                        >
+                          {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  ))}
                 </TableHeader>
+
                 <TableBody>
                   {table.getRowModel().rows?.length ? (
                     table.getRowModel().rows.map(row => (
@@ -195,6 +202,7 @@ export function PalawijaMonitoringTable({ data, totals, isLoading, error, lastUp
                     </TableRow>
                   )}
                 </TableBody>
+
                 {totals && (
                   <TableFooter>
                     <TableRow>
@@ -213,8 +221,11 @@ export function PalawijaMonitoringTable({ data, totals, isLoading, error, lastUp
                           } else {
                             displayValue = '-';
                           }
-                        } else if (totals[columnId as keyof PalawijaTotals] !== undefined && totals[columnId as keyof PalawijaTotals] !== null) {
-                          displayValue = totals[columnId as keyof PalawijaTotals] as string | number;
+                        } else if (
+                          totals[columnId as keyof typeof totals] !== undefined &&
+                          totals[columnId as keyof typeof totals] !== null
+                        ) {
+                          displayValue = totals[columnId as keyof typeof totals] as string | number;
                         } else {
                           displayValue = '-';
                         }
@@ -233,7 +244,7 @@ export function PalawijaMonitoringTable({ data, totals, isLoading, error, lastUp
                               const showCheckmark = numericValue >= 100;
                               return (
                                 <Badge variant={getPercentageBadgeVariant(numericValue)}>
-                                  {showCheckmark && !isMobile && <CheckCircle2 className="mr-2 h-3 w-3" />}
+                                  {showCheckmark && !isMobile && <CheckCircle2 className="mr-1 h-3 w-3" />}
                                   {numericValue.toFixed(2)}%
                                 </Badge>
                               );
@@ -244,8 +255,9 @@ export function PalawijaMonitoringTable({ data, totals, isLoading, error, lastUp
                     </TableRow>
                   </TableFooter>
                 )}
-            </Table>
-           </ScrollArea>
+              </Table>
+            </div>
+          </div>
         )}
       </CardContent>
     </Card>

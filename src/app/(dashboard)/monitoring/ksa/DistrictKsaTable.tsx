@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/app/(dashboard)/monitoring/ksa/DistrictKsaTable.tsx
 "use client";
 
@@ -7,7 +8,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { ArrowUpDown, CheckCircle2, Eye, EyeOff } from "lucide-react";
 import { getPercentageBadgeVariant } from "@/lib/utils";
 import { ProcessedKsaDistrictData } from '@/hooks/useKsaMonitoringData';
@@ -118,45 +118,98 @@ export function DistrictKsaTable({ title, description, data, totals, uniqueStatu
         </div>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="w-full rounded-md border">
-          <Table>
-            <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => ( <TableHead key={header.id} style={{ width: header.getSize(), minWidth: header.column.columnDef.minSize ? `${header.column.columnDef.minSize}px` : undefined }} className="p-2"> {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())} </TableHead> ))}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {table.getRowModel().rows?.length ? (
-                table.getRowModel().rows.map((row) => (
-                  <TableRow key={row.id} data-state={row.getIsSelected() && "selected"} onClick={() => onRowClick(row.original)} className="cursor-pointer hover:bg-muted/50">
-                    {row.getVisibleCells().map((cell) => ( <TableCell key={cell.id} style={{ width: cell.column.getSize(), minWidth: cell.column.columnDef.minSize ? `${cell.column.columnDef.minSize}px` : undefined }} className="p-2"> {flexRender(cell.column.columnDef.cell, cell.getContext())} </TableCell> ))}
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow><TableCell colSpan={finalColumns.length} className="h-24 text-center"> Tidak ada data untuk ditampilkan. </TableCell></TableRow> 
-              )}
-            </TableBody>
-            {totals && data && data.length > 0 && (
-              <tfoot className="bg-muted/50">
-                {table.getFooterGroups().map((footerGroup) => (
-                  <TableRow key={footerGroup.id}>
-                    {footerGroup.headers.map((header) => (
-                      <TableCell 
-                        key={header.id} 
-                        className={`p-2 font-bold ${header.column.id === 'kabupaten' ? 'text-left' : 'text-center'}`} 
-                        style={{ width: header.column.getSize(), minWidth: header.column.columnDef.minSize ? `${header.column.columnDef.minSize}px` : undefined }}
+        <div className="w-full overflow-x-auto rounded-md border">
+          <div
+            className="inline-block align-middle"
+            style={{
+              minWidth: showAllColumns ? `${finalColumns.length * 120}px` : "100%",
+            }}
+          >
+            <Table className="w-full table-fixed">
+              <TableHeader>
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => (
+                      <TableHead
+                        key={header.id}
+                        style={{
+                          width: header.getSize(),
+                          minWidth: header.column.columnDef.minSize
+                            ? `${header.column.columnDef.minSize}px`
+                            : undefined,
+                        }}
+                        className="p-2"
                       >
-                        {header.isPlaceholder ? null : flexRender(header.column.columnDef.footer, header.getContext())}
-                      </TableCell>
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(header.column.columnDef.header, header.getContext())}
+                      </TableHead>
                     ))}
                   </TableRow>
                 ))}
-              </tfoot>
-            )}
-          </Table>
-        </ScrollArea>
+              </TableHeader>
+              <TableBody>
+                {table.getRowModel().rows?.length ? (
+                  table.getRowModel().rows.map((row) => (
+                    <TableRow
+                      key={row.id}
+                      data-state={row.getIsSelected() && "selected"}
+                      onClick={() => onRowClick(row.original)}
+                      className="cursor-pointer hover:bg-muted/50"
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell
+                          key={cell.id}
+                          style={{
+                            width: cell.column.getSize(),
+                            minWidth: cell.column.columnDef.minSize
+                              ? `${cell.column.columnDef.minSize}px`
+                              : undefined,
+                          }}
+                          className="p-2"
+                        >
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={finalColumns.length} className="h-24 text-center">
+                      Tidak ada data untuk ditampilkan.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+              {totals && data && data.length > 0 && (
+                <tfoot className="bg-muted/50">
+                  {table.getFooterGroups().map((footerGroup) => (
+                    <TableRow key={footerGroup.id}>
+                      {footerGroup.headers.map((header) => (
+                        <TableCell
+                          key={header.id}
+                          className={`p-2 font-bold ${
+                            header.column.id === "kabupaten" ? "text-left" : "text-center"
+                          }`}
+                          style={{
+                            width: header.column.getSize(),
+                            minWidth: header.column.columnDef.minSize
+                              ? `${header.column.columnDef.minSize}px`
+                              : undefined,
+                          }}
+                        >
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(header.column.columnDef.footer, header.getContext())}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </tfoot>
+              )}
+            </Table>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );

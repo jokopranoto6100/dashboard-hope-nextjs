@@ -13,7 +13,7 @@ import {
 import { useYear } from '@/context/YearContext';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { useDarkMode } from '@/context/DarkModeContext';
-import { Moon, Sun, Menu } from 'lucide-react'; 
+import { Moon, Sun, Menu } from 'lucide-react';
 
 import {
   Sheet,
@@ -51,14 +51,19 @@ export default function MainLayout({ children, isCollapsed, setIsCollapsed }: Ma
       open={!isCollapsed}
       onOpenChange={handleSidebarOpenChange}
     >
-      <div className="flex-1 min-h-screen bg-background relative">
+      <div className="flex w-full min-h-screen overflow-x-hidden bg-background relative">
 
+        {/* Sidebar desktop */}
         <div className="hidden md:block">
           <NewSidebar />
         </div>
 
+        {/* Sidebar mobile */}
         <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-          <SheetContent side="left" className="p-0 w-[260px] max-w-[90vw] bg-background flex flex-col">
+          <SheetContent
+            side="left"
+            className="p-0 w-[260px] max-w-[90vw] bg-background flex flex-col"
+          >
             <SheetHeader className="h-16 px-4 border-b flex items-center">
               <SheetTitle>
                 <span className="font-bold">Menu</span>
@@ -74,12 +79,18 @@ export default function MainLayout({ children, isCollapsed, setIsCollapsed }: Ma
           </SheetContent>
         </Sheet>
 
+        {/* Konten utama */}
         <div
           className={cn(
-            "flex flex-col min-h-screen",
-            isCollapsed ? "ml-0 md:ml-12" : "ml-0 md:ml-64",
-            mounted && "transition-all duration-200 ease-linear"
+            "flex flex-col w-full min-h-screen overflow-x-hidden",
+            mounted && "transition-all duration-200 ease-linear",
+            "pl-[--sidebar-space]"
           )}
+          style={
+            {
+              "--sidebar-space": isCollapsed ? "3rem" : "16rem",
+            } as React.CSSProperties
+          }
         >
           <header className="flex items-center justify-between h-16 border-b bg-card px-4 lg:px-6 shadow-sm sticky top-0 z-30">
             <button
@@ -123,7 +134,8 @@ export default function MainLayout({ children, isCollapsed, setIsCollapsed }: Ma
             </div>
           </header>
 
-          <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 bg-muted/40 w-full">
+          {/* Pastikan main juga tidak overflow */}
+          <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 lg:p-8 bg-muted/40 w-full max-w-screen">
             {children}
           </main>
         </div>
