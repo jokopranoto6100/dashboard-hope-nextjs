@@ -6,8 +6,6 @@ import { DescriptiveStatsRow } from './types';
 import BarChartWrapper from '@/app/(dashboard)/produksi-statistik/bar-chart-wrapper';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from '@/components/ui/skeleton';
-import { useIsMobile } from '@/hooks/use-mobile';
-
 
 interface UbinanComparisonRechartProps {
   data: DescriptiveStatsRow[];
@@ -17,7 +15,6 @@ interface UbinanComparisonRechartProps {
 }
 
 export function UbinanComparisonChart({ data, currentYear, comparisonYear, isLoading }: UbinanComparisonRechartProps) {
-  const isMobile = useIsMobile(); // <-- gunakan hook-mu
 
   // DIPERBARUI: Transformasi data dibungkus dengan useMemo
   const chartData = useMemo(() => data.map(item => ({
@@ -54,8 +51,6 @@ export function UbinanComparisonChart({ data, currentYear, comparisonYear, isLoa
           dataKey1={String(currentYear)}
           dataKey2={comparisonYear ? String(comparisonYear) : undefined}
           onClick={() => { /* Belum ada aksi */ }}
-          isMobile={isMobile} // <-- passing ke BarChartWrapper
-
         />
       </CardContent>
     </Card>
