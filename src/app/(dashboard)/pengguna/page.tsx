@@ -8,7 +8,6 @@ import { Terminal } from "lucide-react";
 import { supabaseServer } from '@/lib/supabase-server';
 import { daftarSatker } from '@/lib/satker-data';
 
-// Tipe data tetap sama seperti Langkah 3
 export interface ManagedUser {
   id: string;
   username: string | null;
@@ -21,19 +20,20 @@ export interface ManagedUser {
   is_active: boolean;
 }
 
-// Fungsi ini sekarang hanya mengambil semua pengguna, tanpa paginasi/sort/filter
+// HAPUS: Interface PenggunaPageProps tidak lagi digunakan
+// interface PenggunaPageProps { ... }
+
 async function getUsersForAdmin(): Promise<ManagedUser[]> {
   const { data: profiles, error: profileError } = await supabaseServer
     .from('users')
     .select('*')
-    .order('created_at', { ascending: false }); // Urutkan default dari server
+    .order('created_at', { ascending: false });
 
   if (profileError) {
     console.error("getUsersForAdmin: Error fetching profiles:", profileError);
     throw new Error(`Gagal mengambil data profil: ${profileError.message}`);
   }
 
-  // Logika join dengan auth dan satker tetap sama
   const { data: { users: authUsers }, error: authError } = await supabaseServer.auth.admin.listUsers();
   if (authError) {
     throw new Error(`Gagal mengambil data otentikasi: ${authError.message}`);
@@ -57,7 +57,7 @@ async function getUsersForAdmin(): Promise<ManagedUser[]> {
   return managedUsers;
 }
 
-// Komponen halaman tidak lagi menerima searchParams
+// PERBAIKAN: Hapus tipe props, karena kita kembali ke client-side pagination
 export default async function ManajemenPenggunaPage() {
   const cookieStore = await cookies();
   const supabase = createServerComponentSupabaseClient(cookieStore);
@@ -82,7 +82,6 @@ export default async function ManajemenPenggunaPage() {
   let fetchError: string | null = null;
 
   try {
-    // Panggil fungsi yang sudah disederhanakan
     users = await getUsersForAdmin();
   } catch (error: unknown) {
     if (error instanceof Error) {
@@ -111,7 +110,6 @@ export default async function ManajemenPenggunaPage() {
         </Alert>
       )}
 
-      {/* Komponen klien tidak lagi menerima totalCount */}
       {!fetchError && <UserManagementClientPage initialUsers={users} />}
     </div>
   );

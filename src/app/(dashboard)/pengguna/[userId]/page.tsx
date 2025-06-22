@@ -11,11 +11,12 @@ import { daftarSatker } from '@/lib/satker-data';
 
 export const dynamic = 'force-dynamic';
 
-interface UserDetailPageProps {
-    params: {
-        userId: string;
-    }
-}
+// HAPUS: Interface UserDetailPageProps tidak lagi digunakan
+// interface UserDetailPageProps {
+//     params: {
+//         userId: string;
+//     }
+// }
 
 async function getUserDetails(userId: string) {
     const [userResult, auditLogsResult] = await Promise.all([
@@ -24,7 +25,6 @@ async function getUserDetails(userId: string) {
     ]);
     
     if (userResult.error) {
-        // Jangan throw error di sini agar halaman tetap bisa render pesan "tidak ditemukan"
         console.error("Error fetching user details:", userResult.error.message);
         return { user: null, auditLogs: [] };
     }
@@ -35,7 +35,8 @@ async function getUserDetails(userId: string) {
     };
 }
 
-export default async function UserDetailPage({ params }: UserDetailPageProps) {
+// PERBAIKAN: Definisikan tipe props secara inline di sini
+export default async function UserDetailPage({ params }: { params: { userId: string } }) {
     // Validasi admin
     const cookieStore = await cookies();
     const supabase = createServerComponentSupabaseClient(cookieStore);
@@ -45,7 +46,7 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
     const { data: adminProfile } = await supabase.from('users').select('role').eq('id', actor.id).single();
     if (adminProfile?.role !== 'super_admin') return redirect('/dashboard');
 
-    const userId = params?.userId;
+    const { userId } = params;
     const { user, auditLogs } = await getUserDetails(userId);
 
     if (!user) {
@@ -57,7 +58,6 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
         );
     }
     
-    // Menggunakan Intl.DateTimeFormat bawaan JavaScript
     const formattedDate = (date: string) => {
         if (!date) return "Tanggal tidak valid";
         try {
@@ -68,7 +68,7 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
                 hour: '2-digit',
                 minute: '2-digit',
                 hour12: false,
-                timeZone: 'Asia/Jakarta' // WIB
+                timeZone: 'Asia/Jakarta'
             };
             return new Intl.DateTimeFormat('id-ID', options).format(new Date(date));
         } catch {
@@ -94,7 +94,6 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
                     </p>
                 </div>
             </header>
-
             <Card>
                 <CardHeader>
                     <CardTitle>Informasi Pengguna</CardTitle>
