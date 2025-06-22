@@ -1,7 +1,9 @@
+// src/app/(dashboard)/pengguna/user-management-client-page.tsx
 'use client';
 
 import React, { useState, useMemo, useEffect, useTransition } from 'react';
-import Link from 'next/link';
+// HAPUS: Link tidak lagi diperlukan di sini
+// import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -228,23 +230,21 @@ export default function UserManagementClientPage({ initialUsers }: UserManagemen
     }
 
     const handleImpersonate = (user: ManagedUser) => {
-      if (user.id === 'user-being-impersonated') return;
-      
-      setUserBeingProcessed(user.id);
-      startTransition(async () => {
-          toast.info("Membuat link impersonasi...");
-          const result = await impersonateUserAction(user.id);
-
-          // PERBAIKAN: Menggunakan result.data.actionLink
-          if (result.success && result.data) {
-              toast.success("Link berhasil dibuat! Buka di tab baru untuk masuk.");
-              window.open(result.data.actionLink, '_blank');
-          } else {
-              toast.error(result.message);
-          }
-          setUserBeingProcessed(null);
-      });
-  }
+        if (user.id === 'user-being-impersonated') return;
+        
+        setUserBeingProcessed(user.id);
+        startTransition(async () => {
+            toast.info("Membuat link impersonasi...");
+            const result = await impersonateUserAction(user.id);
+            if (result.success && result.data) {
+                toast.success("Link berhasil dibuat! Buka di tab baru untuk masuk.");
+                window.open(result.data.actionLink, '_blank');
+            } else {
+                toast.error(result.message);
+            }
+            setUserBeingProcessed(null);
+        });
+    }
 
     const columns = useMemo<ColumnDef<ManagedUser>[]>(() => [
         {
@@ -268,13 +268,12 @@ export default function UserManagementClientPage({ initialUsers }: UserManagemen
             enableSorting: false,
             enableHiding: false,
         },
+        // PERUBAHAN DI SINI: Mengembalikan ke div biasa, bukan Link
         { 
             accessorKey: 'full_name', 
             header: ({ column }) => (<Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>Nama Lengkap <ArrowUpDown className="ml-2 h-4 w-4" /></Button>), 
             cell: ({ row }) => (
-                <Link href={`/pengguna/${row.original.id}`} className="font-medium text-primary hover:underline">
-                    {row.getValue('full_name') || 'N/A'}
-                </Link>
+                <div className="font-medium">{row.getValue('full_name') || 'N/A'}</div>
             ), 
         },
         { accessorKey: 'username', header: 'Username' },
