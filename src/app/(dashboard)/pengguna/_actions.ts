@@ -257,3 +257,69 @@ export async function impersonateUserAction(userId: string): Promise<ActionResul
   }
 }
 
+// --- ACTIONS BARU UNTUK HALAMAN PROFIL PENGGUNA ---
+
+interface UpdateProfileData {
+  fullName: string;
+  username: string;
+}
+
+export async function updateMyProfileAction(data: UpdateProfileData): Promise<ActionResult> {
+  try {
+      const cookieStore = await cookies();
+      const supabase = createServerComponentSupabaseClient(cookieStore);
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) throw new Error("Pengguna tidak terotentikasi.");
+
+      // Update di tabel public.users
+      const { error: profileError } = await supabase
+          .from('users')
+          .update({ full_name: data.fullName, username: data.username })
+          .eq('id', user.id);
+      if (profileError) throw new Error(`Gagal update profil: ${profileError.message}`);
+
+      // Update metadata di Auth untuk konsistensi
+      const { error: metadataError } = await supabase.auth.updateUser({
+          data: { full_name: data.fullName, username: data.username }
+      });
+      if (metadataError) throw new Error(`Gagal update metadata: ${metadataError.message}`);
+
+      revalidatePath('/profil');
+      revalidatePath('/', 'layout'); // Revalidate layout untuk update nama di sidebar
+      return { success: true, message: "Profil berhasil diperbarui." };
+  } catch (error: unknown) {
+      return { success: false, message: error instanceof Error ? error.message : 'Terjadi kesalahan.' };
+  }
+}
+
+
+interface ChangePasswordData {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export async function changeMyPasswordAction(data: ChangePasswordData): Promise<ActionResult> {
+  try {
+      const cookieStore = cookies();
+      const supabase = createServerComponentSupabaseClient(await cookieStore);
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) throw new Error("Pengguna tidak terotentikasi.");
+
+      // Langkah 1: Verifikasi password saat ini dengan mencoba login
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: user.email!,
+          password: data.currentPassword,
+      });
+      if (signInError) throw new Error("Password saat ini salah.");
+
+      // Langkah 2: Jika berhasil, update dengan password baru
+      const { error: updateError } = await supabase.auth.updateUser({
+          password: data.newPassword
+      });
+      if (updateError) throw new Error(`Gagal mengubah password: ${updateError.message}`);
+
+      return { success: true, message: "Password berhasil diubah." };
+  } catch (error: unknown) {
+      return { success: false, message: error instanceof Error ? error.message : 'Terjadi kesalahan.' };
+  }
+}
