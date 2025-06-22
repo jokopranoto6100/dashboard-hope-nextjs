@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/app/(dashboard)/pengguna/[userId]/page.tsx
 
 import { cookies } from 'next/headers';
@@ -11,44 +12,31 @@ import { daftarSatker } from '@/lib/satker-data';
 
 export const dynamic = 'force-dynamic';
 
-// HAPUS: Interface UserDetailPageProps tidak lagi digunakan
-// interface UserDetailPageProps {
-//     params: {
-//         userId: string;
-//     }
-// }
-
 async function getUserDetails(userId: string) {
     const [userResult, auditLogsResult] = await Promise.all([
         supabaseServer.from('users').select('*').eq('id', userId).single(),
-        supabaseServer.from('audit_logs').select('*').or(`actor_id.eq.${userId},target_user_id.eq.${userId}`).order('created_at', { ascending: false }).limit(20)
+        supabaseServer.from('audit_logs')
+            .select('*')
+            .or(`actor_id.eq.${userId},target_user_id.eq.${userId}`)
+            .order('created_at', { ascending: false })
+            .limit(20)
     ]);
-    
+
     if (userResult.error) {
         console.error("Error fetching user details:", userResult.error.message);
         return { user: null, auditLogs: [] };
     }
-    
+
     return {
         user: userResult.data,
         auditLogs: auditLogsResult.data || []
     };
 }
 
-// PERBAIKAN: Definisikan tipe props secara inline di sini
-export default async function UserDetailPage({ params }: { params: { userId: string } }) {
-    // Validasi admin
-    const cookieStore = await cookies();
-    const supabase = createServerComponentSupabaseClient(cookieStore);
-    const { data: { user: actor } } = await supabase.auth.getUser();
-    if (!actor) return redirect('/auth/login');
-
-    const { data: adminProfile } = await supabase.from('users').select('role').eq('id', actor.id).single();
-    if (adminProfile?.role !== 'super_admin') return redirect('/dashboard');
-
-    const { userId } = params;
-    const { user, auditLogs } = await getUserDetails(userId);
-
+function UserDetailPage({ user, auditLogs }: {
+    user: any;
+    auditLogs: any[];
+}) {
     if (!user) {
         return (
             <div className="container mx-auto py-8">
@@ -57,7 +45,7 @@ export default async function UserDetailPage({ params }: { params: { userId: str
             </div>
         );
     }
-    
+
     const formattedDate = (date: string) => {
         if (!date) return "Tanggal tidak valid";
         try {
@@ -81,10 +69,10 @@ export default async function UserDetailPage({ params }: { params: { userId: str
     return (
         <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8 space-y-8">
             <header className="flex items-center gap-4">
-                 {user.is_active ? 
-                    <ShieldCheck className="h-10 w-10 text-green-500" /> : 
+                {user.is_active ?
+                    <ShieldCheck className="h-10 w-10 text-green-500" /> :
                     <ShieldX className="h-10 w-10 text-red-500" />
-                 }
+                }
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
                         {user.full_name || 'Tanpa Nama'}
@@ -94,6 +82,7 @@ export default async function UserDetailPage({ params }: { params: { userId: str
                     </p>
                 </div>
             </header>
+
             <Card>
                 <CardHeader>
                     <CardTitle>Informasi Pengguna</CardTitle>
@@ -123,7 +112,11 @@ export default async function UserDetailPage({ params }: { params: { userId: str
                                     <p className="text-muted-foreground">
                                         Dilakukan oleh <span className="font-semibold">{log.actor_email}</span> pada {formattedDate(log.created_at)}
                                     </p>
-                                    {log.details && <pre className="mt-1 text-xs bg-gray-100 dark:bg-gray-800 p-2 rounded-md overflow-x-auto"><code>{JSON.stringify(log.details, null, 2)}</code></pre>}
+                                    {log.details && (
+                                        <pre className="mt-1 text-xs bg-gray-100 dark:bg-gray-800 p-2 rounded-md overflow-x-auto">
+                                            <code>{JSON.stringify(log.details, null, 2)}</code>
+                                        </pre>
+                                    )}
                                 </div>
                             </li>
                         )) : (
@@ -134,4 +127,24 @@ export default async function UserDetailPage({ params }: { params: { userId: str
             </Card>
         </div>
     );
+}
+
+export default async function Page({ params }: { params: { userId: string } }) {
+    const cookieStore = cookies();
+    const supabase = createServerComponentSupabaseClient(await cookieStore);
+    const { data: { user: actor } } = await supabase.auth.getUser();
+
+    if (!actor) return redirect('/auth/login');
+
+    const { data: adminProfile } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', actor.id)
+        .single();
+
+    if (adminProfile?.role !== 'super_admin') return redirect('/dashboard');
+
+    const { user, auditLogs } = await getUserDetails(params.userId);
+
+    return <UserDetailPage user={user} auditLogs={auditLogs} />;
 }
