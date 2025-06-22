@@ -5,44 +5,40 @@ import { createServerComponentSupabaseClient } from '@/lib/supabase';
 import UserManagementClientPage from './user-management-client-page';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from "lucide-react";
-import { supabaseServer } from '@/lib/supabase-server'; // <-- PASTIKAN INI DI-IMPOR
-import { daftarSatker } from '@/lib/satker-data'; // Impor data satker
+import { supabaseServer } from '@/lib/supabase-server';
+import { daftarSatker } from '@/lib/satker-data';
 
-// PATCH: Tipe data diperbarui untuk mencakup semua data yang kita butuhkan
+// Tipe data tetap sama seperti Langkah 3
 export interface ManagedUser {
   id: string;
   username: string | null;
-  full_name: string | null; // <-- BARU
+  full_name: string | null;
   email: string | null;
   role: string | null;
-  satker_id: string | null; // <-- BARU
-  satker_name: string | null; // <-- BARU (Untuk ditampilkan)
+  satker_id: string | null;
+  satker_name: string | null;
   created_at: string;
+  is_active: boolean;
 }
 
-// PATCH: Fungsi ini sekarang menggunakan client yang benar
+// Fungsi ini sekarang hanya mengambil semua pengguna, tanpa paginasi/sort/filter
 async function getUsersForAdmin(): Promise<ManagedUser[]> {
-  // Ambil semua profil dari public.users
-  // Operasi SELECT aman dilakukan dengan client admin
   const { data: profiles, error: profileError } = await supabaseServer
     .from('users')
-    .select('*');
+    .select('*')
+    .order('created_at', { ascending: false }); // Urutkan default dari server
 
   if (profileError) {
     console.error("getUsersForAdmin: Error fetching profiles:", profileError);
     throw new Error(`Gagal mengambil data profil: ${profileError.message}`);
   }
 
-  // Ambil semua user dari auth.users untuk mendapatkan email
-  // INI ADALAH BAGIAN YANG MEMERLUKAN CLIENT ADMIN
-  const { data: { users: authUsers }, error: authError } = await supabaseServer.auth.admin.listUsers(); // <-- GUNAKAN supabaseServer
-  
+  // Logika join dengan auth dan satker tetap sama
+  const { data: { users: authUsers }, error: authError } = await supabaseServer.auth.admin.listUsers();
   if (authError) {
-    console.error("getUsersForAdmin: Error fetching auth users:", authError.message);
     throw new Error(`Gagal mengambil data otentikasi: ${authError.message}`);
   }
 
-  // Logika penggabungan data tetap sama
   const authUserMap = new Map(authUsers.map(u => [u.id, u.email]));
   const satkerMap = new Map(daftarSatker.map(s => [s.value, s.label]));
 
@@ -55,29 +51,22 @@ async function getUsersForAdmin(): Promise<ManagedUser[]> {
     satker_id: profile.satker_id,
     satker_name: satkerMap.get(profile.satker_id) || 'Satker tidak diketahui',
     created_at: profile.created_at,
+    is_active: profile.is_active,
   }));
 
   return managedUsers;
 }
 
+// Komponen halaman tidak lagi menerima searchParams
 export default async function ManajemenPenggunaPage() {
   const cookieStore = await cookies();
   const supabase = createServerComponentSupabaseClient(cookieStore);
 
   const { data: { user: currentUser } } = await supabase.auth.getUser();
-
-  if (!currentUser) {
-    redirect('/auth/login');
-  }
+  if (!currentUser) redirect('/auth/login');
   
-  // PATCH: Pengecekan role sekarang langsung dari tabel users (via AuthContext di client-side)
-  // atau bisa juga dengan query tambahan di sini jika diperlukan, namun asumsi role di context sudah benar
-  // Untuk keamanan, kita tetap cek di sini sebelum fetch data berat
   const { data: adminProfile } = await supabase.from('users').select('role').eq('id', currentUser.id).single();
-
   if (adminProfile?.role !== 'super_admin') {
-    console.warn(`ManajemenPenggunaPage: User ${currentUser.email} with role ${adminProfile?.role} attempted to access.`);
-    // Tampilkan halaman "Akses Ditolak" atau redirect
     return (
       <div className="container mx-auto py-8">
         <Alert variant="destructive">
@@ -93,6 +82,7 @@ export default async function ManajemenPenggunaPage() {
   let fetchError: string | null = null;
 
   try {
+    // Panggil fungsi yang sudah disederhanakan
     users = await getUsersForAdmin();
   } catch (error: unknown) {
     if (error instanceof Error) {
@@ -121,6 +111,7 @@ export default async function ManajemenPenggunaPage() {
         </Alert>
       )}
 
+      {/* Komponen klien tidak lagi menerima totalCount */}
       {!fetchError && <UserManagementClientPage initialUsers={users} />}
     </div>
   );

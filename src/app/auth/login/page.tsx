@@ -34,33 +34,42 @@ export default function LoginPage() {
         description: authError.message,
       });
       setLoading(false);
-      return; // Hentikan eksekusi jika ada error otentikasi
+      return;
     }
 
-    // --- Bagian BARU untuk mengambil peran dari public.users dan mengupdate user_metadata ---
     if (authData.user) {
-      // Ambil user dari tabel public.users
+      // --- PERBAIKAN 1: Ambil juga kolom 'is_active' ---
       const { data: userData, error: userError } = await supabase
-        .from('users') // Nama tabel user Anda
-        .select('id, username, role') // Pilih kolom yang dibutuhkan
-        .eq('email', authData.user.email) // Cocokkan dengan email user yang login
-        .single(); // Harusnya hanya ada satu user dengan email tersebut
+        .from('users')
+        .select('id, username, role, is_active') // Tambahkan is_active di sini
+        .eq('email', authData.user.email)
+        .single();
 
       if (userError) {
         toast.error('Error Memuat Data User', {
-          description: 'Gagal mengambil informasi peran user. Pastikan RLS diizinkan.',
+          description: 'Gagal mengambil informasi peran user.',
         });
-        // Mungkin tetap lanjut login tapi dengan role default atau error
+        await supabase.auth.signOut(); // Pastikan user logout jika profil gagal diambil
         setLoading(false);
         return;
       }
 
       if (userData) {
-        // Update user_metadata di Supabase Auth dengan peran dari tabel public.users
+        // --- PERBAIKAN 2: Tambahkan blok pengecekan status aktif ---
+        if (userData.is_active === false) {
+          toast.error('Login Gagal', {
+            description: 'Akun Anda telah dinonaktifkan oleh admin.',
+          });
+          await supabase.auth.signOut(); // Hancurkan sesi yang baru saja dibuat
+          setLoading(false);
+          return; // Hentikan proses login
+        }
+        
+        // Jika aktif, lanjutkan proses update metadata
         const { error: updateError } = await supabase.auth.updateUser({
           data: {
-            username: userData.username, // Update username jika ada di tabel Anda
-            role: userData.role, // Simpan peran yang sebenarnya
+            username: userData.username,
+            role: userData.role,
           },
         });
 
@@ -73,20 +82,17 @@ export default function LoginPage() {
         }
       }
     }
-    // --- Akhir Bagian BARU ---
 
     toast.success('Login Berhasil!', {
       description: 'Anda akan diarahkan ke dashboard.',
     });
-    router.push('/');
+    router.push('/'); // Anda mungkin ingin mengarahkan ke '/dashboard'
     setLoading(false);
   };
 
   return (
-    // ... (Kode UI yang sama persis seperti sebelumnya)
     <div className="min-h-screen flex items-center justify-center bg-white p-4">
       <div className="relative w-full max-w-4xl bg-white rounded-lg shadow-xl overflow-hidden flex flex-col lg:flex-row">
-        {/* Bagian Kiri (Form Login) */}
         <div className="w-full lg:w-1/2 p-8 md:p-12 lg:p-16 flex flex-col justify-center">
           <div className="mb-8">
             <h1 className="text-4xl font-extrabold text-gray-900 mb-2">Holla,</h1>
@@ -121,16 +127,17 @@ export default function LoginPage() {
               <div className="flex items-center">
                 <Checkbox
                   id="remember-me"
+                  // onCheckedChange expects a boolean, ensure you handle the type correctly
+                  onCheckedChange={(checked) => setRememberMe(Boolean(checked))}
                   checked={rememberMe}
-                  onCheckedChange={(checked: boolean) => setRememberMe(checked)}
                   className="mr-2"
                 />
                 <Label htmlFor="remember-me" className="text-gray-600 cursor-pointer">
                   Remember me
                 </Label>
               </div>
-              <Link href="/auth/forgot-password" className="text-blue-600 hover:underline">
-                Forgot Password?
+              <Link href="/auth/forgot-password" passHref>
+                <span className="text-blue-600 hover:underline cursor-pointer">Forgot Password?</span>
               </Link>
             </div>
             <Button type="submit" className="w-full h-12 text-lg bg-indigo-600 hover:bg-indigo-700" disabled={loading}>
@@ -139,13 +146,11 @@ export default function LoginPage() {
           </form>
           <div className="mt-8 text-center text-gray-600">
             Don&apos;t have an account?{' '}
-            <Link href="/auth/register" className="text-blue-600 hover:underline font-semibold">
-              Sign Up
+            <Link href="/auth/register" passHref>
+              <span className="text-blue-600 hover:underline font-semibold cursor-pointer">Sign Up</span>
             </Link>
           </div>
         </div>
-
-        {/* Bagian Kanan (Ilustrasi) */}
         <div className="hidden lg:flex w-1/2 bg-gradient-to-br from-purple-500 to-indigo-600 items-center justify-center p-8">
           <div className="relative w-full h-full flex items-center justify-center">
             <div className="absolute inset-0 bg-contain bg-center bg-no-repeat opacity-80"
