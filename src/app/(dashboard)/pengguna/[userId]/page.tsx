@@ -148,3 +148,8 @@ export default async function Page({ params }: { params: { userId: string } }) {
 
     return <UserDetailPage user={user} auditLogs={auditLogs} />;
 }
+
+export async function generateStaticParams() {
+    return [];
+  }
+  
