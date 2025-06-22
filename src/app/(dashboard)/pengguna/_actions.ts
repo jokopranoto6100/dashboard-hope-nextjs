@@ -256,3 +256,40 @@ export async function impersonateUserAction(userId: string): Promise<ActionResul
       return { success: false, message: error instanceof Error ? error.message : 'Gagal membuat link impersonasi.' };
   }
 }
+
+// --- ACTIONS BARU UNTUK HALAMAN DETAIL ---
+
+export async function getUserDetailsAction(userId: string): Promise<ActionResult<ManagedUser | null>> {
+  try {
+      await verifySuperAdmin();
+      const { data: user, error } = await supabaseServer.from('users').select('*').eq('id', userId).single();
+
+      if (error) throw new Error(error.message);
+      if (!user) return { success: true, message: 'User not found.', data: null };
+
+      const satkerName = daftarSatker.find(s => s.value === user.satker_id)?.label || 'Satker tidak diketahui';
+      const managedUser: ManagedUser = { ...user, satker_name: satkerName, email: user.email || '' };
+
+      return { success: true, message: 'User details fetched.', data: managedUser };
+  } catch (error: unknown) {
+      return { success: false, message: error instanceof Error ? error.message : 'Gagal mengambil detail pengguna.' };
+  }
+}
+
+export async function getAuditLogsForUserAction(userId: string): Promise<ActionResult<any[]>> {
+  try {
+      await verifySuperAdmin();
+      const { data: auditLogs, error } = await supabaseServer
+          .from('audit_logs')
+          .select('*')
+          .or(`actor_id.eq.${userId},target_user_id.eq.${userId}`)
+          .order('created_at', { ascending: false })
+          .limit(20);
+      
+      if (error) throw new Error(error.message);
+
+      return { success: true, message: 'Audit logs fetched.', data: auditLogs || [] };
+  } catch (error: unknown) {
+      return { success: false, message: error instanceof Error ? error.message : 'Gagal mengambil log audit.' };
+  }
+}
