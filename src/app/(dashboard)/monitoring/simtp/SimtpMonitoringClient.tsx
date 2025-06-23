@@ -27,7 +27,7 @@ const AnnualStatusIcon = ({ status, Icon, label }: { status?: any, Icon: React.E
                 {status ? (
                     <>
                         <p className='text-xs'>{status.file_name}</p>
-                        <p className='text-xs text-muted-foreground'>
+                        <p className='text-xs'>
                             {new Date(status.uploaded_at).toLocaleString('id-ID')}
                         </p>
                     </>
@@ -111,7 +111,7 @@ export function SimtpMonitoringClient() {
                     <TooltipContent>
                        <p className='font-semibold'>Periode: {monthName} {selectedYear}</p>
                        <p className='text-xs'>{status.file_name}</p>
-                       <p className='text-xs text-muted-foreground'>
+                       <p className='text-xs'>
                         Diupload pada: {new Date(status.uploaded_at).toLocaleString('id-ID')}
                       </p>
                     </TooltipContent>

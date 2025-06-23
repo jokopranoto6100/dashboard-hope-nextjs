@@ -1,12 +1,11 @@
-// /app/(dashboard)/simtp-upload/_actions.ts
 'use server';
 
-import { createSupabaseServerClientWithUserContext } from '@/lib/supabase-server';
+import { createSupabaseServerClientWithUserContext } from '@/lib/supabase-server'; 
 import { cookies } from 'next/headers';
 import { google } from 'googleapis';
 import { Readable } from 'stream';
 
-// --- Helper Function untuk otentikasi dan mengambil user ---
+// Helper Function untuk otentikasi (sebaiknya diekstrak jika belum)
 async function getSupabaseClientWithAuthenticatedUser() {
   const cookieStore = await cookies();
   const supabase = await createSupabaseServerClientWithUserContext(cookieStore);
@@ -18,7 +17,6 @@ async function getSupabaseClientWithAuthenticatedUser() {
   return { supabase, user };
 }
 
-// --- Helper Function untuk Google Drive API Client (Tidak berubah) ---
 function getDriveClient() {
   const decodedServiceAccount = Buffer.from(
     process.env.GOOGLE_SERVICE_ACCOUNT_BASE64!,
@@ -32,13 +30,12 @@ function getDriveClient() {
   return google.drive({ version: 'v3', auth });
 }
 
-// --- Fungsi Utama Server Action (Refactored) ---
 export async function uploadSimtpAction(formData: FormData) {
   try {
     const { supabase, user } = await getSupabaseClientWithAuthenticatedUser();
 
     let kodeKabupaten = formData.get('satker_id') as string | null;
-    const year = formData.get('year') as string | null;
+    const yearString = formData.get('year') as string | null;
     const userRole = user.user_metadata?.role;
 
     if (userRole !== 'super_admin') {
@@ -46,13 +43,14 @@ export async function uploadSimtpAction(formData: FormData) {
       kodeKabupaten = profile?.satker_id;
     }
 
-    if (!kodeKabupaten || !year) {
+    if (!kodeKabupaten || !yearString) {
       return { success: false, error: "Data tidak lengkap: Kode Kabupaten atau Tahun tidak valid." };
     }
     
     const uploadDetails: string[] = [];
     const drive = getDriveClient();
     const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID!;
+    const currentUploadYear = parseInt(yearString, 10);
 
     const filesToUpload = [
       { key: 'stp_bulanan', type: 'STP_BULANAN', prefix: 'STP' },
@@ -65,7 +63,14 @@ export async function uploadSimtpAction(formData: FormData) {
       const file = formData.get(fileInfo.key) as File | null;
       if (!file || file.size === 0) continue;
 
-      const fileName = `${fileInfo.prefix}_${year}_${kodeKabupaten}.mdb`;
+      // Logika baru untuk menentukan tahun data
+      let yearForData = currentUploadYear;
+      const isAnnualFile = ['LAHAN_TAHUNAN', 'ALSIN_TAHUNAN', 'BENIH_TAHUNAN'].includes(fileInfo.type);
+      if (isAnnualFile) {
+        yearForData = currentUploadYear - 1;
+      }
+
+      const fileName = `${fileInfo.prefix}_${yearForData}_${kodeKabupaten}.mdb`;
       const existingFiles = await drive.files.list({
         q: `name='${fileName}' and '${folderId}' in parents and trashed=false`,
         fields: 'files(id)',
@@ -93,12 +98,13 @@ export async function uploadSimtpAction(formData: FormData) {
       }
 
       const currentMonth = new Date().getMonth() + 1;
+      // Menyimpan ke database dengan tahun data yang benar
       const { error: logError } = await supabase.from('simtp_uploads').insert({
         uploader_id: user.id,
         file_type: fileInfo.type,
         file_name: fileName,
         gdrive_file_id: gdriveFileId,
-        year: parseInt(year, 10),
+        year: yearForData,
         month: currentMonth,
         kabupaten_kode: kodeKabupaten,
       });
@@ -107,7 +113,7 @@ export async function uploadSimtpAction(formData: FormData) {
         throw new Error(`Upload ${fileName} berhasil, tetapi gagal mencatat log: ${logError.message}`);
       }
 
-      uploadDetails.push(`${fileInfo.prefix} ${isUpdating ? 'diperbarui' : 'diupload'}.`);
+      uploadDetails.push(`${fileInfo.prefix} (${yearForData}) ${isUpdating ? 'diperbarui' : 'diupload'}.`);
     }
 
     if (uploadDetails.length === 0) {

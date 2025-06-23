@@ -1,4 +1,3 @@
-// /app/(dashboard)/simtp-upload/SimtpUploadClient.tsx
 "use client";
 
 import { useForm, SubmitHandler } from "react-hook-form";
@@ -129,7 +128,7 @@ export function SimtpUploadClient({ allSatkers, isAdmin }: SimtpUploadClientProp
                 <Card>
                   <CardHeader>
                     <CardTitle>Upload Data Bulanan</CardTitle>
-                    <CardDescription>File ini wajib di-upload setiap bulan. Pastikan nama file sesuai format yang disarankan.</CardDescription>
+                    <CardDescription>File ini wajib di-upload setiap bulan untuk periode tahun berjalan ({selectedYear}).</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <CustomFileInput 
@@ -146,26 +145,28 @@ export function SimtpUploadClient({ allSatkers, isAdmin }: SimtpUploadClientProp
                 <Card>
                   <CardHeader>
                     <CardTitle>Upload Data Tahunan</CardTitle>
-                    <CardDescription>File ini di-upload sesuai kebutuhan pada periode tahun berjalan.</CardDescription>
+                    <CardDescription>
+                      File tahunan yang diupload pada tahun ini ({selectedYear}) adalah untuk data periode tahun lalu ({selectedYear - 1}).
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <CustomFileInput 
                       name="lahan_tahunan"
                       control={control}
                       label="1. File Lahan"
-                      expectedFileName={`LahanTP_${selectedYear}_${selectedSatker || 'KODE'}.mdb`}
+                      expectedFileName={`LahanTP_${selectedYear - 1}_${selectedSatker || 'KODE'}.mdb`}
                     />
                     <CustomFileInput 
                       name="alsin_tahunan"
                       control={control}
                       label="2. File Alsin"
-                      expectedFileName={`AlsinTP_${selectedYear}_${selectedSatker || 'KODE'}.mdb`}
+                      expectedFileName={`AlsinTP_${selectedYear - 1}_${selectedSatker || 'KODE'}.mdb`}
                     />
                     <CustomFileInput 
                       name="benih_tahunan"
                       control={control}
                       label="3. File Benih"
-                      expectedFileName={`BenihTP_${selectedYear}_${selectedSatker || 'KODE'}.mdb`}
+                      expectedFileName={`BenihTP_${selectedYear - 1}_${selectedSatker || 'KODE'}.mdb`}
                     />
                   </CardContent>
                 </Card>
