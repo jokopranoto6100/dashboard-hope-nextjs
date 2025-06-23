@@ -68,8 +68,7 @@ export function MateriPedomanDialog({ initialHref }: MateriPedomanDialogProps) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
-          <Settings className="mr-2 h-4 w-4" />
-          Kelola Konten
+          <Settings className="h-4 w-4" />
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
