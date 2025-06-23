@@ -1,11 +1,22 @@
 // /app/(dashboard)/simtp-upload/_actions.ts
 'use server';
 
-// DIUBAH: Menggunakan helper kustom dari proyek Anda, sesuai referensi
-import { createSupabaseServerClientWithUserContext } from '@/lib/supabase-server'; 
+import { createSupabaseServerClientWithUserContext } from '@/lib/supabase-server';
 import { cookies } from 'next/headers';
 import { google } from 'googleapis';
 import { Readable } from 'stream';
+
+// --- Helper Function untuk otentikasi dan mengambil user ---
+async function getSupabaseClientWithAuthenticatedUser() {
+  const cookieStore = await cookies();
+  const supabase = await createSupabaseServerClientWithUserContext(cookieStore);
+  const { data: { user }, error } = await supabase.auth.getUser();
+
+  if (error || !user) {
+    throw new Error("Akses ditolak: Anda harus login untuk melakukan aksi ini.");
+  }
+  return { supabase, user };
+}
 
 // --- Helper Function untuk Google Drive API Client (Tidak berubah) ---
 function getDriveClient() {
@@ -21,39 +32,28 @@ function getDriveClient() {
   return google.drive({ version: 'v3', auth });
 }
 
-// --- Fungsi Utama Server Action ---
+// --- Fungsi Utama Server Action (Refactored) ---
 export async function uploadSimtpAction(formData: FormData) {
-  // 1. Inisialisasi Supabase client menggunakan pola kustom Anda yang sudah benar
-  const cookieStore = await cookies();
-  const supabase = await createSupabaseServerClientWithUserContext(cookieStore);
-
-  // 2. Dapatkan data pengguna inti dari Supabase Auth
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return { success: false, error: "Akses ditolak: Anda harus login." };
-  }
-
-  // Ambil data lain dari form
-  let kodeKabupaten = formData.get('satker_id') as string | null;
-  const year = formData.get('year') as string | null;
-
-  // 3. Logika untuk menentukan kodeKabupaten berdasarkan peran
-  const userRole = user.user_metadata?.role;
-  if (userRole !== 'super_admin') {
-    // Jika bukan super admin, paksa gunakan satker_id mereka sendiri demi keamanan
-    const { data: profile } = await supabase.from('users').select('satker_id').eq('id', user.id).single();
-    kodeKabupaten = profile?.satker_id;
-  }
-
-  if (!kodeKabupaten || !year) {
-    return { success: false, error: "Data tidak lengkap: Kode Kabupaten atau Tahun tidak valid." };
-  }
-  
-  const successMessages: string[] = [];
-  const drive = getDriveClient();
-  const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID!;
-
   try {
+    const { supabase, user } = await getSupabaseClientWithAuthenticatedUser();
+
+    let kodeKabupaten = formData.get('satker_id') as string | null;
+    const year = formData.get('year') as string | null;
+    const userRole = user.user_metadata?.role;
+
+    if (userRole !== 'super_admin') {
+      const { data: profile } = await supabase.from('users').select('satker_id').eq('id', user.id).single();
+      kodeKabupaten = profile?.satker_id;
+    }
+
+    if (!kodeKabupaten || !year) {
+      return { success: false, error: "Data tidak lengkap: Kode Kabupaten atau Tahun tidak valid." };
+    }
+    
+    const uploadDetails: string[] = [];
+    const drive = getDriveClient();
+    const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID!;
+
     const filesToUpload = [
       { key: 'stp_bulanan', type: 'STP_BULANAN', prefix: 'STP' },
       { key: 'lahan_tahunan', type: 'LAHAN_TAHUNAN', prefix: 'LahanTP' },
@@ -79,8 +79,9 @@ export async function uploadSimtpAction(formData: FormData) {
       };
       
       let uploadedFile;
-      if (existingFiles.data.files && existingFiles.data.files.length > 0) {
-        const fileId = existingFiles.data.files[0].id!;
+      const isUpdating = existingFiles.data.files && existingFiles.data.files.length > 0;
+      if (isUpdating) {
+        const fileId = existingFiles.data.files![0].id!;
         uploadedFile = await drive.files.update({ fileId, media, fields: 'id' });
       } else {
         uploadedFile = await drive.files.create({ requestBody: fileMetadata, media, fields: 'id' });
@@ -92,7 +93,6 @@ export async function uploadSimtpAction(formData: FormData) {
       }
 
       const currentMonth = new Date().getMonth() + 1;
-      // Gunakan client supabase yang sama untuk insert
       const { error: logError } = await supabase.from('simtp_uploads').insert({
         uploader_id: user.id,
         file_type: fileInfo.type,
@@ -107,47 +107,35 @@ export async function uploadSimtpAction(formData: FormData) {
         throw new Error(`Upload ${fileName} berhasil, tetapi gagal mencatat log: ${logError.message}`);
       }
 
-      successMessages.push(`${fileInfo.prefix} berhasil diupload.`);
+      uploadDetails.push(`${fileInfo.prefix} ${isUpdating ? 'diperbarui' : 'diupload'}.`);
     }
 
-    if (successMessages.length === 0) {
+    if (uploadDetails.length === 0) {
         return { success: false, error: "Tidak ada file yang dipilih untuk diupload." };
     }
 
-    return { success: true, message: successMessages.join(' | ') };
+    return { success: true, message: "Proses upload selesai.", details: uploadDetails };
 
   } catch (error: unknown) {
-    if (error instanceof Error) {
-      console.error("SIMTP Upload Action Error:", error);
-      return { success: false, error: error.message || "Terjadi kesalahan yang tidak diketahui di server." };
-    } else {
-      console.error("SIMTP Upload Action Error:", error);
-      return { success: false, error: "Terjadi kesalahan yang tidak diketahui di server." };
-    }
+      const errorMessage = error instanceof Error ? error.message : "Terjadi kesalahan yang tidak diketahui di server.";
+      console.error("SIMTP Upload Action Error:", errorMessage);
+      return { success: false, error: errorMessage };
   }
 }
 
-// --- ACTION BARU UNTUK MENGAMBIL RIWAYAT ---
+// --- ACTION UNTUK MENGAMBIL RIWAYAT (Refactored) ---
 export async function getUploadHistoryAction({ year, satkerId }: { year: number; satkerId: string; }) {
-  // Gunakan pola yang sama untuk inisialisasi client
-  const cookieStore = await cookies();
-  const supabase = await createSupabaseServerClientWithUserContext(cookieStore);
-
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return { success: false, error: "Akses ditolak." };
-  }
-
-  const userRole = user.user_metadata?.role;
-  // Ambil satker_id dari user yang login untuk validasi
-  const { data: profile } = await supabase.from('users').select('satker_id').eq('id', user.id).single();
-  const userSatkerId = profile?.satker_id;
-
-  if (userRole !== 'super_admin' && satkerId !== userSatkerId) {
-    return { success: false, error: "Anda tidak memiliki izin untuk melihat riwayat satker ini." };
-  }
-
   try {
+    const { supabase, user } = await getSupabaseClientWithAuthenticatedUser();
+
+    const userRole = user.user_metadata?.role;
+    const { data: profile } = await supabase.from('users').select('satker_id').eq('id', user.id).single();
+    const userSatkerId = profile?.satker_id;
+
+    if (userRole !== 'super_admin' && satkerId !== userSatkerId) {
+      return { success: false, error: "Anda tidak memiliki izin untuk melihat riwayat satker ini." };
+    }
+
     const { data, error } = await supabase
       .from('simtp_uploads')
       .select('id, uploaded_at, file_type, file_name')
@@ -159,9 +147,7 @@ export async function getUploadHistoryAction({ year, satkerId }: { year: number;
     
     return { success: true, data };
   } catch (error: unknown) {
-    if (error instanceof Error) {
-      return { success: false, error: error.message };
-    }
-    return { success: false, error: "Terjadi kesalahan yang tidak diketahui." };
+      const errorMessage = error instanceof Error ? error.message : "Terjadi kesalahan yang tidak diketahui.";
+      return { success: false, error: errorMessage };
   }
 }

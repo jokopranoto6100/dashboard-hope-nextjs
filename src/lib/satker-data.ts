@@ -17,3 +17,20 @@ export const daftarSatker = [
     { value: '6171', label: 'BPS Kota Pontianak' },
     { value: '6172', label: 'BPS Kota Singkawang' },
   ];
+
+  export const kabMap = [
+    { value: '6101', label: 'Sambas' },
+    { value: '6102', label: 'Bengkayang' },
+    { value: '6103', label: 'Landak' },
+    { value: '6104', label: 'Mempawah' },
+    { value: '6105', label: 'Sanggau' },
+    { value: '6106', label: 'Ketapang' },
+    { value: '6107', label: 'Sintang' },
+    { value: '6108', label: 'Kapuas Hulu' },
+    { value: '6109', label: 'Sekadau' },
+    { value: '6110', label: 'Melawi' },
+    { value: '6111', label: 'Kayong Utara' },
+    { value: '6112', label: 'Kubu Raya' },
+    { value: '6171', label: 'Pontianak' },
+    { value: '6172', label: 'Singkawang' },
+  ];  

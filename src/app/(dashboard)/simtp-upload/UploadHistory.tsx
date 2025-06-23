@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 
 interface UploadHistoryProps {
   year: number;
@@ -27,45 +28,42 @@ export function UploadHistory({ year, satkerId }: UploadHistoryProps) {
   useEffect(() => {
     if (year && satkerId) {
       startTransition(async () => {
-        const result = await getUploadHistoryAction({ year, satkerId });
+        const result = await getUploadHistoryAction({ year, satkerId }); //
         if (result.success) {
           setHistory(result.data || []);
         } else {
-          console.error(result.error);
+          toast.error("Gagal memuat riwayat", { description: result.error });
           setHistory([]);
         }
       });
     }
-  }, [year, satkerId]);
+  }, [year, satkerId]); //
 
-  // BARU: Helper function untuk format tanggal sesuai referensi Anda
   const formatTimestamp = (timestamp: string): string => {
     try {
       const date = new Date(timestamp);
-      // Format tanggal: "23 Juni 2025"
       const formattedDate = date.toLocaleDateString('id-ID', {
         day: '2-digit',
         month: 'long',
         year: 'numeric',
       });
-      // Format waktu: "17:43"
       const formattedTime = date.toLocaleTimeString('id-ID', {
         hour: '2-digit',
         minute: '2-digit',
-        hour12: false, // Gunakan format 24 jam
+        hour12: false,
       });
-      return `${formattedDate}, ${formattedTime}`;
+      return `${formattedDate}, ${formattedTime}`; //
     } catch {
       return "Format tanggal tidak valid";
     }
   };
 
   return (
-    <Card>
+    <Card className="mt-8">
       <CardHeader>
         <CardTitle>Riwayat Upload</CardTitle>
         <CardDescription>
-          Menampilkan riwayat upload untuk Satker **{satkerId}** pada tahun **{year}**.
+          Menampilkan riwayat upload untuk Satker <strong>{satkerId}</strong> pada tahun <strong>{year}</strong>.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -91,7 +89,6 @@ export function UploadHistory({ year, satkerId }: UploadHistoryProps) {
                 {history.map((log) => (
                   <TableRow key={log.id}>
                     <TableCell>
-                      {/* DIUBAH: Menggunakan helper function baru */}
                       {formatTimestamp(log.uploaded_at)}
                     </TableCell>
                     <TableCell><Badge variant="secondary">{log.file_type}</Badge></TableCell>
