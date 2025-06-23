@@ -1,7 +1,7 @@
 // src/app/(dashboard)/bahan-produksi/bahan-produksi-client.tsx
 "use client";
 
-import { useState, useEffect } from "react"; // <-- Tambahkan useEffect
+import { useState, useEffect } from "react";
 import type { SektorItem } from "./page";
 import { motion } from "framer-motion";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
@@ -10,8 +10,6 @@ import { Button } from "@/components/ui/button";
 import { ArrowUpRight, Undo2 } from "lucide-react";
 import Link from "next/link";
 import { getIcon } from "@/lib/icon-map";
-
-// PERBAIKAN: Impor komponen dialog manajemen yang baru dibuat
 import { ContentManagementDialog } from "./content-management-dialog";
 
 interface BahanProduksiClientProps {
@@ -20,11 +18,9 @@ interface BahanProduksiClientProps {
 }
 
 export function BahanProduksiClient({ initialData, isAdmin }: BahanProduksiClientProps) {
-  // Gunakan state untuk data agar bisa di-update setelah revalidasi
   const [dataSektor, setDataSektor] = useState(initialData);
   const [flippedCardId, setFlippedCardId] = useState<string | null>(null);
 
-  // PERBAIKAN: Pastikan data di komponen ini ikut terupdate jika ada perubahan dari server
   useEffect(() => {
     setDataSektor(initialData);
   }, [initialData]);
@@ -40,7 +36,6 @@ export function BahanProduksiClient({ initialData, isAdmin }: BahanProduksiClien
                 </CardDescription>
             </div>
             {isAdmin && (
-                // PERBAIKAN: Aktifkan komponen dialog dan teruskan data
                 <ContentManagementDialog initialData={dataSektor} />
             )}
         </div>
@@ -52,26 +47,34 @@ export function BahanProduksiClient({ initialData, isAdmin }: BahanProduksiClien
             {dataSektor.map((sektor) => {
               const SektorIcon = getIcon(sektor.icon_name);
               return (
-              <CarouselItem key={sektor.id} className="pl-4 md:basis-1/2 lg:basis-1/3">
-                <div className="perspective-1000">
+                <CarouselItem key={sektor.id} className="pl-4 md:basis-1/2 lg:basis-1/3 xl:basis-1/4">                <div className="perspective-1000">
                   <motion.div
                     className="relative h-80 w-full"
                     style={{ transformStyle: "preserve-3d" }}
                     animate={{ rotateY: flippedCardId === sektor.id ? 180 : 0 }}
                     transition={{ duration: 0.7, ease: "easeInOut" }}
                   >
-                    {/* SISI DEPAN KARTU */}
+                    {/* --- PERUBAHAN: SISI DEPAN KARTU DENGAN AKSESIBILITAS --- */}
                     <div
+                      role="button" // Memberi tahu screen reader ini interaktif
+                      tabIndex={0}  // Membuat elemen ini bisa di-fokus dengan keyboard
                       className="absolute inset-0 flex h-full w-full cursor-pointer flex-col items-center justify-center rounded-2xl p-6 text-center shadow-lg bg-white/10 backdrop-blur-sm border border-white/20"
                       style={{ backfaceVisibility: "hidden" }}
                       onClick={() => setFlippedCardId(sektor.id)}
+                      onKeyDown={(e) => {
+                        // Memungkinkan flip dengan tombol Enter atau Spasi
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault(); // Mencegah scroll saat menekan spasi
+                          setFlippedCardId(sektor.id);
+                        }
+                      }}
                     >
                       <SektorIcon className="mb-4 h-20 w-20 text-white/90" />
                       <h2 className="text-2xl font-bold text-white">{sektor.nama}</h2>
                       <p className="mt-2 text-sm text-purple-200">Klik untuk lihat detail</p>
                     </div>
 
-                    {/* SISI BELAKANG KARTU */}
+                    {/* --- SISI BELAKANG KARTU (TIDAK BERUBAH) --- */}
                     <div
                       className="absolute inset-0 flex h-full w-full flex-col rounded-2xl p-4 shadow-lg bg-white/10 backdrop-blur-sm border border-white/20"
                       style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
@@ -96,6 +99,7 @@ export function BahanProduksiClient({ initialData, isAdmin }: BahanProduksiClien
                                  </div>
                              </Link>
                           )})}
+                           {sektor.links.length === 0 && <p className="text-sm text-center text-muted-foreground/80">Belum ada link di sektor ini.</p>}
                       </div>
                     </div>
                   </motion.div>

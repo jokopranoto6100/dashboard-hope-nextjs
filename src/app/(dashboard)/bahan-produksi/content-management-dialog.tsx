@@ -10,9 +10,15 @@ import { toast } from 'sonner';
 import type { SektorItem, LinkItem } from './page';
 import {
   createSektor, updateSektor, deleteSektor,
-  createLink, updateLink, deleteLink
+  createLink, updateLink, deleteLink, updateSektorOrder
 } from './_actions';
+// --- PERUBAHAN: Impor skema dari file terpusat
+import { sektorFormSchema, linkFormSchema } from '@/lib/schemas';
 import { availableIcons } from '@/lib/icon-map';
+// --- PERUBAHAN: Impor untuk Drag and Drop ---
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -34,22 +40,39 @@ interface ContentManagementDialogProps {
   initialData: SektorItem[];
 }
 
-const sektorSchema = z.object({
-  nama: z.string().min(3, 'Nama sektor minimal 3 karakter.'),
-  icon_name: z.string().min(1, 'Ikon harus dipilih.'),
-  urutan: z.coerce.number().int(),
-});
+type SektorFormValues = z.infer<typeof sektorFormSchema>;
+type LinkFormValues = z.infer<typeof linkFormSchema>;
 
-const linkSchema = z.object({
-  label: z.string().min(3, 'Label minimal 3 karakter.'),
-  href: z.string().url('URL tidak valid.'),
-  icon_name: z.string().min(1, 'Ikon harus dipilih.'),
-  description: z.string().optional(),
-  urutan: z.coerce.number().int(),
-});
+// --- PERUBAHAN: Buat komponen terpisah untuk item yang bisa di-sortir ---
+function SortableSektorItem({ sektor, onSelect, onEdit, onDelete, isSelected }: {
+  sektor: SektorItem;
+  onSelect: () => void;
+  onEdit: (e: React.MouseEvent) => void;
+  onDelete: (e: React.MouseEvent) => void;
+  isSelected: boolean;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: sektor.id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
 
-type SektorFormValues = z.infer<typeof sektorSchema>;
-type LinkFormValues = z.infer<typeof linkSchema>;
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn("flex items-center p-2 rounded-md", isSelected && "bg-primary text-primary-foreground")}
+    >
+      <button {...attributes} {...listeners} className="cursor-grab touch-none p-1 focus:outline-none">
+        <GripVertical className="h-5 w-5 mr-2 flex-shrink-0" />
+      </button>
+      <div onClick={onSelect} className="flex-1 font-medium truncate cursor-pointer">{sektor.nama}</div>
+      <Button variant="ghost" size="icon" className="h-7 w-7 flex-shrink-0" onClick={onEdit}><Edit className="h-4 w-4" /></Button>
+      <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-red-500/10 text-red-500 hover:text-red-500 flex-shrink-0" onClick={onDelete}><Trash2 className="h-4 w-4"/></Button>
+    </div>
+  );
+}
+
 
 export function ContentManagementDialog({ initialData }: ContentManagementDialogProps) {
   const [isPending, startTransition] = useTransition();
@@ -62,12 +85,12 @@ export function ContentManagementDialog({ initialData }: ContentManagementDialog
   const [editingLink, setEditingLink] = useState<LinkItem | null>(null);
   const [itemToDelete, setItemToDelete] = useState<{ type: 'sektor' | 'link'; id: string; name: string; } | null>(null);
 
-  const sektorForm = useForm<SektorFormValues>({ resolver: zodResolver(sektorSchema) });
-  const linkForm = useForm<LinkFormValues>({ resolver: zodResolver(linkSchema) });
+  // --- PERUBAHAN: Gunakan skema yang diimpor ---
+  const sektorForm = useForm<SektorFormValues>({ resolver: zodResolver(sektorFormSchema) });
+  const linkForm = useForm<LinkFormValues>({ resolver: zodResolver(linkFormSchema) });
 
   const handleOpenSektorForm = (sektor: SektorItem | null) => {
     setEditingSektor(sektor);
-    // PERBAIKAN: Konversi nilai null menjadi string kosong saat reset form
     sektorForm.reset({
       nama: sektor?.nama || '',
       icon_name: sektor?.icon_name || '',
@@ -79,7 +102,6 @@ export function ContentManagementDialog({ initialData }: ContentManagementDialog
   const handleOpenLinkForm = (link: LinkItem | null) => {
     setEditingLink(link);
     const defaultUrutan = selectedSektor ? selectedSektor.links.length + 1 : 1;
-    // PERBAIKAN: Konversi nilai null menjadi string kosong saat reset form
     linkForm.reset({
       label: link?.label || '',
       href: link?.href || '',
@@ -125,13 +147,18 @@ export function ContentManagementDialog({ initialData }: ContentManagementDialog
     });
   };
 
+  // --- PERUBAHAN: Logika penghapusan dengan UX yang lebih baik ---
   const handleDelete = () => {
     if (!itemToDelete) return;
     startTransition(async () => {
       const result = await (itemToDelete.type === 'sektor' ? deleteSektor(itemToDelete.id) : deleteLink(itemToDelete.id));
       if (result?.success) {
         toast.success(`${itemToDelete.type === 'sektor' ? 'Sektor' : 'Link'} berhasil dihapus.`);
-        if (itemToDelete.type === 'sektor' && selectedSektor?.id === itemToDelete.id) setSelectedSektor(null);
+        if (itemToDelete.type === 'sektor' && selectedSektor?.id === itemToDelete.id) {
+          const currentSektors = sektors.filter(s => s.id !== itemToDelete.id);
+          // Pilih item pertama sebagai fallback, atau null jika tidak ada data sama sekali
+          setSelectedSektor(currentSektors[0] || null);
+        }
       } else {
         handleErrorToast(result?.error, 'Gagal menghapus item.');
       }
@@ -140,16 +167,46 @@ export function ContentManagementDialog({ initialData }: ContentManagementDialog
   };
 
   useEffect(() => {
+    // Sinkronkan state dengan data baru dari server setelah revalidasi
     setSektors(initialData);
-    const currentId = selectedSektor?.id;
-    if (!currentId || !initialData.find(s => s.id === currentId)) {
+    const currentSelected = initialData.find(s => s.id === selectedSektor?.id);
+    if (!currentSelected) {
       setSelectedSektor(initialData[0] || null);
     } else {
-      const updated = initialData.find(s => s.id === currentId);
+      const updated = initialData.find(s => s.id === selectedSektor?.id);
       if (updated) setSelectedSektor(updated);
     }
   }, [initialData, selectedSektor?.id]);
 
+  // --- PERUBAHAN: Fungsi dan sensor untuk menangani event drag end ---
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+  
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = sektors.findIndex((s) => s.id === active.id);
+      const newIndex = sektors.findIndex((s) => s.id === over.id);
+      
+      const newSektors = arrayMove(sektors, oldIndex, newIndex);
+      
+      // Update state secara optimis untuk UI yang responsif
+      setSektors(newSektors); 
+
+      // Buat data baru dengan urutan yang sudah diperbarui
+      const reorderedData = newSektors.map((s, index) => ({ id: s.id, urutan: index + 1 }));
+
+      startTransition(async () => {
+        const result = await updateSektorOrder(reorderedData);
+        if (result?.success) {
+          toast.success('Urutan sektor berhasil diperbarui.');
+        } else {
+          toast.error(result?.error?._form?.[0] || 'Gagal memperbarui urutan.');
+          // Kembalikan ke state semula (sebelum optimis) jika gagal
+          setSektors(sektors);
+        }
+      });
+    }
+  }
 
   return (
     <>
@@ -160,21 +217,29 @@ export function ContentManagementDialog({ initialData }: ContentManagementDialog
         <DialogContent className="max-w-4xl h-[80vh] flex flex-col overflow-hidden">
           <DialogHeader>
             <DialogTitle>Manajemen Konten Bahan Produksi</DialogTitle>
-            <DialogDescription>Tambah, edit, atau hapus sektor dan link.</DialogDescription>
+            <DialogDescription>Tambah, edit, atau hapus sektor dan link. Seret <GripVertical className="inline h-4 w-4 align-middle"/> untuk mengubah urutan.</DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 flex-1 overflow-hidden">
             <div className="md:col-span-1 flex flex-col gap-2 bg-muted/50 p-3 rounded-lg overflow-hidden">
               <h3 className="font-semibold px-2">Daftar Sektor</h3>
               <ScrollArea className="flex-1 overflow-y-auto">
-                <div className="space-y-1 pr-2">
-                  {sektors.map(sektor => (
-                    <div key={sektor.id} onClick={() => setSelectedSektor(sektor)} className={cn("flex items-center p-2 rounded-md cursor-pointer", selectedSektor?.id === sektor.id && "bg-primary text-primary-foreground")}>                      <GripVertical className="h-5 w-5 mr-2 flex-shrink-0" />
-                      <span className="flex-1 font-medium truncate">{sektor.nama}</span>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 flex-shrink-0" onClick={(e) => { e.stopPropagation(); handleOpenSektorForm(sektor); }}><Edit className="h-4 w-4" /></Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-red-500/10 text-red-500 hover:text-red-500 flex-shrink-0" onClick={(e) => { e.stopPropagation(); setItemToDelete({type: 'sektor', id: sektor.id, name: sektor.nama}) }}><Trash2 className="h-4 w-4"/></Button>
-                    </div>
-                  ))}
-                </div>
+                {/* --- PERUBAHAN: Implementasi Drag and Drop Context --- */}
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                    <SortableContext items={sektors.map(s => s.id)} strategy={verticalListSortingStrategy}>
+                        <div className="space-y-1 pr-2">
+                          {sektors.map(sektor => (
+                            <SortableSektorItem
+                              key={sektor.id}
+                              sektor={sektor}
+                              isSelected={selectedSektor?.id === sektor.id}
+                              onSelect={() => setSelectedSektor(sektor)}
+                              onEdit={(e) => { e.stopPropagation(); handleOpenSektorForm(sektor); }}
+                              onDelete={(e) => { e.stopPropagation(); setItemToDelete({type: 'sektor', id: sektor.id, name: sektor.nama}) }}
+                            />
+                          ))}
+                        </div>
+                    </SortableContext>
+                </DndContext>
               </ScrollArea>
               <Button onClick={() => handleOpenSektorForm(null)} className="mt-2"><PlusCircle className="mr-2 h-4 w-4"/> Tambah Sektor</Button>
             </div>
@@ -185,7 +250,7 @@ export function ContentManagementDialog({ initialData }: ContentManagementDialog
                   <ScrollArea className="flex-1 overflow-y-auto">
                     <div className="space-y-1 pr-2">
                       {selectedSektor.links.map(link => (
-                        <div key={link.id} className="grid grid-cols-[auto,1fr,auto] items-center gap-2 p-2 rounded-md border">
+                        <div key={link.id} className="grid grid-cols-[1fr,auto] items-center gap-2 p-2 rounded-md border">
                           <div className="min-w-0">
                             <p className="font-medium truncate" title={link.label}>{link.label}</p>
                             <p className="text-xs text-muted-foreground truncate" title={link.href || ''}>{link.href}</p>
@@ -208,6 +273,8 @@ export function ContentManagementDialog({ initialData }: ContentManagementDialog
           </div>
         </DialogContent>
       </Dialog>
+      
+      {/* --- SISA DIALOG (FORM & ALERT) TIDAK BERUBAH --- */}
       <Dialog open={showSektorForm} onOpenChange={setShowSektorForm}>
         <DialogContent className="max-w-xl">
           <DialogHeader><DialogTitle>{editingSektor ? 'Edit Sektor' : 'Tambah Sektor Baru'}</DialogTitle></DialogHeader>

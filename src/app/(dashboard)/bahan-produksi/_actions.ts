@@ -7,8 +7,9 @@ import { supabaseServer } from '@/lib/supabase-server';
 import { cookies } from 'next/headers';
 import { createServerComponentSupabaseClient } from '@/lib/supabase';
 import { User } from '@supabase/supabase-js';
+import { sektorFormSchema, linkActionSchema, reorderSchema, materiPedomanLinkSchema } from '@/lib/schemas';
 
-// Helper untuk verifikasi admin
+// Helper untuk verifikasi admin (tidak berubah)
 async function verifySuperAdmin(): Promise<User> {
   const cookieStore = await cookies();
   const supabase = createServerComponentSupabaseClient(cookieStore); 
@@ -21,29 +22,11 @@ async function verifySuperAdmin(): Promise<User> {
   return user; 
 }
 
-// Skema validasi untuk data sektor
-const sektorSchema = z.object({
-  nama: z.string().min(3, 'Nama sektor minimal 3 karakter.'),
-  icon_name: z.string().min(1, 'Ikon harus dipilih.'),
-  bg_color_class: z.string().optional(),
-  urutan: z.coerce.number().int(),
-});
-
-// Skema validasi untuk data link
-const linkSchema = z.object({
-  label: z.string().min(3, 'Label minimal 3 karakter.'),
-  href: z.string().url('URL tidak valid.'),
-  icon_name: z.string().min(1, 'Ikon harus dipilih.'),
-  description: z.string().optional(),
-  sektor_id: z.string().uuid('ID Sektor tidak valid.'),
-  urutan: z.coerce.number().int(),
-});
-
 // --- Aksi untuk Sektor ---
 
 export async function createSektor(formData: FormData) {
   await verifySuperAdmin();
-  const validated = sektorSchema.safeParse(Object.fromEntries(formData.entries()));
+  const validated = sektorFormSchema.safeParse(Object.fromEntries(formData.entries()));
   if (!validated.success) return { error: validated.error.flatten().fieldErrors };
 
   const { error } = await supabaseServer.from('sektors').insert(validated.data);
@@ -55,7 +38,7 @@ export async function createSektor(formData: FormData) {
 
 export async function updateSektor(id: string, formData: FormData) {
   await verifySuperAdmin();
-  const validated = sektorSchema.safeParse(Object.fromEntries(formData.entries()));
+  const validated = sektorFormSchema.safeParse(Object.fromEntries(formData.entries()));
   if (!validated.success) return { error: validated.error.flatten().fieldErrors };
 
   const { error } = await supabaseServer.from('sektors').update(validated.data).eq('id', id);
@@ -67,18 +50,47 @@ export async function updateSektor(id: string, formData: FormData) {
 
 export async function deleteSektor(id: string) {
     await verifySuperAdmin();
-    const { error } = await supabaseServer.from('sektors').delete().eq('id', id);
-    if (error) return { error: { _form: [error.message] } };
+
+    const { error: linkError } = await supabaseServer.from('links').delete().eq('sektor_id', id);
+    if (linkError) {
+      return { error: { _form: [`Gagal menghapus link terkait: ${linkError.message}`] } };
+    }
+
+    const { error: sektorError } = await supabaseServer.from('sektors').delete().eq('id', id);
+    if (sektorError) {
+      return { error: { _form: [sektorError.message] } };
+    }
 
     revalidatePath('/bahan-produksi');
     return { success: true };
 }
 
+export async function updateSektorOrder(items: z.infer<typeof reorderSchema>) {
+    await verifySuperAdmin();
+    const validated = reorderSchema.safeParse(items);
+    if (!validated.success) return { error: { _form: ['Data urutan tidak valid.'] } };
+
+    const updatePromises = validated.data.map(item =>
+        supabaseServer.from('sektors').update({ urutan: item.urutan }).eq('id', item.id)
+    );
+    
+    const results = await Promise.all(updatePromises);
+    const firstError = results.find(res => res.error);
+
+    if (firstError) {
+        return { error: { _form: [firstError.error?.message || 'Terjadi kesalahan saat mengupdate urutan.'] } };
+    }
+    
+    revalidatePath('/bahan-produksi');
+    return { success: true };
+}
+
+
 // --- Aksi untuk Link ---
 
 export async function createLink(formData: FormData) {
     await verifySuperAdmin();
-    const validated = linkSchema.safeParse(Object.fromEntries(formData.entries()));
+    const validated = linkActionSchema.safeParse(Object.fromEntries(formData.entries()));
     if (!validated.success) return { error: validated.error.flatten().fieldErrors };
 
     const { error } = await supabaseServer.from('links').insert(validated.data);
@@ -90,10 +102,21 @@ export async function createLink(formData: FormData) {
 
 export async function updateLink(id: string, formData: FormData) {
     await verifySuperAdmin();
-    const validated = linkSchema.safeParse(Object.fromEntries(formData.entries()));
+    const validated = linkActionSchema.safeParse(Object.fromEntries(formData.entries()));
     if (!validated.success) return { error: validated.error.flatten().fieldErrors };
     
-    const { error } = await supabaseServer.from('links').update(validated.data).eq('id', id);
+    // --- PERBAIKAN FINAL ---
+    // Buat objek baru hanya dengan field yang relevan untuk di-update.
+    // Ini 100% type-safe dan tidak menimbulkan error atau warning.
+    const updateData = {
+        label: validated.data.label,
+        href: validated.data.href,
+        icon_name: validated.data.icon_name,
+        description: validated.data.description,
+        urutan: validated.data.urutan,
+    };
+
+    const { error } = await supabaseServer.from('links').update(updateData).eq('id', id);
     if (error) return { error: { _form: [error.message] } };
 
     revalidatePath('/bahan-produksi');
@@ -108,3 +131,24 @@ export async function deleteLink(id: string) {
     revalidatePath('/bahan-produksi');
     return { success: true };
 }
+
+export async function updateMateriPedomanLink(formData: FormData) {
+    await verifySuperAdmin();
+    const validated = materiPedomanLinkSchema.safeParse(Object.fromEntries(formData.entries()));
+    if (!validated.success) return { error: validated.error.flatten().fieldErrors };
+  
+    // Gunakan upsert untuk membuat atau memperbarui. 'key' adalah Primary Key.
+    const { error } = await supabaseServer
+      .from('app_settings')
+      .upsert({ 
+        key: 'materi_pedoman_link', 
+        value: validated.data.href 
+      });
+  
+    if (error) return { error: { _form: [error.message] } };
+  
+    // Revalidasi path agar halaman me-load link baru
+    revalidatePath('/bahan-produksi');
+    return { success: true, newHref: validated.data.href };
+  }
+  
