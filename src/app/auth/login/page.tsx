@@ -38,10 +38,9 @@ export default function LoginPage() {
     }
 
     if (authData.user) {
-      // --- PERBAIKAN 1: Ambil juga kolom 'is_active' ---
       const { data: userData, error: userError } = await supabase
         .from('users')
-        .select('id, username, role, is_active') // Tambahkan is_active di sini
+        .select('id, username, role, is_active')
         .eq('email', authData.user.email)
         .single();
 
@@ -49,23 +48,21 @@ export default function LoginPage() {
         toast.error('Error Memuat Data User', {
           description: 'Gagal mengambil informasi peran user.',
         });
-        await supabase.auth.signOut(); // Pastikan user logout jika profil gagal diambil
+        await supabase.auth.signOut();
         setLoading(false);
         return;
       }
 
       if (userData) {
-        // --- PERBAIKAN 2: Tambahkan blok pengecekan status aktif ---
         if (userData.is_active === false) {
           toast.error('Login Gagal', {
             description: 'Akun Anda telah dinonaktifkan oleh admin.',
           });
-          await supabase.auth.signOut(); // Hancurkan sesi yang baru saja dibuat
+          await supabase.auth.signOut();
           setLoading(false);
-          return; // Hentikan proses login
+          return;
         }
         
-        // Jika aktif, lanjutkan proses update metadata
         const { error: updateError } = await supabase.auth.updateUser({
           data: {
             username: userData.username,
@@ -86,17 +83,24 @@ export default function LoginPage() {
     toast.success('Login Berhasil!', {
       description: 'Anda akan diarahkan ke dashboard.',
     });
-    router.push('/'); // Anda mungkin ingin mengarahkan ke '/dashboard'
+    router.push('/');
     setLoading(false);
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white p-4">
+    // UBAH: Menggunakan warna latar belakang abu-abu sangat muda agar lebih lembut
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
       <div className="relative w-full max-w-4xl bg-white rounded-lg shadow-xl overflow-hidden flex flex-col lg:flex-row">
+        
+        {/* Kolom Kiri - Form Login */}
         <div className="w-full lg:w-1/2 p-8 md:p-12 lg:p-16 flex flex-col justify-center">
+          {/* Anda bisa menambahkan logo di sini jika mau */}
+          {/* <Image src="/logo-hope.png" alt="HOPE Logo" width={150} height={50} className="mb-8" /> */}
+
           <div className="mb-8">
-            <h1 className="text-4xl font-extrabold text-gray-900 mb-2">Holla,</h1>
-            <p className="text-gray-600 text-lg">Hey, welcome back to your hope</p>
+            {/* UBAH: Menyesuaikan warna heading agar cocok dengan abu-abu di logo */}
+            <h1 className="text-4xl font-extrabold text-gray-800 mb-2">Hey!</h1>
+            <p className="text-gray-600 text-lg">Welcome back to your hope</p>
           </div>
           <form onSubmit={handleLogin} className="space-y-6">
             <div>
@@ -108,7 +112,8 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="h-12 text-lg px-4 border border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
+                // UBAH: Mengubah warna focus ring menjadi teal
+                className="h-12 text-lg px-4 border border-gray-300 focus:border-teal-500 focus:ring focus:ring-teal-200"
               />
             </div>
             <div>
@@ -120,14 +125,14 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="h-12 text-lg px-4 border border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
+                // UBAH: Mengubah warna focus ring menjadi teal
+                className="h-12 text-lg px-4 border border-gray-300 focus:border-teal-500 focus:ring focus:ring-teal-200"
               />
             </div>
             <div className="flex items-center justify-between text-sm">
               <div className="flex items-center">
                 <Checkbox
                   id="remember-me"
-                  // onCheckedChange expects a boolean, ensure you handle the type correctly
                   onCheckedChange={(checked) => setRememberMe(Boolean(checked))}
                   checked={rememberMe}
                   className="mr-2"
@@ -137,25 +142,34 @@ export default function LoginPage() {
                 </Label>
               </div>
               <Link href="/auth/forgot-password" passHref>
-                <span className="text-blue-600 hover:underline cursor-pointer">Forgot Password?</span>
+                 {/* UBAH: Mengubah warna link menjadi teal */}
+                <span className="text-teal-600 hover:underline cursor-pointer">Forgot Password?</span>
               </Link>
             </div>
-            <Button type="submit" className="w-full h-12 text-lg bg-indigo-600 hover:bg-indigo-700" disabled={loading}>
+             {/* UBAH: Mengubah warna tombol menjadi teal */}
+            <Button type="submit" className="w-full h-12 text-lg bg-teal-500 text-white hover:bg-teal-600" disabled={loading}>
               {loading ? 'Signing In...' : 'Sign In'}
             </Button>
           </form>
           <div className="mt-8 text-center text-gray-600">
             Don&apos;t have an account?{' '}
             <Link href="/auth/register" passHref>
-              <span className="text-blue-600 hover:underline font-semibold cursor-pointer">Sign Up</span>
+               {/* UBAH: Mengubah warna link menjadi teal */}
+              <span className="text-teal-600 hover:underline font-semibold cursor-pointer">Sign Up</span>
             </Link>
           </div>
         </div>
-        <div className="hidden lg:flex w-1/2 bg-gradient-to-br from-purple-500 to-indigo-600 items-center justify-center p-8">
+
+        {/* Kolom Kanan - Ilustrasi */}
+        {/* UBAH: Mengganti gradien ungu-indigo dengan gradien abu-abu gelap ke teal yang sesuai logo */}
+        <div className="hidden lg:flex w-1/2 bg-gray-100 items-center justify-center p-12">
           <div className="relative w-full h-full flex items-center justify-center">
+            {/* Anda bisa mengganti ilustrasi ini dengan logo HOPE ukuran besar jika lebih suka */}
             <div className="absolute inset-0 bg-contain bg-center bg-no-repeat opacity-80"
-                 style={{ backgroundImage: 'url("/images/login-illustration.svg")', backgroundSize: '80%', backgroundPosition: 'center' }}>
+                 style={{ backgroundImage: 'url("/images/login-illustration.png")', backgroundSize: '90%', backgroundPosition: 'center' }}>
             </div>
+            {/* Contoh jika ingin menampilkan logo HOPE di panel kanan */}
+            {/* <Image src="/logo-hope.png" alt="HOPE Logo" width={300} height={100} /> */}
           </div>
         </div>
       </div>

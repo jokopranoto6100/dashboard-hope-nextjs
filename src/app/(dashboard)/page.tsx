@@ -1,4 +1,3 @@
-// src/app/(dashboard)/page.tsx
 "use client";
 
 import * as React from "react";
@@ -7,11 +6,16 @@ import { useYear } from '@/context/YearContext';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from "@/components/ui/button";
-import { usePadiMonitoringData } from '@/hooks/usePadiMonitoringData';
-import { usePalawijaMonitoringData } from '@/hooks/usePalawijaMonitoringData';
-import { useKsaMonitoringData } from '@/hooks/useKsaMonitoringData'; 
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+
+// Impor hooks yang sudah ada
+import { usePadiMonitoringData } from '@/hooks/usePadiMonitoringData';
+import { usePalawijaMonitoringData } from '@/hooks/usePalawijaMonitoringData';
+import { useKsaMonitoringData } from '@/hooks/useKsaMonitoringData';
+// BARU: Impor hook SIMTP
+import { useSimtpKpiData } from "@/hooks/useSimtpKpiData";
 
 const getMonthName = (monthNumberStr: string | undefined): string => {
   if (!monthNumberStr || monthNumberStr.toLowerCase() === "semua") return "Data Tahunan";
@@ -43,18 +47,21 @@ export default function HomePage() {
     lastUpdatePalawija
   } = usePalawijaMonitoringData(selectedYear, ubinanSubround);
 
-  // ✅ PERBAIKAN: Panggil hook tanpa parameter dan ambil nilai yang benar.
   const { 
     districtTotals: ksaTotals, 
     isLoading: loadingKsa, 
     error: errorKsa, 
     lastUpdated: lastUpdatedKsa,
-    displayMonth: ksaDisplayMonth, // Menggantikan effectiveDisplayMonth
+    displayMonth: ksaDisplayMonth,
     uniqueStatusNames: ksaUniqueStatusNames
   } = useKsaMonitoringData(); 
 
+  // Panggil hook untuk data KPI SIMTP
+  const { data: simtpData, isLoading: loadingSimtp, error: errorSimtp } = useSimtpKpiData();
+
   return (
     <>
+      {/* DIUBAH: Layout diubah menjadi 4 kolom di layar besar */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-6">
         {/* Card 1: Ubinan Padi */}
         <Card className="h-full">
@@ -180,7 +187,6 @@ export default function HomePage() {
         <Card className="h-full">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              {/* ✅ Gunakan 'ksaDisplayMonth' untuk menampilkan bulan */}
               KSA Padi ({selectedYear}) - {getMonthName(ksaDisplayMonth)}
             </CardTitle>
             <Button asChild variant="outline" size="sm">
@@ -251,6 +257,61 @@ export default function HomePage() {
               </>
             ) : (
               <p className="text-sm text-muted-foreground">Data KSA tidak tersedia.</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Card 4: KPI SIMTP (BARU) */}
+        <Card className="h-full">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Progres SIMTP</CardTitle>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/monitoring/simtp">Lihat Detail</Link>
+            </Button>
+          </CardHeader>
+          <CardContent className="flex flex-col h-full">
+            {loadingSimtp ? (
+              <>
+                <Skeleton className="h-8 w-3/4 mb-1" />
+                <Skeleton className="h-4 w-full mb-1" />
+                <Skeleton className="h-4 w-1/2 mt-4 pt-2 border-t" />
+                <Skeleton className="h-5 w-full mt-1" />
+                <Skeleton className="h-4 w-2/3 mt-1" />
+              </>
+            ) : errorSimtp ? (
+              <p className="text-xs text-red-500">Error: {errorSimtp}</p>
+            ) : simtpData ? (
+              <>
+                <div className="flex-grow">
+                  <div className="text-2xl font-bold">{simtpData.monthly.percentage.toFixed(2)}%</div>
+                  <p className="text-xs text-muted-foreground">
+                    Laporan Bulanan ({simtpData.monthly.reportForMonthName}): 
+                    <span className="font-semibold text-foreground">
+                      {` ${simtpData.monthly.uploadedCount} dari ${simtpData.monthly.totalDistricts} Kab/Kota`}
+                    </span>
+                  </p>
+                  <Progress value={simtpData.monthly.percentage} className="mt-2 h-2" />
+                </div>
+                
+                <div className="text-xs text-muted-foreground mt-3 pt-2 border-t">
+                  <h4 className="font-semibold mb-1 text-foreground">Data Tahunan ({simtpData.annual.reportForYear}):</h4>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                    <Badge variant="secondary">
+                      Lahan: {simtpData.annual.lahanCount}/{simtpData.annual.totalDistricts}
+                    </Badge>
+                    <Badge variant="secondary">
+                      Alsin: {simtpData.annual.alsinCount}/{simtpData.annual.totalDistricts}
+                    </Badge>
+                    <Badge variant="secondary">
+                      Benih: {simtpData.annual.benihCount}/{simtpData.annual.totalDistricts}
+                    </Badge>
+                  </div>
+                </div>
+
+                {simtpData.lastUpdate && <p className="text-xs text-muted-foreground mt-2">Data per: {simtpData.lastUpdate}</p>}
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">Data SIMTP tidak tersedia.</p>
             )}
           </CardContent>
         </Card>

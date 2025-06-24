@@ -9,8 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Button } from '@/components/ui/button';
-import { CheckCircle2, ChevronDown, ChevronRight, Circle, HardDrive, Tractor, Wheat, Clock } from 'lucide-react';
+import { CheckCircle2, Circle, HardDrive, Tractor, Wheat, Clock } from 'lucide-react';
 import { ColumnDef, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { SimtpMonitoringData, SimtpMonthStatus, SimtpTableRow } from './types';
 
@@ -27,7 +26,7 @@ const AnnualStatusIcon = ({ status, Icon, label }: { status?: any, Icon: React.E
                 {status ? (
                     <>
                         <p className='text-xs'>{status.file_name}</p>
-                        <p className='text-xs'>
+                        <p className='text-xs text-muted-foreground'>
                             {new Date(status.uploaded_at).toLocaleString('id-ID')}
                         </p>
                     </>
@@ -39,7 +38,9 @@ const AnnualStatusIcon = ({ status, Icon, label }: { status?: any, Icon: React.E
 
 export function SimtpMonitoringClient() {
   const { selectedYear } = useYear();
-  const [isAnnualExpanded, setIsAnnualExpanded] = React.useState(false);
+  
+  // DIHAPUS: State untuk expand/collapse tidak diperlukan lagi
+  // const [isAnnualExpanded, setIsAnnualExpanded] = React.useState(false);
 
   const [monitoringData, setMonitoringData] = React.useState<SimtpMonitoringData>({});
   const [lastUpdate, setLastUpdate] = React.useState<string | null>(null);
@@ -80,6 +81,7 @@ export function SimtpMonitoringClient() {
 
   const columns = React.useMemo<ColumnDef<SimtpTableRow>[]>(() => {
     const now = new Date();
+    // Koreksi kecil: Laporan bulan Juni (bulan 6) diupload Juli (getMonth() = 6). Jadi bulan laporan adalah getMonth().
     const currentReportMonth = now.getMonth(); // Jan=0, Feb=1... Laporan untuk bulan lalu.
     const currentYear = now.getFullYear();
 
@@ -94,6 +96,7 @@ export function SimtpMonitoringClient() {
           const status = row.original[month.toString() as keyof SimtpTableRow] as SimtpMonthStatus | null;
 
           let isOngoingPeriod = false;
+          // Periode berjalan adalah untuk bulan lalu. Misal sekarang Juli, maka periode berjalan adalah laporan Juni.
           if (selectedYear === currentYear && month === currentReportMonth) {
               isOngoingPeriod = true;
           }
@@ -139,18 +142,27 @@ export function SimtpMonitoringClient() {
         size: 50,
       };
     });
-
-    const annualSummaryColumn: ColumnDef<SimtpTableRow> = {
-      id: 'annual-summary',
-      header: () => <div className="text-center">Data Tahunan</div>,
-      cell: ({ row }) => (<div className="flex justify-center items-center gap-3"><AnnualStatusIcon status={row.original.annuals.LAHAN_TAHUNAN} Icon={HardDrive} label="File Lahan" /><AnnualStatusIcon status={row.original.annuals.ALSIN_TAHUNAN} Icon={Tractor} label="File Alsin" /><AnnualStatusIcon status={row.original.annuals.BENIH_TAHUNAN} Icon={Wheat} label="File Benih" /></div>),
-      size: 150,
-    };
     
+    // DIUBAH: Kolom detail tahunan sekarang menjadi default
     const annualDetailColumns: ColumnDef<SimtpTableRow>[] = [
-        { id: 'lahan', header: 'Lahan', size: 60, cell: ({row}) => <div className="flex justify-center"><AnnualStatusIcon status={row.original.annuals.LAHAN_TAHUNAN} Icon={HardDrive} label="Lahan" /></div>},
-        { id: 'alsin', header: 'Alsin', size: 60, cell: ({row}) => <div className="flex justify-center"><AnnualStatusIcon status={row.original.annuals.ALSIN_TAHUNAN} Icon={Tractor} label="Alsin" /></div>},
-        { id: 'benih', header: 'Benih', size: 60, cell: ({row}) => <div className="flex justify-center"><AnnualStatusIcon status={row.original.annuals.BENIH_TAHUNAN} Icon={Wheat} label="Benih" /></div>},
+        { 
+          id: 'lahan', 
+          header: () => <div className="text-center">Lahan</div>, 
+          size: 60, 
+          cell: ({row}) => <div className="flex justify-center"><AnnualStatusIcon status={row.original.annuals.LAHAN_TAHUNAN} Icon={HardDrive} label="Lahan" /></div>
+        },
+        { 
+          id: 'alsin', 
+          header: () => <div className="text-center">Alsin</div>, 
+          size: 60, 
+          cell: ({row}) => <div className="flex justify-center"><AnnualStatusIcon status={row.original.annuals.ALSIN_TAHUNAN} Icon={Tractor} label="Alsin" /></div>
+        },
+        { 
+          id: 'benih', 
+          header: () => <div className="text-center">Benih</div>, 
+          size: 60, 
+          cell: ({row}) => <div className="flex justify-center"><AnnualStatusIcon status={row.original.annuals.BENIH_TAHUNAN} Icon={Wheat} label="Benih" /></div>
+        },
     ];
 
     return [
@@ -161,9 +173,10 @@ export function SimtpMonitoringClient() {
         size: 180,
       },
       ...monthColumns,
-      ...(isAnnualExpanded ? annualDetailColumns : [annualSummaryColumn]),
+      // DIUBAH: Langsung tampilkan kolom detail, hapus logika ternary
+      ...annualDetailColumns,
     ];
-  }, [selectedYear, isAnnualExpanded, monitoringData]);
+  }, [selectedYear, monitoringData]);
   
   const table = useReactTable({
     data: tableData,
@@ -182,12 +195,8 @@ export function SimtpMonitoringClient() {
             )}
           </CardDescription>
         </div>
-        <div className='flex justify-end items-center gap-2 pt-2'>
-            <Button variant="outline" size="sm" onClick={() => setIsAnnualExpanded(!isAnnualExpanded)}>
-              {isAnnualExpanded ? <ChevronDown className="mr-2 h-4 w-4" /> : <ChevronRight className="mr-2 h-4 w-4" />}
-              {isAnnualExpanded ? "Ringkas Tahunan" : "Detail Tahunan"}
-            </Button>
-        </div>
+        {/* DIHAPUS: Tombol untuk expand/collapse data tahunan */}
+        {/* <div className='flex justify-end items-center gap-2 pt-2'>...</div> */}
       </CardHeader>
       <CardContent>
         {isLoading ? (
