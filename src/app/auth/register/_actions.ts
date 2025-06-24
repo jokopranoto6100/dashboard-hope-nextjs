@@ -3,15 +3,12 @@
 
 import { cookies } from 'next/headers';
 import { createServerActionClient } from '@supabase/auth-helpers-nextjs';
-import { supabaseServer } from '@/lib/supabase-server'; // Import admin client
+import { supabaseServer } from '@/lib/supabase-server';
 import { type RegisterFormValues } from './schema';
 
 export async function registerUserAction(values: RegisterFormValues) {
-  // Gunakan client khusus untuk Server Action
   const supabase = createServerActionClient({ cookies });
 
-  // Langkah 1: Daftarkan pengguna baru di sistem otentikasi Supabase
-  // Sertakan data tambahan di 'options' agar bisa digunakan oleh trigger database
   const { data: authData, error: authError } = await supabase.auth.signUp({
     email: values.email,
     password: values.password,
@@ -37,22 +34,20 @@ export async function registerUserAction(values: RegisterFormValues) {
     };
   }
 
-  // Langkah 2: UPDATE profil publik yang (seharusnya) sudah dibuat oleh trigger
-  // Ini lebih aman daripada INSERT dari klien.
   const { error: profileError } = await supabaseServer
     .from('users')
     .update({
       full_name: values.fullname,
       username: values.username,
       satker_id: values.satker_id,
-      email: values.email, // Pastikan email juga diisi
-      role: 'viewer',      // Atur peran default
+      email: values.email,
+      role: 'viewer',
+      // === TAMBAHAN: Atur pengguna baru sebagai non-aktif sampai verifikasi email ===
+      is_active: false, 
     })
     .eq('id', authData.user.id);
 
   if (profileError) {
-    // Rollback: Jika gagal mengupdate profil, hapus user dari sistem otentikasi
-    // Ini adalah langkah penting untuk menjaga konsistensi data
     await supabaseServer.auth.admin.deleteUser(authData.user.id);
     return {
       success: false,
@@ -62,6 +57,6 @@ export async function registerUserAction(values: RegisterFormValues) {
 
   return {
     success: true,
-    message: 'Registrasi Berhasil! Silakan cek email Anda untuk verifikasi.',
+    message: 'Registrasi Berhasil! Silakan cek email Anda untuk verifikasi. atau hubungi Admin untuk mengaktifkan Akun Anda.',
   };
 }
