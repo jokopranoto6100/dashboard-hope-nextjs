@@ -81,7 +81,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setUserRole(profileData.role || 'viewer');
         }
       } else {
-        // Jika tidak ada user (logout), bersihkan semua state
         setUserData(null);
         setUserRole(null);
       }
@@ -93,8 +92,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     const { data: authListener } = supabase.auth.onAuthStateChange(
       (event) => {
-        // Panggil ulang fungsi fetch utama saat auth state berubah (login/logout)
-        // Ini memastikan data profil selalu yang terbaru
         console.log(`AuthContext: Auth event '${event}', refetching profile.`);
         fetchUserSessionAndProfile();
       }

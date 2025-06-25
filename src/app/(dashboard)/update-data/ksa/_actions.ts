@@ -155,9 +155,9 @@ export async function uploadKsaAction(formData: FormData): Promise<ActionResult>
     console.log("Data KSA berhasil diunggah. Memulai refresh materialized views...");
     
     const [refreshChartResult, refreshKondisiResult] = await Promise.all([
-        supabaseServer.rpc('refresh_materialized_view', { view_name: 'chart_amatan_summary' }),
-        supabaseServer.rpc('refresh_materialized_view', { view_name: 'kondisi_panen' })
-    ]);
+      supabaseServer.rpc('refresh_chart_amatan_summary'), // <--- Panggil fungsi baru yang spesifik
+      supabaseServer.rpc('refresh_kondisi_panen')         // <--- Panggil fungsi baru yang spesifik
+  ]);
 
     if (refreshChartResult.error) {
         console.error("Gagal me-refresh materialized view 'chart_amatan_summary':", refreshChartResult.error);

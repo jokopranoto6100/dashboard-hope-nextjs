@@ -78,19 +78,6 @@ export default function KsaMonitoringClientPage() {
       return;
     }
   
-    // ================== TAMBAHKAN KODE DEBUG DI SINI ==================
-    console.log(
-      "%c[DEBUG] Memanggil RPC dengan parameter:", 
-      "color: blue; font-weight: bold;", 
-      {
-        p_tahun: selectedYear,
-        p_bulan: parseInt(displayMonth),
-        p_kode_kab: selectedKabupatenDetail.kode_kab,
-        p_nama_petugas: petugasData.nama
-      }
-    );
-    // ====================================================================
-  
     setIsBaLoading(true);
     setSelectedPetugasForBa(petugasData);  
 
@@ -102,8 +89,6 @@ export default function KsaMonitoringClientPage() {
         p_nama_petugas: petugasData.nama
       });
       
-      console.log("[DEBUG] Hasil RPC get_berita_acara_data:", data);      
-
       if (rpcError) throw rpcError;
 
       setBaModalData(data || []);
