@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowUpDown, CheckCircle2, Eye, EyeOff } from "lucide-react";
+import { ArrowUpDown, CheckCircle2, Eye, EyeOff, FileDown } from "lucide-react"; // Import FileDown
 import { getPercentageBadgeVariant } from "@/lib/utils";
 import { ProcessedKsaNamaData } from '@/hooks/useKsaMonitoringData';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -30,6 +30,8 @@ interface NamaKsaTableProps {
   uniqueStatusNames: string[];
   kabupatenName: string;
   isLoading: boolean;
+  // PERUBAHAN: Tambahkan prop untuk menangani klik tombol generate BA
+  onGenerateBaClick: (petugasData: ProcessedKsaNamaData) => void;
 }
 
 const TableSkeleton = ({ columns }: { columns: ColumnDef<ProcessedKsaNamaData, unknown>[] }) => (
@@ -51,7 +53,8 @@ const TableSkeleton = ({ columns }: { columns: ColumnDef<ProcessedKsaNamaData, u
     </div>
 );
 
-export function NamaKsaTable({ title, description, data, totals, uniqueStatusNames, kabupatenName, isLoading }: NamaKsaTableProps) {
+// PERUBAHAN: Tambahkan onGenerateBaClick ke props
+export function NamaKsaTable({ title, description, data, totals, uniqueStatusNames, kabupatenName, isLoading, onGenerateBaClick }: NamaKsaTableProps) {
   const isMobile = useIsMobile();
   const [showAllColumns, setShowAllColumns] = useState(false);
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -59,21 +62,50 @@ export function NamaKsaTable({ title, description, data, totals, uniqueStatusNam
   const mobileHiddenColumns = ['target', 'inkonsisten', 'kode_12', ...uniqueStatusNames.map(s => `status_nama_${s.replace(/\s+/g, '_')}`)];
 
   const allColumns = useMemo<ColumnDef<ProcessedKsaNamaData, any>[]>(() => {
-    const fixedStartCols: ColumnDef<ProcessedKsaNamaData, any>[] = [ { accessorKey: 'nama', header: () => <div className="text-left">Nama Petugas</div>, cell: ({ row }) => <div className="truncate text-left font-medium" title={row.original.nama}>{row.original.nama}</div>, footer: () => `Total ${kabupatenName}`, size: isMobile ? 90 : 200, minSize: 90, }, { accessorKey: 'target', header: () => <div className="text-center">Target</div>, cell: ({ row }) => <div className="text-center">{row.original.target.toLocaleString('id-ID')}</div>, footer: () => totals?.target?.toLocaleString('id-ID') ?? '-', size: 70, minSize: 60, }, { accessorKey: 'realisasi', header: () => <div className="text-center">Realisasi</div>, cell: ({ row }) => <div className="text-center">{row.original.realisasi.toLocaleString('id-ID')}</div>, footer: () => totals?.realisasi?.toLocaleString('id-ID') ?? '-', size: 70, minSize: 60, }, { accessorKey: 'persentase', header: ({ column }) => ( <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="w-full flex justify-center items-center text-xs px-0" > {isMobile ? "(%)" : "Persentase (%)"} <ArrowUpDown className="ml-1 h-3 w-3" /> </Button> ), cell: ({ row }) => { const value = row.original.persentase; if (typeof value !== 'number' || isNaN(value)) return <div className="text-center">-</div>; return ( <div className="text-center"> <Badge variant={getPercentageBadgeVariant(value)} className="text-xs px-1 py-0.5"> {!isMobile && value >= 100 && <CheckCircle2 className="mr-0.5 h-3 w-3" />} {value.toFixed(2)}% </Badge> </div> ); }, footer: () => { if (!totals?.persentase) return <>-</>; const value = totals.persentase; return ( <Badge variant={getPercentageBadgeVariant(value)} className="text-xs px-1 py-0.5"> {!isMobile && value >= 100 && <CheckCircle2 className="mr-0.5 h-3 w-3" />} {value.toFixed(2)}% </Badge> ); }, size: isMobile ? 85 : 110, minSize: 85, }, ];
+    const fixedStartCols: ColumnDef<ProcessedKsaNamaData, any>[] = [ /* ... Kolom lain tidak berubah ... */ { accessorKey: 'nama', header: () => <div className="text-left">Nama Petugas</div>, cell: ({ row }) => <div className="truncate text-left font-medium" title={row.original.nama}>{row.original.nama}</div>, footer: () => `Total ${kabupatenName}`, size: isMobile ? 90 : 200, minSize: 90, }, { accessorKey: 'target', header: () => <div className="text-center">Target</div>, cell: ({ row }) => <div className="text-center">{row.original.target.toLocaleString('id-ID')}</div>, footer: () => totals?.target?.toLocaleString('id-ID') ?? '-', size: 70, minSize: 60, }, { accessorKey: 'realisasi', header: () => <div className="text-center">Realisasi</div>, cell: ({ row }) => <div className="text-center">{row.original.realisasi.toLocaleString('id-ID')}</div>, footer: () => totals?.realisasi?.toLocaleString('id-ID') ?? '-', size: 70, minSize: 60, }, { accessorKey: 'persentase', header: ({ column }) => ( <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="w-full flex justify-center items-center text-xs px-0" > {isMobile ? "(%)" : "Persentase (%)"} <ArrowUpDown className="ml-1 h-3 w-3" /> </Button> ), cell: ({ row }) => { const value = row.original.persentase; if (typeof value !== 'number' || isNaN(value)) return <div className="text-center">-</div>; return ( <div className="text-center"> <Badge variant={getPercentageBadgeVariant(value)} className="text-xs px-1 py-0.5"> {!isMobile && value >= 100 && <CheckCircle2 className="mr-0.5 h-3 w-3" />} {value.toFixed(2)}% </Badge> </div> ); }, footer: () => { if (!totals?.persentase) return <>-</>; const value = totals.persentase; return ( <Badge variant={getPercentageBadgeVariant(value)} className="text-xs px-1 py-0.5"> {!isMobile && value >= 100 && <CheckCircle2 className="mr-0.5 h-3 w-3" />} {value.toFixed(2)}% </Badge> ); }, size: isMobile ? 85 : 110, minSize: 85, }, ];
     const dynamicStatusCols: ColumnDef<ProcessedKsaNamaData, any>[] = (uniqueStatusNames || []).map(statusName => ({ id: `status_nama_${statusName.replace(/\s+/g, '_')}`, header: ({column}) => ( <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="w-full flex justify-center items-center text-xs px-0"> {statusName} <ArrowUpDown className="ml-1 h-3 w-3" /> </Button> ), accessorFn: row => row.statuses?.[statusName]?.percentage ?? 0, cell: ({ row }) => { const statusData = row.original.statuses?.[statusName]; if (!statusData || statusData.count === 0) return <div className="text-center text-xs">-</div>; return ( <div className="text-center text-xs tabular-nums"> {statusData.count} ({statusData.percentage.toFixed(1)}%) </div> ); }, footer: () => { const totalStatusData = totals?.statuses?.[statusName]; if (!totalStatusData || totalStatusData.count === 0) return <div className="font-bold text-xs">-</div>; return ( <div className="font-bold text-xs tabular-nums"> {totalStatusData.count} ({totalStatusData.percentage.toFixed(1)}%) </div> ); }, size: 120, minSize: 100, enableSorting: true, }));
     const fixedEndCols: ColumnDef<ProcessedKsaNamaData, any>[] = [ { accessorKey: 'inkonsisten', header: ({ column }) => ( <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="w-full flex justify-center items-center text-xs px-0" > Inkonsisten <ArrowUpDown className="ml-1 h-3 w-3" /> </Button> ), cell: ({ row }) => <div className="text-center">{row.original.inkonsisten.toLocaleString('id-ID')}</div>, footer: () => totals?.inkonsisten?.toLocaleString('id-ID') ?? '-', size: 90, minSize: 80, }, { accessorKey: 'kode_12', header: ({ column }) => ( <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="w-full flex justify-center items-center text-xs px-0" > Kode 12 <ArrowUpDown className="ml-1 h-3 w-3" /> </Button> ), cell: ({ row }) => <div className="text-center">{row.original.kode_12.toLocaleString('id-ID')}</div>, footer: () => totals?.kode_12?.toLocaleString('id-ID') ?? '-', size: 80, minSize: 70, }, ];
-    return [...fixedStartCols, ...dynamicStatusCols, ...fixedEndCols];
-  }, [totals, uniqueStatusNames, kabupatenName, isMobile]);
+    
+    // PERUBAHAN: Tambahkan kolom Aksi
+    const actionCol: ColumnDef<ProcessedKsaNamaData, any> = {
+      id: 'actions',
+      header: () => <div className="text-center">Aksi</div>,
+      cell: ({ row }) => {
+        const hasKode12 = row.original.kode_12 > 0;
+        if (!hasKode12) return <div className="text-center">-</div>;
+
+        return (
+          <div className="text-center">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation(); // Mencegah event lain terpicu
+                onGenerateBaClick(row.original);
+              }}
+            >
+              <FileDown className="mr-2 h-4 w-4" />
+              Generate BA
+            </Button>
+          </div>
+        );
+      },
+      size: 150,
+      minSize: 150,
+    };
+    
+    return [...fixedStartCols, ...dynamicStatusCols, ...fixedEndCols, actionCol];
+  }, [totals, uniqueStatusNames, kabupatenName, isMobile, onGenerateBaClick]); // Tambahkan onGenerateBaClick ke dependensi
   
   const finalColumns = useMemo(() => {
     if (isMobile && !showAllColumns) {
       return allColumns.filter(col => {
         const columnId = 'accessorKey' in col ? col.accessorKey : col.id;
-        return !mobileHiddenColumns.includes(columnId as string);
+        return !mobileHiddenColumns.includes(columnId as string) && columnId !== 'actions'; // Sembunyikan aksi juga di mobile ringkas
       });
     }
     return allColumns;
-  }, [isMobile, showAllColumns, allColumns]);
+  }, [isMobile, showAllColumns, allColumns, mobileHiddenColumns]);
 
   const table = useReactTable({
     data: data || [], columns: finalColumns, state: { sorting }, onSortingChange: setSorting, getCoreRowModel: getCoreRowModel(), getSortedRowModel: getSortedRowModel(), columnResizeMode: 'onChange',

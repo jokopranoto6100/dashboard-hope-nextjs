@@ -1,25 +1,37 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/app/(dashboard)/monitoring/ksa/ksa-monitoring-client-page.tsx
 "use client";
 
 import React, { useMemo, useState } from 'react';
 import { useYear } from '@/context/YearContext';
+import { useAuth } from '@/context/AuthContext'; // PERUBAHAN: Import useAuth untuk akses supabase
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-import { useKsaMonitoringData, ProcessedKsaDistrictData } from '@/hooks/useKsaMonitoringData';
+import { useKsaMonitoringData, ProcessedKsaDistrictData, ProcessedKsaNamaData } from '@/hooks/useKsaMonitoringData';
 
 import { DistrictKsaTable } from './DistrictKsaTable';
 import { NamaKsaTable } from './NamaKsaTable';
+// PERUBAHAN: Import modal
+import { BeritaAcaraModal, BaData } from './components/BeritaAcaraModal'; 
 
 type ViewMode = 'district' | 'nama';
 
 export default function KsaMonitoringClientPage() {
   const { selectedYear } = useYear();
+  const { supabase } = useAuth(); // PERUBAHAN: Dapatkan instance supabase
   const [currentView, setCurrentView] = useState<ViewMode>('district');
   const [selectedKabupatenDetail, setSelectedKabupatenDetail] = useState<ProcessedKsaDistrictData | null>(null);
+
+  // PERUBAHAN: State untuk modal Berita Acara
+  const [isBaModalOpen, setIsBaModalOpen] = useState(false);
+  const [baModalData, setBaModalData] = useState<BaData[]>([]);
+  const [selectedPetugasForBa, setSelectedPetugasForBa] = useState<ProcessedKsaNamaData | null>(null);
+  const [isBaLoading, setIsBaLoading] = useState(false);
+
 
   const { 
     districtLevelData,
@@ -34,7 +46,7 @@ export default function KsaMonitoringClientPage() {
     displayMonth,
     setDisplayMonth,
   } = useKsaMonitoringData();
-
+  
   const handleMonthChange = (newMonthValue: string) => {
     setDisplayMonth(newMonthValue); 
     setCurrentView('district');
@@ -54,14 +66,62 @@ export default function KsaMonitoringClientPage() {
     setSelectedKabupatenCode(null);
   };
   
+  // PERUBAHAN: Handler untuk memanggil RPC
+  const handleGenerateBaClick = async (petugasData: ProcessedKsaNamaData) => {
+    if (!selectedKabupatenDetail?.kode_kab || !displayMonth || !selectedYear) {
+      // Log ini akan muncul jika salah satu data penting tidak ada
+      console.error("Gagal memulai Generate BA karena data tidak lengkap:", {
+        "selectedKabupatenDetail.kode_kab": selectedKabupatenDetail?.kode_kab,
+        "displayMonth": displayMonth,
+        "selectedYear": selectedYear
+      });
+      return;
+    }
+  
+    // ================== TAMBAHKAN KODE DEBUG DI SINI ==================
+    console.log(
+      "%c[DEBUG] Memanggil RPC dengan parameter:", 
+      "color: blue; font-weight: bold;", 
+      {
+        p_tahun: selectedYear,
+        p_bulan: parseInt(displayMonth),
+        p_kode_kab: selectedKabupatenDetail.kode_kab,
+        p_nama_petugas: petugasData.nama
+      }
+    );
+    // ====================================================================
+  
+    setIsBaLoading(true);
+    setSelectedPetugasForBa(petugasData);  
+
+    try {
+      const { data, error: rpcError } = await supabase.rpc('get_berita_acara_data', {
+        p_tahun: selectedYear,
+        p_bulan: parseInt(displayMonth),
+        p_kode_kab: selectedKabupatenDetail.kode_kab,
+        p_nama_petugas: petugasData.nama
+      });
+      
+      console.log("[DEBUG] Hasil RPC get_berita_acara_data:", data);      
+
+      if (rpcError) throw rpcError;
+
+      setBaModalData(data || []);
+      setIsBaModalOpen(true);
+    } catch (err: any) {
+      console.error("Gagal memanggil RPC:", err);
+      alert(`Gagal mengambil data Berita Acara: ${err.message}`);
+    } finally {
+      setIsBaLoading(false);
+    }
+  };
+
   const months = useMemo(() => [
     { value: "1", label: "Januari" }, { value: "2", label: "Februari" }, { value: "3", label: "Maret" }, 
     { value: "4", label: "April" }, { value: "5", label: "Mei" }, { value: "6", label: "Juni" },
     { value: "7", label: "Juli" }, { value: "8", label: "Agustus" }, { value: "9", label: "September" },
     { value: "10", label: "Oktober" }, { value: "11", label: "November" }, { value: "12", label: "Desember" }
   ], []);
-
-  // ✅ Logika 'isInitialLoading' dan blok 'if (isInitialLoading)' dihapus dari sini.
 
   if (error) { 
     return (
@@ -77,9 +137,18 @@ export default function KsaMonitoringClientPage() {
   
   return ( 
     <div className="min-w-0 flex flex-col gap-4">
+       {/* PERUBAHAN: Render Modal */}
+      <BeritaAcaraModal
+        isOpen={isBaModalOpen}
+        onClose={() => setIsBaModalOpen(false)}
+        data={baModalData}
+        selectedPetugas={{nama: selectedPetugasForBa?.nama || '', kode_kab: selectedKabupatenDetail?.kode_kab || ''}}
+        displayMonth={displayMonth}
+        selectedYear={selectedYear}
+      />
+      
       {currentView === 'district' ? (
         <div className="flex flex-wrap items-center justify-end gap-2">
-          {/* Tampilkan skeleton dropdown jika bulan belum siap */}
           {isLoading && !displayMonth ? (
              <Skeleton className="h-10 w-full md:w-[180px]" />
           ) : (
@@ -107,7 +176,7 @@ export default function KsaMonitoringClientPage() {
           totals={districtTotals}
           uniqueStatusNames={uniqueStatusNames || []}
           onRowClick={handleDistrictRowClick}
-          isLoading={isLoading || !displayMonth} // Teruskan status loading
+          isLoading={isLoading || !displayMonth}
         />
       )}
       
@@ -119,7 +188,8 @@ export default function KsaMonitoringClientPage() {
           totals={namaLevelTotals}
           uniqueStatusNames={uniqueStatusNames || []}
           kabupatenName={selectedKabupatenDetail.kabupaten || ''}
-          isLoading={isLoading}
+          isLoading={isLoading || isBaLoading} // PERUBAHAN: Tambahkan isBaLoading agar tabel menunjukkan loading saat RPC dipanggil
+          onGenerateBaClick={handleGenerateBaClick} // PERUBAHAN: Teruskan handler ke tabel
         />
       )}
     </div>
