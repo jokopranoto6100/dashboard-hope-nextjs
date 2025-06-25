@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Lokasi File: src/app/(dashboard)/update-data/ksa/_actions.ts
 "use server";
 
-import { createSupabaseServerClientWithUserContext } from "@/lib/supabase-server"; // Asumsi path ini benar
+import { createSupabaseServerClientWithUserContext } from "@/lib/supabase-server";
 import { supabaseServer } from "@/lib/supabase-server";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
@@ -38,7 +39,7 @@ export async function uploadKsaAction(formData: FormData): Promise<ActionResult>
     return { success: false, message: "Tidak ada file yang dipilih." };
   }
 
-  let allRowsToInsert: any[] = [];
+  const allRowsToInsert: any[] = [];
   const uniqueDeletionScopesSet = new Set<string>();
   const uploadedAt = new Date().toISOString();
   let skippedRowCount = 0;
@@ -48,56 +49,76 @@ export async function uploadKsaAction(formData: FormData): Promise<ActionResult>
       const buffer = await file.arrayBuffer();
       const workbook = xlsx.read(buffer, { type: "buffer", cellDates: true });
       const sheetName = workbook.SheetNames[0];
-      const sheet = workbook.Sheets[sheetName]; // <-- TAMBAHKAN BARIS INI
+      const sheet = workbook.Sheets[sheetName];
       const jsonData = xlsx.utils.sheet_to_json(sheet) as any[];
 
-      for (const record of jsonData) {
-        // --- AWAL PATCH ---
+      // --- LOGIKA OPSI 3 DIMULAI ---
+      // Variabel untuk menyimpan tanggal fallback per file. Direset untuk setiap file baru.
+      let fallbackTahun: number | null = null;
+      let fallbackBulan: number | null = null;
 
-        // 1. Validasi kolom sumber menggunakan bracket notation untuk handle spasi
-        const idSegmenValue = record['id segmen']; // Membaca properti 'id segmen'
+      for (const record of jsonData) {
+        const idSegmenValue = record['id segmen'];
         const tanggalValue = record.tanggal;
 
-        if (!tanggalValue || !idSegmenValue) {
-           console.warn(`Melewatkan baris karena 'tanggal' atau 'id segmen' kosong:`, record);
+        if (!idSegmenValue) {
+           console.warn(`Melewatkan baris karena 'id segmen' kosong:`, record);
            skippedRowCount++;
            continue;
         }
 
-        // 2. Ekstrak Tahun dan Bulan
-        const tanggal = new Date(tanggalValue);
-        if (isNaN(tanggal.getTime())) {
-            console.warn(`Melewatkan baris karena format 'tanggal' tidak valid:`, tanggalValue);
+        let tahun: number | null = null;
+        let bulan: number | null = null;
+        let tanggalISO: string | null = null;
+        
+        // Coba proses tanggal dari baris saat ini
+        if (tanggalValue) {
+            const parsedDate = new Date(tanggalValue);
+            if (!isNaN(parsedDate.getTime())) {
+                tahun = parsedDate.getFullYear();
+                bulan = parsedDate.getMonth() + 1; 
+                tanggalISO = parsedDate.toISOString();
+
+                // Jika fallback belum ada, simpan dari baris valid pertama ini
+                if (fallbackTahun === null) {
+                    fallbackTahun = tahun;
+                    fallbackBulan = bulan;
+                }
+            }
+        }
+        
+        // Jika baris ini tidak punya tanggal, gunakan fallback (jika sudah ditemukan)
+        if (tahun === null && bulan === null) {
+            tahun = fallbackTahun;
+            bulan = fallbackBulan;
+        }
+
+        // Safeguard Akhir: Jangan proses baris jika tahun/bulan tetap null 
+        // (terjadi jika seluruh file tidak punya tanggal valid sama sekali)
+        if (tahun === null || bulan === null) {
+            console.warn(`Melewatkan baris karena tidak ada informasi Tahun/Bulan yang bisa digunakan (baik dari baris maupun fallback):`, record);
             skippedRowCount++;
             continue;
         }
-        const tahun = tanggal.getFullYear();
-        const bulan = tanggal.getMonth() + 1; 
-
-        // 3. Ekstrak Kode Wilayah dari 'id segmen'
+        // --- LOGIKA OPSI 3 BERAKHIR ---
+        
         const idSegmenStr = idSegmenValue.toString();
         const kode_kab = idSegmenStr.substring(0, 4);
         const kode_kec = idSegmenStr.substring(4, 7);
-
-        // 4. Mapping nama kabupaten
         const kabupaten = KABUPATEN_MAP[kode_kab] || "Kabupaten Tidak Dikenal";
-        
-        // --- AKHIR PATCH ---
 
         const scopeKey = `${tahun}-${bulan}-${kode_kab}`;
         uniqueDeletionScopesSet.add(scopeKey);
         
-        // Siapkan baris lengkap untuk di-insert
         const newRow = {
-          // Menggunakan bracket notation untuk header dengan spasi atau karakter aneh
           id_segmen: idSegmenValue,
           subsegmen: record.subsegmen,
           nama: record.nama,
-          n: record['n-1'] || record.n, // Menangani jika header 'n-1' atau 'n'
+          n: record.n,
           amatan: record.amatan,
           status: record.status,
           evaluasi: record.evaluasi,
-          tanggal: tanggal.toISOString(),
+          tanggal: tanggalISO, // Bisa null jika baris ini pakai fallback
           flag_kode_12: record['flag kode 12'],
           note: record.note,
           kode_kab: kode_kab,
@@ -112,7 +133,6 @@ export async function uploadKsaAction(formData: FormData): Promise<ActionResult>
       }
     }
     
-    // ... (sisa kode untuk memanggil RPC dan return respons tetap sama)
     if (allRowsToInsert.length === 0) {
         return { success: false, message: "Tidak ada baris data yang valid untuk diimpor." };
     }
@@ -132,9 +152,6 @@ export async function uploadKsaAction(formData: FormData): Promise<ActionResult>
       return { success: false, message: "Gagal memproses data KSA di database.", errorDetails: rpcError.message };
     }
 
-    // --- AWAL PERUBAHAN ---
-    // 2. Refresh Materialized Views setelah data berhasil diunggah
-    // Kita jalankan secara konkuren untuk efisiensi
     console.log("Data KSA berhasil diunggah. Memulai refresh materialized views...");
     
     const [refreshChartResult, refreshKondisiResult] = await Promise.all([
@@ -144,19 +161,15 @@ export async function uploadKsaAction(formData: FormData): Promise<ActionResult>
 
     if (refreshChartResult.error) {
         console.error("Gagal me-refresh materialized view 'chart_amatan_summary':", refreshChartResult.error);
-        // Anda bisa memilih untuk mengembalikan error atau hanya mencatatnya
-        // return { success: false, message: "Data berhasil diunggah, namun gagal me-refresh chart_amatan_summary.", errorDetails: refreshChartResult.error.message };
     } else {
         console.log("'chart_amatan_summary' berhasil di-refresh.");
     }
 
     if (refreshKondisiResult.error) {
         console.error("Gagal me-refresh materialized view 'kondisi_panen':", refreshKondisiResult.error);
-        // return { success: false, message: "Data berhasil diunggah, namun gagal me-refresh kondisi_panen.", errorDetails: refreshKondisiResult.error.message };
     } else {
         console.log("'kondisi_panen' berhasil di-refresh.");
     }
-    // --- AKHIR PERUBAHAN ---
 
     revalidatePath("/update-data/ksa");
     revalidatePath("/monitoring/ksa");
