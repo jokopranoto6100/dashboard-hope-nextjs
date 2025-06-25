@@ -133,7 +133,7 @@ export default function KsaMonitoringClientPage() {
       />
       
       {currentView === 'district' ? (
-        <div className="flex flex-wrap items-center justify-end gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-4">
           {isLoading && !displayMonth ? (
              <Skeleton className="h-10 w-full md:w-[180px]" />
           ) : (

@@ -2,7 +2,7 @@
 "use client";
 
 // Impor React dan hooks
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 
 // Impor komponen UI
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
@@ -41,7 +41,9 @@ import { UbinanBoxPlot } from './UbinanBoxPlot';
 import { UbinanComparisonChart } from './UbinanComparisonChart';
 
 declare module '@tanstack/react-table' {
-  interface TableMeta<TData extends unknown> {
+  // Baris komentar di bawah ini adalah solusinya
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interface TableMeta<TData extends RowData> {
     kalimantanBaratData?: DescriptiveStatsRow | null;
     kalimantanBaratPupukDanBenih?: PupukDanBenihRow | null;
     currentUnit?: string;
@@ -140,7 +142,7 @@ export function EvaluasiUbinanClient() {
       } else {
         toast.error("Download Gagal", { description: result.message || "Gagal mengunduh file Excel." });
       }
-    } catch (e) {
+    } catch {
       toast.error("Terjadi Kesalahan", { description: "Tidak dapat menghubungi server untuk mengunduh file." });
     } finally {
       setIsDownloading(false);

@@ -195,8 +195,6 @@ export function SimtpMonitoringClient() {
             )}
           </CardDescription>
         </div>
-        {/* DIHAPUS: Tombol untuk expand/collapse data tahunan */}
-        {/* <div className='flex justify-end items-center gap-2 pt-2'>...</div> */}
       </CardHeader>
       <CardContent>
         {isLoading ? (

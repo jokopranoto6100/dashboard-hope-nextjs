@@ -219,6 +219,14 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
 
   return (
     <div className="space-y-6">
+      {/* --- BLOK YANG DITAMBAHKAN --- */}
+      <div>
+        <h1 className="text-2xl font-bold">Statistik Produksi</h1>
+        <p className="text-muted-foreground">
+            Visualisasikan dan bandingkan data produksi dari berbagai level dan periode waktu. Gunakan filter di bawah untuk menyesuaikan data yang ditampilkan.
+        </p>
+      </div>
+      {/* --- AKHIR BLOK YANG DITAMBAHKAN --- */}
       <div className="p-4 border rounded-lg bg-slate-50 dark:bg-slate-800/50 space-y-4">
         <div className="flex w-full flex-col items-end gap-4 sm:flex-row sm:justify-between">
           <div className="flex w-full flex-wrap items-center gap-4">

@@ -21,7 +21,7 @@ export default function UbinanMonitoringPage() {
   const { processedPalawijaData, palawijaTotals, loadingPalawija, errorPalawija, lastUpdatePalawija } = usePalawijaMonitoringData(selectedYear, selectedSubround);
 
   return (
-    <div className="flex flex-col gap-8 min-w-0">
+    <div className="flex flex-col gap-4 min-w-0">
       {/* ✅ 1. UBAH TATA LETAK FILTER AGAR FLEKSIBEL DAN RESPONSIVE */}
       <div className="flex items-center justify-end flex-wrap gap-2">
         {/*

@@ -1,11 +1,10 @@
-// Lokasi: src/app/(dashboard)/produksi-statistik/page.tsx
+// Lokasi: src/app/(dashboard)/produksi-statistik/page.tsx (SETELAH DIPERBAIKI)
 
 import { createSupabaseServerClientWithUserContext } from "@/lib/supabase-server";
 import { cookies } from "next/headers";
 import { StatistikClient } from "./statistik-client";
-import { Card, CardDescription, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
-// Fungsi untuk mengambil daftar indikator dari master tabel
+// Fungsi untuk mengambil data (tidak ada perubahan, sudah benar)
 async function getAvailableIndicators() {
   const cookieStore = await cookies();
   const supabase = await createSupabaseServerClientWithUserContext(cookieStore);
@@ -23,22 +22,10 @@ async function getAvailableIndicators() {
 }
 
 export default async function ProduksiStatistikPage() {
+  // 1. Ambil data di Server Component
   const indicators = await getAvailableIndicators();
 
-  return (
-    <div className="flex flex-1 flex-col gap-6 p-4 md:gap-8 md:p-8">
-        <Card className="shadow-lg">
-            <CardHeader>
-                <CardTitle className="text-2xl">Statistik Produksi</CardTitle>
-                <CardDescription>
-                    Visualisasikan dan bandingkan data produksi dari berbagai level dan periode waktu. Gunakan filter di bawah untuk menyesuaikan data yang ditampilkan.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                {/* Me-render Client Component dan memberikan daftar indikator sebagai prop */}
-                <StatistikClient availableIndicators={indicators} />
-            </CardContent>
-        </Card>
-    </div>
-  );
+  // 2. Langsung render Client Component dan oper data sebagai props.
+  //    Tidak ada div, Card, atau padding tambahan di sini.
+  return <StatistikClient availableIndicators={indicators} />;
 }

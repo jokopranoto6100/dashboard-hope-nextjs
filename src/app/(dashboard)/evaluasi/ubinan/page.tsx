@@ -1,22 +1,12 @@
 // src/app/(dashboard)/evaluasi/ubinan/page.tsx
-import { UbinanEvaluasiFilterProvider } from '@/context/UbinanEvaluasiFilterContext'; // Pastikan path ini benar
-import { EvaluasiUbinanClient } from './evaluasi-ubinan-client'; // Komponen klien yang baru kita buat
+import { UbinanEvaluasiFilterProvider } from '@/context/UbinanEvaluasiFilterContext'; 
+import { EvaluasiUbinanClient } from './evaluasi-ubinan-client'; 
 import { Suspense } from 'react';
-import { Skeleton } from '@/components/ui/skeleton'; // Untuk fallback suspense jika diperlukan
-
-// Anda bisa menambahkan metadata untuk halaman di sini jika diperlukan
-// export const metadata = {
-//   title: 'Evaluasi Statistik Ubinan - Dashboard HOPE',
-// };
+import { Skeleton } from '@/components/ui/skeleton'; 
 
 export default function EvaluasiUbinanPage() {
   return (
     <UbinanEvaluasiFilterProvider>
-      {/* Suspense dapat digunakan di sini jika EvaluasiUbinanClient melakukan data fetching awal
-        atau memiliki bagian yang bisa di-lazy load. Untuk kasus kita, loading utama
-        ditangani di dalam client component, jadi Suspense di sini lebih untuk best practice
-        jika komponen client menjadi lebih kompleks atau melakukan fetch awal.
-      */}
       <Suspense fallback={<PageSkeleton />}>
         <EvaluasiUbinanClient />
       </Suspense>
