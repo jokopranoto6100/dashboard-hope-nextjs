@@ -101,13 +101,13 @@ export interface JadwalItem {
       ],
     },
     {
-      kegiatan: "Pelatihan Petugas",
+      kegiatan: "Kehutanan",
       jadwal: [
           {
-              nama: "Pelatihan KSA",
-              keterangan: "Pelatihan petugas lapangan untuk survei KSA.",
-              startDate: "2025-03-10",
-              endDate: "2025-03-12",
+              nama: "Pencacahan Perusahaan PBPH",
+              keterangan: "...",
+              startDate: "2025-06-01",
+              endDate: "2025-08-31",
               warna: "sky"
           }
       ]

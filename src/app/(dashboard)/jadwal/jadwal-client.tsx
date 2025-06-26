@@ -26,7 +26,7 @@ export function JadwalClient({ data, tahun }: { data: Kegiatan[]; tahun: number 
       <div className="space-y-4">
         <div>
           <h1 className="text-2xl font-bold">Jadwal Kegiatan</h1>
-          <p className="text-muted-foreground">Linimasa detail semua kegiatan survei sepanjang tahun {tahun}.</p>
+          <p className="text-muted-foreground">Timeline kegiatan survei fungsi produksi tahun {tahun}.</p>
         </div>
 
         {/* Logika utama: pilih komponen berdasarkan ukuran layar */}
