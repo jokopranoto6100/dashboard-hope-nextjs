@@ -68,7 +68,7 @@ function JadwalRow({
   return (
     <>
       <div className="flex border-t min-h-[48px]">
-        <div className={`sticky left-0 z-10 flex items-center border-r bg-background p-2 text-sm font-semibold ${isSub ? 'pl-8' : ''}`} style={{ width: '200px', minWidth: '200px' }}>
+        <div className={`sticky left-0 z-10 flex items-center border-r bg-background p-2 text-sm font-semibold ${isSub ? 'pl-8' : ''}`} style={{ width: '250px', minWidth: '250px' }}>
           {hasSub && (
             <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => onToggleRow(kegiatan.kegiatan)}>
               {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
@@ -165,7 +165,7 @@ export function JadwalDesktop({ data, tahun, onBlockClick }: JadwalDesktopProps)
     if (viewMode === 'bulanan') {
       return (
         <div className="flex sticky top-0 z-20 bg-muted border-b">
-          <div className="sticky left-0 z-30 flex items-center p-2 border-r bg-muted" style={{ width: '200px', minWidth: '200px' }}>
+          <div className="sticky left-0 z-30 flex items-center p-2 border-r bg-muted" style={{ width: '250px', minWidth: '250px' }}>
             <p className="text-base font-bold text-card-foreground">Kegiatan</p>
           </div>
           <div className="relative flex flex-1">
@@ -182,7 +182,7 @@ export function JadwalDesktop({ data, tahun, onBlockClick }: JadwalDesktopProps)
     }
     return (
       <div className="flex sticky top-0 z-20">
-        <div className="sticky left-0 z-30 flex flex-col border-r bg-background text-sm font-semibold" style={{ width: '200px', minWidth: '200px' }}>
+        <div className="sticky left-0 z-30 flex flex-col border-r bg-background text-sm font-semibold" style={{ width: '250px', minWidth: '250px' }}>
           <div className="h-8 flex items-center p-2 border-b">Kegiatan</div>
           <div className="h-8 border-b sticky top-8 z-20 bg-background" />
         </div>
@@ -232,7 +232,7 @@ export function JadwalDesktop({ data, tahun, onBlockClick }: JadwalDesktopProps)
       </CardHeader>
       <CardContent className="p-0">
         <div ref={scrollContainerRef} className={viewMode === 'harian' ? 'overflow-x-auto relative' : 'relative'}>
-          <div style={{ width: viewMode === 'harian' ? `${200 + getDaysInYear(tahun) * dailyCellWidth}px` : '100%' }}>
+          <div style={{ width: viewMode === 'harian' ? `${250 + getDaysInYear(tahun) * dailyCellWidth}px` : '100%' }}>
             {renderHeader()}
             <div>
               {data.map(kegiatan => (
@@ -249,7 +249,7 @@ export function JadwalDesktop({ data, tahun, onBlockClick }: JadwalDesktopProps)
             </div>
             {viewMode === 'harian' && todayDayOfYear !== -1 && (
               <div className="absolute top-[64px] bottom-0 w-0.5 bg-red-500/50 z-20" style={{
-                left: `calc(200px + ${(todayDayOfYear - 1) * dailyCellWidth}px + ${dailyCellWidth / 2}px)`
+                left: `calc(250px + ${(todayDayOfYear - 1) * dailyCellWidth}px + ${dailyCellWidth / 2}px)`
               }}></div>
             )}
           </div>

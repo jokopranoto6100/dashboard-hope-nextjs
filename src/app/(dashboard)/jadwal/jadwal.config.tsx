@@ -10,8 +10,8 @@ export interface JadwalItem {
   
   export interface Kegiatan {
     kegiatan: string;
-    jadwal?: JadwalItem[]; // Jadwal utama, bisa opsional
-    subKegiatan?: Kegiatan[]; // Sub-kegiatan bisa memiliki struktur yg sama (rekursif)
+    jadwal?: JadwalItem[]; 
+    subKegiatan?: Kegiatan[]; 
   }
   
   // Data Hardcode untuk Jadwal
@@ -34,7 +34,7 @@ export interface JadwalItem {
           {
             kegiatan: "Pemeriksaan",
             jadwal: [
-              { nama: "Pemeriksaan", keterangan: "...", startDate: "2025-08-01", endDate: "2025-010-07", warna: "amber" },
+              { nama: "Pemeriksaan", keterangan: "...", startDate: "2025-08-01", endDate: "2025-10-07", warna: "amber" },
             ],
           },
         ],
@@ -63,7 +63,7 @@ export interface JadwalItem {
       ],
     },
     {
-      kegiatan: "KSA",
+      kegiatan: "Kerangka Sampel Area",
       jadwal: [
         {
           nama: "Juni",
@@ -92,12 +92,19 @@ export interface JadwalItem {
           warna: "amber",
         },
         {
-            nama: "Subround 2",
-            keterangan: "Fokus ubinan jagung saat panen raya.",
-            startDate: "2025-05-01",
-            endDate: "2025-08-30",
-            warna: "amber",
-          },
+          nama: "Subround 2",
+          keterangan: "Fokus ubinan jagung saat panen raya.",
+          startDate: "2025-05-01",
+          endDate: "2025-08-31",
+          warna: "amber",
+        },
+        {
+          nama: "Subround 3",
+          keterangan: "Fokus ubinan jagung saat panen raya.",
+          startDate: "2025-09-01",
+          endDate: "2025-12-31",
+          warna: "amber",
+        },
       ],
     },
     {

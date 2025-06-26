@@ -9,7 +9,7 @@ import { type Kegiatan, type JadwalItem } from './jadwal.config';
 
 // Impor hook dan komponen-komponen tampilan
 import { useIsMobile } from '@/hooks/use-mobile';
-import { JadwalListMobile } from './jadwal-mobile';
+import { GanttMiniMobile } from './jadwal-mobile';
 import { JadwalDesktop } from './jadwal-desktop';
 
 export function JadwalClient({ data, tahun }: { data: Kegiatan[]; tahun: number }) {
@@ -31,7 +31,7 @@ export function JadwalClient({ data, tahun }: { data: Kegiatan[]; tahun: number 
 
         {/* Logika utama: pilih komponen berdasarkan ukuran layar */}
         {isMobile ? (
-          <JadwalListMobile data={data} tahun={tahun} onBlockClick={handleBlockClick} />
+          <GanttMiniMobile data={data} tahun={tahun} onBlockClick={handleBlockClick} />
         ) : (
           <JadwalDesktop data={data} tahun={tahun} onBlockClick={handleBlockClick} />
         )}
