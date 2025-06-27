@@ -15,7 +15,7 @@ export function BahanProduksiSkeleton() {
           {/* Wrapper untuk item carousel skeleton */}
           <div className="flex -ml-4">
             {/* Tampilkan 3 kartu skeleton sebagai placeholder di dalam carousel */}
-            {[...Array(3)].map((_, i) => (
+            {[...Array(4)].map((_, i) => (
               <div key={i} className="pl-4 md:basis-1/2 lg:basis-1/3 xl:basis-1/4">
                 <div className="p-1">
                   <Skeleton className="h-80 w-full rounded-2xl bg-white/10" />
