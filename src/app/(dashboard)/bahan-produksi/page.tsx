@@ -1,12 +1,15 @@
 // src/app/(dashboard)/bahan-produksi/page.tsx
-import { BahanProduksiClient } from "./bahan-produksi-client";
+import { Suspense } from 'react';
 import { supabaseServer } from "@/lib/supabase-server";
 import { cookies } from "next/headers";
 import { createServerComponentSupabaseClient } from "@/lib/supabase";
-// BARU: Impor komponen kartu yang baru dibuat
-import { MateriPedomanCard } from "./materi-pedoman-card";
 
-// Tipe data untuk komponen BahanProduksiClient
+// Impor komponen-komponen yang relevan
+import { MateriPedomanCard } from "./materi-pedoman-card";
+import { PortalProduksi } from './portal-produksi';
+import { BahanProduksiSkeleton } from './bahan-produksi-skeleton';
+
+// Definisi tipe data bisa tetap di sini agar komponen lain bisa mengimpornya
 export interface LinkItem {
   id: string;
   label: string;
@@ -24,23 +27,7 @@ export interface SektorItem {
   links: LinkItem[];
 }
 
-// Fungsi untuk mengambil data sektor dan link-linknya
-async function getSektorData(): Promise<SektorItem[]> {
-    const { data, error } = await supabaseServer
-        .from('sektors')
-        .select('*, links(*)')
-        .order('urutan', { ascending: true })
-        .order('urutan', { foreignTable: 'links', ascending: true });
-
-    if (error) {
-        console.error("Error fetching sectors with links:", error);
-        return [];
-    }
-    
-    return data as SektorItem[];
-}
-
-// Fungsi untuk mengambil link Materi & Pedoman dari database
+// Hanya fungsi fetching yang CEPAT yang tersisa di sini
 async function getMateriPedomanLink(): Promise<string> {
     const { data, error } = await supabaseServer
         .from('app_settings')
@@ -49,24 +36,23 @@ async function getMateriPedomanLink(): Promise<string> {
         .single();
 
     if (error || !data) {
-        // Log error jika ada, tapi jangan hentikan render halaman
         if (error) console.error("Gagal mengambil link pedoman, menggunakan default.", error);
-        return '#'; // Fallback ke link default jika tidak ditemukan atau error
+        return '#';
     }
     return data.value || '#';
 }
 
 
-// Komponen Halaman Utama
+// Komponen Halaman Utama yang sudah di-patch
 export default async function BahanProduksiPage() {
-  // Ambil semua data yang diperlukan secara paralel untuk performa lebih baik
-  const [sektorData, materiPedomanLink, cookieStore] = await Promise.all([
-    getSektorData(),
+  // Halaman ini sekarang hanya mengambil data yang cepat,
+  // sehingga bisa langsung dirender oleh server.
+  const [materiPedomanLink, cookieStore] = await Promise.all([
     getMateriPedomanLink(),
     cookies()
   ]);
 
-  // Cek peran pengguna untuk menampilkan tombol manajemen
+  // Logika pengecekan admin tidak berubah
   const supabase = createServerComponentSupabaseClient(cookieStore);
   const { data: { user } } = await supabase.auth.getUser();
   let isAdmin = false;
@@ -76,13 +62,20 @@ export default async function BahanProduksiPage() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-4 md:gap-8 md:p-8">
-      {/* Kartu Materi dan Pedoman Survei (sekarang komponen dinamis) */}
+    <div className="flex flex-col gap-4 min-w-0">
+      {/* Kartu ini akan langsung muncul karena datanya cepat didapat */}
       <MateriPedomanCard initialHref={materiPedomanLink} isAdmin={isAdmin} />
       
       {/* Komponen Portal Bahan Fungsi Produksi */}
       <div>
-        <BahanProduksiClient initialData={sektorData} isAdmin={isAdmin} />
+        <Suspense fallback={<BahanProduksiSkeleton />}>
+          {/* Next.js akan langsung merender fallback (skeleton).
+            Sementara itu, di server, komponen `PortalProduksi` mulai mengambil data.
+            Setelah datanya siap, hasilnya akan di-stream ke browser
+            dan menggantikan skeleton secara otomatis.
+          */}
+          <PortalProduksi isAdmin={isAdmin} />
+        </Suspense>
       </div>
     </div>
   );

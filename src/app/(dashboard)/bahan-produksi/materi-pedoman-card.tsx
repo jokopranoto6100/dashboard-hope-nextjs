@@ -30,10 +30,6 @@ export function MateriPedomanCard({ initialHref, isAdmin }: MateriPedomanCardPro
         </div>
       </CardHeader>
       <CardContent>
-        <p className="mb-4 text-sm text-muted-foreground">
-          Temukan semua dokumen yang Anda butuhkan untuk memastikan pelaksanaan survei berjalan
-          sesuai dengan standar dan metodologi yang telah ditetapkan.
-        </p>
         <Button asChild>
           {/* Link ini sekarang dinamis */}
           <Link href={initialHref} target="_blank" rel="noopener noreferrer">

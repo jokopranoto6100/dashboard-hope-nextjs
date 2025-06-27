@@ -328,8 +328,10 @@ Dashboard Pertanian/
 │   ├── icon
 │   │   └── hope.png
 │   ├── images
-│   │   ├── login-illustration.jpg
+│   │   ├── login-illustration.afdesign
+│   │   ├── login-illustration.png
 │   │   └── login-illustration.svg
+│   ├── logo-bps.png
 │   ├── next.svg
 │   ├── templates
 │   │   ├── template_atap_bulanan_kab.xlsx
@@ -342,35 +344,84 @@ Dashboard Pertanian/
 ├── src
 │   ├── app
 │   │   ├── (dashboard)
+│   │   │   ├── _actions
+│   │   │   │   └── getSimtpKpiAction.ts
+│   │   │   ├── bahan-produksi
+│   │   │   │   ├── _actions.ts
+│   │   │   │   ├── bahan-produksi-client.tsx
+│   │   │   │   ├── bahan-produksi-skeleton.tsx
+│   │   │   │   ├── content-management-dialog.tsx
+│   │   │   │   ├── materi-pedoman-card.tsx
+│   │   │   │   ├── materi-pedoman-dialog.tsx
+│   │   │   │   ├── page.tsx
+│   │   │   │   └── portal-produksi.tsx
+│   │   │   ├── crawling-fasih
+│   │   │   │   ├── _actions.ts
+│   │   │   │   ├── columns.tsx
+│   │   │   │   ├── crawling-client.tsx
+│   │   │   │   ├── data-table.tsx
+│   │   │   │   └── page.tsx
 │   │   │   ├── evaluasi
 │   │   │   │   ├── ksa
+│   │   │   │   │   ├── AnomalyValidatorTab.tsx
 │   │   │   │   │   ├── DetailKsaModal.tsx
 │   │   │   │   │   ├── DetailKsaModalContent.tsx
 │   │   │   │   │   ├── MonthlyHarvestDisplay.tsx
+│   │   │   │   │   ├── OfficerPerformanceTab.tsx
+│   │   │   │   │   ├── PhaseTimelineVisual.tsx
 │   │   │   │   │   ├── evaluasi-ksa-client.tsx
 │   │   │   │   │   └── page.tsx
 │   │   │   │   └── ubinan
 │   │   │   │       ├── DetailKabupatenModal.tsx
 │   │   │   │       ├── DetailKabupatenModalContent.tsx
+│   │   │   │       ├── HasilUbinanDetailModal.tsx
+│   │   │   │       ├── HasilUbinanDetailModalContent.tsx
+│   │   │   │       ├── UbinanBoxPlot.tsx
+│   │   │   │       ├── UbinanComparisonChart.tsx
+│   │   │   │       ├── _actions.ts
 │   │   │   │       ├── descriptive-stats-columns.tsx
 │   │   │   │       ├── detail-record-columns.tsx
 │   │   │   │       ├── evaluasi-ubinan-client.tsx
+│   │   │   │       ├── hasil-ubinan-detail-columns.tsx
 │   │   │   │       ├── page.tsx
-│   │   │   │       └── penggunaan-benih-dan-pupuk-columns.tsx
+│   │   │   │       ├── penggunaan-benih-dan-pupuk-columns.tsx
+│   │   │   │       └── types.ts
+│   │   │   ├── jadwal
+│   │   │   │   ├── jadwal-client.tsx
+│   │   │   │   ├── jadwal-desktop.tsx
+│   │   │   │   ├── jadwal-mobile.tsx
+│   │   │   │   ├── jadwal.config.tsx
+│   │   │   │   ├── jadwal.utils.ts
+│   │   │   │   └── page.tsx
 │   │   │   ├── layout.tsx
 │   │   │   ├── monitoring
+│   │   │   │   ├── kehutanan
+│   │   │   │   │   └── page.tsx
 │   │   │   │   ├── ksa
+│   │   │   │   │   ├── DistrictKsaTable.tsx
+│   │   │   │   │   ├── NamaKsaTable.tsx
+│   │   │   │   │   ├── components
+│   │   │   │   │   │   └── BeritaAcaraModal.tsx
 │   │   │   │   │   ├── ksa-monitoring-client-page.tsx
 │   │   │   │   │   └── page.tsx
+│   │   │   │   ├── simtp
+│   │   │   │   │   ├── SimtpMonitoringClient.tsx
+│   │   │   │   │   ├── _actions.ts
+│   │   │   │   │   ├── page.tsx
+│   │   │   │   │   └── types.ts
 │   │   │   │   └── ubinan
-│   │   │   │       └── page.tsx
+│   │   │   │       ├── PadiTable.tsx
+│   │   │   │       ├── PalawijaTable.tsx
+│   │   │   │       ├── page.tsx
+│   │   │   │       └── types.ts
 │   │   │   ├── page.tsx
 │   │   │   ├── pengguna
 │   │   │   │   ├── _actions.ts
 │   │   │   │   ├── page.tsx
+│   │   │   │   ├── user-import-dialog.tsx
 │   │   │   │   └── user-management-client-page.tsx
 │   │   │   ├── produksi-statistik
-│   │   │   │   ├── atap-charts.tsx
+│   │   │   │   ├── annotation-sheet.tsx
 │   │   │   │   ├── bar-chart-wrapper.tsx
 │   │   │   │   ├── columns.tsx
 │   │   │   │   ├── data-table.tsx
@@ -378,19 +429,29 @@ Dashboard Pertanian/
 │   │   │   │   ├── page.tsx
 │   │   │   │   ├── pie-chart-wrapper.tsx
 │   │   │   │   └── statistik-client.tsx
+│   │   │   ├── profil
+│   │   │   │   └── page.tsx
+│   │   │   ├── simtp-upload
+│   │   │   │   ├── SimtpUploadClient.tsx
+│   │   │   │   ├── UploadHistory.tsx
+│   │   │   │   ├── _actions.ts
+│   │   │   │   └── page.tsx
 │   │   │   └── update-data
 │   │   │       ├── atap
 │   │   │       │   ├── _actions.ts
 │   │   │       │   ├── atap-uploader.tsx
-│   │   │       │   └── page.tsx
+│   │   │       │   ├── page.tsx
+│   │   │       │   └── update-atap-client.tsx
 │   │   │       ├── ksa
 │   │   │       │   ├── _actions.ts
 │   │   │       │   ├── ksa-uploader.tsx
-│   │   │       │   └── page.tsx
+│   │   │       │   ├── page.tsx
+│   │   │       │   └── update-ksa-client.tsx
 │   │   │       └── ubinan
 │   │   │           ├── _actions.ts
 │   │   │           ├── master-sample-uploader.tsx
 │   │   │           ├── page.tsx
+│   │   │           ├── update-ubinan-client.tsx
 │   │   │           └── uploader-client-component.tsx
 │   │   ├── api
 │   │   │   ├── produksi
@@ -401,7 +462,9 @@ Dashboard Pertanian/
 │   │   │   ├── login
 │   │   │   │   └── page.tsx
 │   │   │   └── register
-│   │   │       └── page.tsx
+│   │   │       ├── _actions.ts
+│   │   │       ├── page.tsx
+│   │   │       └── schema.ts
 │   │   ├── client-layout-wrapper.tsx
 │   │   ├── favicon.ico
 │   │   ├── globals.css
@@ -413,6 +476,9 @@ Dashboard Pertanian/
 │   │   │   ├── NewSidebar.tsx
 │   │   │   └── main-layout.tsx
 │   │   └── ui
+│   │       ├── CustomFileInput.tsx
+│   │       ├── GenericPaginatedTable.tsx
+│   │       ├── accordion.tsx
 │   │       ├── alert-dialog.tsx
 │   │       ├── alert.tsx
 │   │       ├── avatar.tsx
@@ -426,6 +492,7 @@ Dashboard Pertanian/
 │   │       ├── collapsible.tsx
 │   │       ├── command.tsx
 │   │       ├── dialog.tsx
+│   │       ├── drawer.tsx
 │   │       ├── dropdown-menu.tsx
 │   │       ├── form.tsx
 │   │       ├── input.tsx
@@ -434,6 +501,7 @@ Dashboard Pertanian/
 │   │       ├── navigation-menu.tsx
 │   │       ├── pagination.tsx
 │   │       ├── popover.tsx
+│   │       ├── progress.tsx
 │   │       ├── scroll-area.tsx
 │   │       ├── select.tsx
 │   │       ├── separator.tsx
@@ -444,28 +512,40 @@ Dashboard Pertanian/
 │   │       ├── switch.tsx
 │   │       ├── table.tsx
 │   │       ├── tabs.tsx
+│   │       ├── textarea.tsx
+│   │       ├── toggle-group.tsx
+│   │       ├── toggle.tsx
 │   │       └── tooltip.tsx
 │   ├── context
 │   │   ├── AuthContext.tsx
+│   │   ├── DarkModeContext.tsx
 │   │   ├── KsaEvaluasiFilterContext.tsx
 │   │   ├── UbinanEvaluasiFilterContext.tsx
 │   │   └── YearContext.tsx
 │   ├── hooks
 │   │   ├── use-mobile.ts
 │   │   ├── useAtapStatistikData.ts
+│   │   ├── useDailySubmissions.ts
 │   │   ├── useDebounce.ts
+│   │   ├── useKsaAnomalyData.ts
 │   │   ├── useKsaEvaluationData.ts
 │   │   ├── useKsaMonitoringData.ts
+│   │   ├── useOfficerPerformanceData.ts
 │   │   ├── usePadiMonitoringData.ts
 │   │   ├── usePalawijaMonitoringData.ts
 │   │   ├── usePenggunaanBenihDanPupukData.ts
+│   │   ├── useSimtpKpiData.ts
 │   │   └── useUbinanDescriptiveStatsData.ts
 │   ├── lib
 │   │   ├── database.types.ts
+│   │   ├── docx-generator.ts
+│   │   ├── icon-map.tsx
 │   │   ├── satker-data.ts
+│   │   ├── schemas.ts
 │   │   ├── sidebar-data.ts
 │   │   ├── supabase-server.ts
 │   │   ├── supabase.ts
+│   │   ├── useBreakpoint.ts
 │   │   └── utils.ts
 │   └── middleware.ts
 ├── tailwind.config.ts
