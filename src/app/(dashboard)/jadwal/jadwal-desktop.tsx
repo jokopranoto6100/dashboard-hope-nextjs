@@ -8,10 +8,9 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ChevronRight, ChevronDown, LocateFixed } from 'lucide-react';
 import { type Kegiatan, type JadwalItem } from './jadwal.config';
-import { getDaysInYear, getDayOfYear, getDurationInDays, colorVariants } from './jadwal.utils';
+import { getDaysInYear, getDayOfYear, colorVariants } from './jadwal.utils';
 
 // --- INTERFACE PROPS ---
-
 interface JadwalDesktopProps {
   data: Kegiatan[];
   tahun: number;
@@ -30,13 +29,7 @@ interface JadwalRowProps {
 
 // --- KOMPONEN JADWAL ROW (Spesifik untuk Desktop) ---
 function JadwalRow({
-  kegiatan,
-  tahun,
-  onBlockClick,
-  onToggleRow,
-  expandedRows,
-  isSub = false,
-  viewMode,
+  kegiatan, tahun, onBlockClick, onToggleRow, expandedRows, isSub = false, viewMode,
 }: JadwalRowProps) {
   const isExpanded = expandedRows.includes(kegiatan.kegiatan);
   const hasSub = kegiatan.subKegiatan && kegiatan.subKegiatan.length > 0;
@@ -55,7 +48,10 @@ function JadwalRow({
       const earliestStart = new Date(Math.min(...allSubDates.map(d => d.start.getTime())));
       const latestEnd = new Date(Math.max(...allSubDates.map(d => d.end.getTime())));
 
+      // ✅ PERBAIKAN DI SINI: Tambahkan properti id dan kegiatan_id yang hilang
       displayJadwal = [{
+        id: `summary-${kegiatan.id}`, // ID sintetis untuk display dan key
+        kegiatan_id: kegiatan.id,     // ID dari kegiatan induk
         nama: `${kegiatan.kegiatan}`,
         keterangan: `Seluruh rentang kegiatan untuk ${kegiatan.kegiatan}`,
         startDate: earliestStart.toISOString().split('T')[0],
@@ -81,10 +77,13 @@ function JadwalRow({
           {displayJadwal.map((item, itemIdx) => {
             const startDate = new Date(item.startDate);
             const endDate = new Date(item.endDate);
-            if (startDate.getFullYear() !== tahun) return null;
+            
+            // Filter jadwal yang tidak relevan dengan tahun yang dipilih
+            if (startDate.getFullYear() > tahun || endDate.getFullYear() < tahun) return null;
 
-            const startDay = getDayOfYear(startDate);
-            const duration = getDurationInDays(startDate, endDate);
+            const startDay = getDayOfYear(new Date(Math.max(startDate.getTime(), new Date(tahun, 0, 1).getTime())));
+            const endDay = getDayOfYear(new Date(Math.min(endDate.getTime(), new Date(tahun, 11, 31).getTime())));
+            const duration = endDay - startDay + 1;
             
             let left, width;
             if (viewMode === 'harian') {
@@ -99,7 +98,7 @@ function JadwalRow({
             }
 
             return (
-              <Tooltip key={itemIdx}>
+              <Tooltip key={item.id || itemIdx}>
                 <TooltipTrigger asChild>
                   <div
                     onClick={() => onBlockClick(item)}
@@ -112,7 +111,7 @@ function JadwalRow({
                 <TooltipContent>
                   <p className='font-semibold'>{item.nama}</p>
                   <p className='text-muted-foreground'>
-                    {startDate.toLocaleDateString('id-ID', { dateStyle: 'medium' })} - {endDate.toLocaleDateString('id-ID', { dateStyle: 'medium' })}
+                    {new Date(item.startDate).toLocaleDateString('id-ID', { dateStyle: 'medium' })} - {new Date(item.endDate).toLocaleDateString('id-ID', { dateStyle: 'medium' })}
                   </p>
                 </TooltipContent>
               </Tooltip>
@@ -133,7 +132,6 @@ function JadwalRow({
 
 // --- KOMPONEN UTAMA TAMPILAN DESKTOP ---
 export function JadwalDesktop({ data, tahun, onBlockClick }: JadwalDesktopProps) {
-  // State yang spesifik untuk desktop dikelola di sini
   const [viewMode, setViewMode] = useState<'harian' | 'bulanan'>('bulanan');
   const [expandedRows, setExpandedRows] = useState<string[]>([]);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -147,8 +145,8 @@ export function JadwalDesktop({ data, tahun, onBlockClick }: JadwalDesktopProps)
     if (isTodayVisible && viewMode === 'harian' && scrollContainerRef.current) {
       const container = scrollContainerRef.current;
       const today = new Date();
-      const todayDayOfYear = getDayOfYear(today);
-      const scrollPosition = ((todayDayOfYear - 1) * dailyCellWidth) - (container.clientWidth / 2) + (dailyCellWidth / 2);
+      const dayOfYear = getDayOfYear(today);
+      const scrollPosition = ((dayOfYear - 1) * dailyCellWidth) - (container.clientWidth / 2) + (dailyCellWidth / 2);
       container.scrollTo({ left: scrollPosition > 0 ? scrollPosition : 0, behavior: 'smooth' });
     }
   };
@@ -236,15 +234,7 @@ export function JadwalDesktop({ data, tahun, onBlockClick }: JadwalDesktopProps)
             {renderHeader()}
             <div>
               {data.map(kegiatan => (
-                <JadwalRow 
-                  key={kegiatan.kegiatan} 
-                  kegiatan={kegiatan} 
-                  tahun={tahun} 
-                  onBlockClick={onBlockClick} 
-                  onToggleRow={handleToggleRow} 
-                  expandedRows={expandedRows} 
-                  viewMode={viewMode} 
-                />
+                <JadwalRow key={kegiatan.kegiatan} kegiatan={kegiatan} tahun={tahun} onBlockClick={onBlockClick} onToggleRow={handleToggleRow} expandedRows={expandedRows} viewMode={viewMode} />
               ))}
             </div>
             {viewMode === 'harian' && todayDayOfYear !== -1 && (
