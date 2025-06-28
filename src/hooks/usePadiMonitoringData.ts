@@ -1,6 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// src/hooks/usePadiMonitoringData.ts
 import { useState, useEffect } from 'react';
 import { useAuth } from "@/context/AuthContext";
 
@@ -31,7 +29,7 @@ const mapStatusToGroup = (rawStatus: string): 'Approved' | 'Rejected' | 'Submitt
   return 'Lainnya'; // Fallback untuk status yang tidak terduga
 };
 
-// Definisikan tipe untuk return value hook ini
+// DIUBAH: Definisikan tipe untuk return value hook ini dengan tambahan kegiatanId
 interface PadiMonitoringDataHook {
   processedPadiData: PadiDataRow[] | null;
   padiTotals: PadiTotals | null;
@@ -39,6 +37,7 @@ interface PadiMonitoringDataHook {
   errorPadi: string | null;
   lastUpdate: string | null;
   uniqueStatusNames?: string[];
+  kegiatanId: string | null; // BARU
 }
 
 export const usePadiMonitoringData = (selectedYear: number, selectedSubround: string): PadiMonitoringDataHook => {
@@ -50,13 +49,17 @@ export const usePadiMonitoringData = (selectedYear: number, selectedSubround: st
   const [errorPadi, setErrorPadi] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<string | null>(null);
   const [uniqueStatusNames, setUniqueStatusNames] = useState<string[] | undefined>(undefined);
+  const [kegiatanId, setKegiatanId] = useState<string | null>(null); // BARU: State untuk menyimpan ID kegiatan
 
   useEffect(() => {
+    if (!supabase) return;
+
     const fetchAndProcessPadiData = async () => {
       setLoadingPadi(true);
       setErrorPadi(null);
       setLastUpdate(null);
       setUniqueStatusNames(undefined);
+      setKegiatanId(null); // BARU: Reset ID setiap kali fetch
 
       const currentDate = new Date();
       const currentMonth = currentDate.getMonth();
@@ -78,9 +81,10 @@ export const usePadiMonitoringData = (selectedYear: number, selectedSubround: st
       let currentPage = 0;
       const itemsPerPage = 1000;
 
+      // DIUBAH: Tambahkan 'komoditas' dan 'kegiatan_id' ke kolom yang dipilih
       const selectColumns = [
         'nmkab', 'jenis_sampel', 'r701', 'tahun', 'subround', 'kab', 'anomali', 'timestamp_refresh',
-        'status', 
+        'status', 'komoditas', 'kegiatan_id',
         lastMonthColumn,
         ...lewatPanenColumns,
       ];
@@ -95,6 +99,9 @@ export const usePadiMonitoringData = (selectedYear: number, selectedSubround: st
           queryPadi = queryPadi.eq('subround', parseInt(selectedSubround));
         }
 
+        // BARU: Tambahkan filter untuk hanya mengambil komoditas Padi
+        queryPadi = queryPadi.in('komoditas', ['1 - Padi Sawah', '3 - Padi Ladang']);
+
         const { data, error } = await queryPadi
           .range(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage - 1);
 
@@ -108,6 +115,12 @@ export const usePadiMonitoringData = (selectedYear: number, selectedSubround: st
         currentPage++;
       }
 
+      // BARU: Ambil kegiatan_id dari baris data pertama (semua akan sama)
+      if (allRawPadiData && allRawPadiData.length > 0) {
+        setKegiatanId(allRawPadiData[0].kegiatan_id);
+      }
+
+      // --- Sisa dari logika pemrosesan Anda tidak berubah ---
       const rawPadiData = allRawPadiData;
       const groupedData: {
         [key: string]: PadiDataRow
@@ -202,8 +215,8 @@ export const usePadiMonitoringData = (selectedYear: number, selectedSubround: st
 
       const finalProcessedData = Object.values(groupedData).map(item => ({
           ...item,
-          persentase: item.targetUtama > 0 ? ((item.realisasi / item.targetUtama) * 100).toFixed(2) : "0.00"
-      })).sort((a, b) => a.kab_sort_key.localeCompare(b.kab_sort_key));
+          persentase: item.targetUtama > 0 ? ((item.realisasi / item.targetUtama) * 100) : 0
+      }));
 
       const totalPersentase = totalTargetUtama > 0 ? ((totalRealisasi / totalTargetUtama) * 100) : 0;
 
@@ -214,11 +227,10 @@ export const usePadiMonitoringData = (selectedYear: number, selectedSubround: st
           faseGeneratif_G2: totalFaseGeneratif_G2,
           faseGeneratif_G3: totalFaseGeneratif_G3,
           anomali: totalAnomali,
-          // ✅ PERUBAHAN DI SINI: Ubah dari string kembali ke number
-          persentase: parseFloat(totalPersentase.toFixed(2)),
+          persentase: totalPersentase,
           statuses: aggregatedStatuses 
       });
-      setProcessedPadiData(finalProcessedData);
+      setProcessedPadiData(finalProcessedData.sort((a, b) => a.kab_sort_key.localeCompare(b.kab_sort_key)));
       setUniqueStatusNames(Object.keys(aggregatedStatuses).sort()); 
       setLoadingPadi(false);
 
@@ -230,10 +242,11 @@ export const usePadiMonitoringData = (selectedYear: number, selectedSubround: st
       } else {
         setLastUpdate('N/A');
       }
-
     };
+
     fetchAndProcessPadiData();
   }, [selectedYear, selectedSubround, supabase]);
 
-  return { processedPadiData, padiTotals, loadingPadi, errorPadi, lastUpdate, uniqueStatusNames };
+  // DIUBAH: Kembalikan kegiatanId dalam objek return
+  return { processedPadiData, padiTotals, loadingPadi, errorPadi, lastUpdate, uniqueStatusNames, kegiatanId };
 };

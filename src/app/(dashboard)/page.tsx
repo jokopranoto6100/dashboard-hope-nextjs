@@ -9,13 +9,21 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Clock } from "lucide-react";
 
-// Impor hooks yang sudah ada
+// Impor hooks yang berhubungan dengan jadwal dan monitoring
+import { useJadwalData } from "@/hooks/useJadwalData";
 import { usePadiMonitoringData } from '@/hooks/usePadiMonitoringData';
 import { usePalawijaMonitoringData } from '@/hooks/usePalawijaMonitoringData';
 import { useKsaMonitoringData } from '@/hooks/useKsaMonitoringData';
-// BARU: Impor hook SIMTP
 import { useSimtpKpiData } from "@/hooks/useSimtpKpiData";
+import { type Kegiatan } from "@/app/(dashboard)/jadwal/jadwal.config";
+
+// Helper function untuk menghitung selisih hari
+const getDiffInDays = (d1: Date, d2: Date): number => {
+    const timeDiff = d2.getTime() - d1.getTime();
+    return Math.round(timeDiff / (1000 * 60 * 60 * 24));
+}
 
 const getMonthName = (monthNumberStr: string | undefined): string => {
   if (!monthNumberStr || monthNumberStr.toLowerCase() === "semua") return "Data Tahunan";
@@ -33,35 +41,57 @@ export default function HomePage() {
   const ubinanSubround = 'all';
 
   const {
-    padiTotals,
-    loadingPadi,
-    errorPadi,
-    lastUpdate,
-    uniqueStatusNames: padiUniqueStatusNames
+    padiTotals, loadingPadi, errorPadi, lastUpdate,
+    uniqueStatusNames: padiUniqueStatusNames,
+    kegiatanId: padiKegiatanId
   } = usePadiMonitoringData(selectedYear, ubinanSubround);
 
   const {
-    palawijaTotals,
-    loadingPalawija,
-    errorPalawija,
-    lastUpdatePalawija
+    palawijaTotals, loadingPalawija, errorPalawija, lastUpdatePalawija,
+    kegiatanId: palawijaKegiatanId
   } = usePalawijaMonitoringData(selectedYear, ubinanSubround);
 
   const { 
-    districtTotals: ksaTotals, 
-    isLoading: loadingKsa, 
-    error: errorKsa, 
-    lastUpdated: lastUpdatedKsa,
-    displayMonth: ksaDisplayMonth,
-    uniqueStatusNames: ksaUniqueStatusNames
+    districtTotals: ksaTotals, isLoading: loadingKsa, error: errorKsa, 
+    lastUpdated: lastUpdatedKsa, displayMonth: ksaDisplayMonth, uniqueStatusNames: ksaUniqueStatusNames
   } = useKsaMonitoringData(); 
 
-  // Panggil hook untuk data KPI SIMTP
   const { data: simtpData, isLoading: loadingSimtp, error: errorSimtp } = useSimtpKpiData();
+
+  const { jadwalData, isLoading: isJadwalLoading } = useJadwalData(selectedYear);
+
+  const jadwalPadi = React.useMemo(() => !isJadwalLoading && padiKegiatanId ? jadwalData.find(k => k.id === padiKegiatanId) : undefined, [jadwalData, isJadwalLoading, padiKegiatanId]);
+  const jadwalPalawija = React.useMemo(() => !isJadwalLoading && palawijaKegiatanId ? jadwalData.find(k => k.id === palawijaKegiatanId) : undefined, [jadwalData, isJadwalLoading, palawijaKegiatanId]);
+
+  const calculateCountdown = (jadwal?: Kegiatan) => {
+    if (!jadwal) return null;
+    const allJadwalItems = [...(jadwal.jadwal || []), ...(jadwal.subKegiatan?.flatMap(sub => sub.jadwal || []) || [])];
+    if (allJadwalItems.length === 0) return null;
+    const allStartDates = allJadwalItems.map(j => new Date(j.startDate));
+    const allEndDates = allJadwalItems.map(j => new Date(j.endDate));
+    const earliestStart = new Date(Math.min(...allStartDates.map(d => d.getTime())));
+    const latestEnd = new Date(Math.max(...allEndDates.map(d => d.getTime())));
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (today > latestEnd) return { text: "Jadwal Telah Berakhir", color: "text-gray-500" };
+    if (today >= earliestStart && today <= latestEnd) {
+      const daysLeft = getDiffInDays(today, latestEnd);
+      if (daysLeft === 0) return { text: "Berakhir Hari Ini", color: "text-red-600" };
+      return { text: `Berakhir dalam ${daysLeft} hari`, color: "text-green-600" };
+    }
+    if (today < earliestStart) {
+      const daysUntil = getDiffInDays(today, earliestStart);
+       if (daysUntil === 1) return { text: "Dimulai Besok", color: "text-blue-600" };
+      return { text: `Dimulai dalam ${daysUntil} hari`, color: "text-blue-600" };
+    }
+    return null;
+  }
+
+  const countdownStatusPadi = React.useMemo(() => calculateCountdown(jadwalPadi), [jadwalPadi]);
+  const countdownStatusPalawija = React.useMemo(() => calculateCountdown(jadwalPalawija), [jadwalPalawija]);
 
   return (
     <>
-      {/* DIUBAH: Layout diubah menjadi 4 kolom di layar besar */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-6">
         {/* Card 1: Ubinan Padi */}
         <Card className="h-full">
@@ -72,20 +102,23 @@ export default function HomePage() {
             </Button>
           </CardHeader>
           <CardContent className="flex flex-col h-full">
-            {loadingPadi ? (
-              <>
-                <Skeleton className="h-8 w-3/4 mb-1" />
-                <Skeleton className="h-4 w-full mb-1" />
-                <Skeleton className="h-5 w-1/2 mb-1" />
-                <Skeleton className="h-5 w-1/2 mb-1" />
-                <Skeleton className="h-4 w-full mt-2 pt-2 border-t" /> 
-                <Skeleton className="h-5 w-3/4 mt-1" /> 
-                <Skeleton className="h-4 w-2/3 mt-1" />
-              </>
+            {loadingPadi || isJadwalLoading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-5 w-3/4" />
+                <Skeleton className="h-8 w-1/2" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-2/3" />
+              </div>
             ) : errorPadi ? (
               <p className="text-xs text-red-500">Error: {errorPadi}</p>
             ) : padiTotals && typeof padiTotals.persentase === 'number' ? (
               <>
+                {countdownStatusPadi && (
+                    <div className="flex items-center text-xs text-muted-foreground mb-4">
+                        <Clock className={`h-4 w-4 mr-2 ${countdownStatusPadi.color}`} />
+                        <span className={`font-medium ${countdownStatusPadi.color}`}>{countdownStatusPadi.text}</span>
+                    </div>
+                )}
                 <div className="flex-grow">
                   <div className="text-2xl font-bold">{padiTotals.persentase.toFixed(2)}%</div>
                   <p className="text-xs text-muted-foreground">
@@ -114,11 +147,7 @@ export default function HomePage() {
                       {padiUniqueStatusNames.map(statusName => {
                         const count = padiTotals.statuses?.[statusName];
                         if (count !== undefined) {
-                          return (
-                            <Badge key={statusName} variant="secondary">
-                              {statusName}: {count}
-                            </Badge>
-                          );
+                          return ( <Badge key={statusName} variant="secondary">{statusName}: {count}</Badge> );
                         }
                         return null;
                       })}
@@ -142,17 +171,22 @@ export default function HomePage() {
             </Button>
           </CardHeader>
           <CardContent className="flex flex-col h-full">
-            {loadingPalawija ? (
-              <>
-                <Skeleton className="h-8 w-3/4 mb-1" />
-                <Skeleton className="h-4 w-full mb-1" />
-                <Skeleton className="h-5 w-full mt-2 pt-2 border-t" />
-                <Skeleton className="h-4 w-2/3 mt-1" />
-              </>
+            {loadingPalawija || isJadwalLoading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-5 w-3/4" />
+                <Skeleton className="h-8 w-1/2" />
+                <Skeleton className="h-4 w-full" />
+              </div>
             ) : errorPalawija ? (
               <p className="text-xs text-red-500">Error: {errorPalawija}</p>
             ) : palawijaTotals && typeof palawijaTotals.persentase === 'number' ? (
               <>
+                {countdownStatusPalawija && (
+                    <div className="flex items-center text-xs text-muted-foreground mb-4">
+                        <Clock className={`h-4 w-4 mr-2 ${countdownStatusPalawija.color}`} />
+                        <span className={`font-medium ${countdownStatusPalawija.color}`}>{countdownStatusPalawija.text}</span>
+                    </div>
+                )}
                 <div className="flex-grow">
                     <div className="text-2xl font-bold">{palawijaTotals.persentase.toFixed(2)}%</div>
                     <p className="text-xs text-muted-foreground">
@@ -163,15 +197,9 @@ export default function HomePage() {
                 <div className="text-xs text-muted-foreground mt-3 pt-2 border-t">
                   <h4 className="font-semibold mb-1 text-foreground">Detail Status Validasi:</h4>
                   <div className="flex flex-wrap items-center gap-1">
-                    <Badge variant="secondary">
-                      Clean: {palawijaTotals.clean}
-                    </Badge>
-                    <Badge variant="secondary">
-                      Warning: {palawijaTotals.warning}
-                    </Badge>
-                    <Badge variant="secondary">
-                      Error: {palawijaTotals.error}
-                    </Badge>
+                    <Badge variant="secondary">Clean: {palawijaTotals.clean}</Badge>
+                    <Badge variant="secondary">Warning: {palawijaTotals.warning}</Badge>
+                    <Badge variant="secondary">Error: {palawijaTotals.error}</Badge>
                   </div>
                 </div>
 
@@ -186,43 +214,29 @@ export default function HomePage() {
         {/* Card 3: KSA Padi */}
         <Card className="h-full">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              KSA Padi ({selectedYear}) - {getMonthName(ksaDisplayMonth)}
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">KSA Padi ({selectedYear}) - {getMonthName(ksaDisplayMonth)}</CardTitle>
             <Button asChild variant="outline" size="sm">
               <Link href="/monitoring/ksa">Lihat Detail</Link>
             </Button>
           </CardHeader>
           <CardContent className="flex flex-col h-full">
             {loadingKsa ? (
-              <>
+              <div className="space-y-2">
                 <Skeleton className="h-8 w-3/4 mb-1" />
                 <Skeleton className="h-4 w-full mb-1" />
-                <Skeleton className="h-5 w-1/2 mb-1" />
-                <Skeleton className="h-4 w-1/2 mb-1" />
-                <Skeleton className="h-4 w-full mt-2 pt-2 border-t" /> 
-                <Skeleton className="h-5 w-3/4 mt-1" /> 
                 <Skeleton className="h-4 w-2/3 mt-1" />
-              </>
+              </div>
             ) : errorKsa ? (
               <p className="text-xs text-red-500">Error: {errorKsa}</p>
             ) : ksaTotals ? (
               <>
                 <div className="flex-grow">
                     <div className="text-2xl font-bold">{ksaTotals.persentase.toFixed(2)}%</div>
-                    <p className="text-xs text-muted-foreground">
-                    Realisasi: {ksaTotals.realisasi} dari {ksaTotals.target} Target
-                    </p>
+                    <p className="text-xs text-muted-foreground">Realisasi: {ksaTotals.realisasi} dari {ksaTotals.target} Target</p>
                     <div className="flex flex-col md:flex-row md:gap-6">
                         <p className="text-xs text-muted-foreground mt-1 flex items-center flex-wrap">
                             Inkonsisten:&nbsp;
-                            {ksaTotals.inkonsisten > 0 ? (
-                                <Badge variant="destructive"> 
-                                    {ksaTotals.inkonsisten}
-                                </Badge>
-                            ) : (
-                                <Badge variant="success">{ksaTotals.inkonsisten}</Badge>
-                            )}
+                            <Badge variant={ksaTotals.inkonsisten > 0 ? "destructive" : "success"}>{ksaTotals.inkonsisten}</Badge>
                         </p>
                         <p className="text-xs text-muted-foreground mt-1 flex items-center">
                             Total Kode 12:&nbsp;
@@ -241,12 +255,7 @@ export default function HomePage() {
                               let statusVariant: "default" | "secondary" | "destructive" | "success" | "warning" = "secondary";
                               if (statusName.toLowerCase().includes("selesai") || statusName.toLowerCase().includes("panen")) statusVariant = "success";
                               if (statusName.toLowerCase().includes("belum") || statusName.toLowerCase().includes("kosong")) statusVariant = "default";
-
-                              return (
-                                  <Badge key={statusName} variant={statusVariant}>
-                                      {statusName}: {statusData.count} 
-                                  </Badge>
-                              );
+                              return ( <Badge key={statusName} variant={statusVariant}>{statusName}: {statusData.count}</Badge> );
                           }
                           return null;
                         })}
@@ -264,20 +273,18 @@ export default function HomePage() {
         {/* Card 4: KPI SIMTP (BARU) */}
         <Card className="h-full">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Progres SIMTP</CardTitle>
+            <CardTitle className="text-sm font-medium">SIMTP - {simtpData ? simtpData.monthly.reportForMonthName : "Data tidak tersedia"}</CardTitle>
             <Button asChild variant="outline" size="sm">
               <Link href="/monitoring/simtp">Lihat Detail</Link>
             </Button>
           </CardHeader>
           <CardContent className="flex flex-col h-full">
             {loadingSimtp ? (
-              <>
+              <div className="space-y-2">
                 <Skeleton className="h-8 w-3/4 mb-1" />
                 <Skeleton className="h-4 w-full mb-1" />
-                <Skeleton className="h-4 w-1/2 mt-4 pt-2 border-t" />
-                <Skeleton className="h-5 w-full mt-1" />
-                <Skeleton className="h-4 w-2/3 mt-1" />
-              </>
+                <Skeleton className="h-4 w-2/3 mt-2" />
+              </div>
             ) : errorSimtp ? (
               <p className="text-xs text-red-500">Error: {errorSimtp}</p>
             ) : simtpData ? (
@@ -285,10 +292,8 @@ export default function HomePage() {
                 <div className="flex-grow">
                   <div className="text-2xl font-bold">{simtpData.monthly.percentage.toFixed(2)}%</div>
                   <p className="text-xs text-muted-foreground">
-                    Laporan Bulanan ({simtpData.monthly.reportForMonthName}): 
-                    <span className="font-semibold text-foreground">
-                      {` ${simtpData.monthly.uploadedCount} dari ${simtpData.monthly.totalDistricts} Kab/Kota`}
-                    </span>
+                    Laporan Bulanan: 
+                    <span className="font-semibold text-foreground">{` ${simtpData.monthly.uploadedCount} dari ${simtpData.monthly.totalDistricts} Kab/Kota`}</span>
                   </p>
                   <Progress value={simtpData.monthly.percentage} className="mt-2 h-2" />
                 </div>
@@ -296,15 +301,9 @@ export default function HomePage() {
                 <div className="text-xs text-muted-foreground mt-3 pt-2 border-t">
                   <h4 className="font-semibold mb-1 text-foreground">Data Tahunan ({simtpData.annual.reportForYear}):</h4>
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                    <Badge variant="secondary">
-                      Lahan: {simtpData.annual.lahanCount}/{simtpData.annual.totalDistricts}
-                    </Badge>
-                    <Badge variant="secondary">
-                      Alsin: {simtpData.annual.alsinCount}/{simtpData.annual.totalDistricts}
-                    </Badge>
-                    <Badge variant="secondary">
-                      Benih: {simtpData.annual.benihCount}/{simtpData.annual.totalDistricts}
-                    </Badge>
+                    <Badge variant="secondary">Lahan: {simtpData.annual.lahanCount}/{simtpData.annual.totalDistricts}</Badge>
+                    <Badge variant="secondary">Alsin: {simtpData.annual.alsinCount}/{simtpData.annual.totalDistricts}</Badge>
+                    <Badge variant="secondary">Benih: {simtpData.annual.benihCount}/{simtpData.annual.totalDistricts}</Badge>
                   </div>
                 </div>
 

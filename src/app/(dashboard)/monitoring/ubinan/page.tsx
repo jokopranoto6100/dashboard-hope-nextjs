@@ -1,36 +1,43 @@
-// src/app/(dashboard)/monitoring/ubinan/page.tsx
 "use client";
 
 import * as React from "react";
 import { useYear } from '@/context/YearContext';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-// Impor hooks
+// Impor semua hooks yang diperlukan
 import { usePadiMonitoringData } from '@/hooks/usePadiMonitoringData';
 import { usePalawijaMonitoringData } from '@/hooks/usePalawijaMonitoringData';
+import { useJadwalData } from "@/hooks/useJadwalData";
 
-// Impor komponen tabel
+// Impor komponen tabel dan UI lainnya
 import { PadiMonitoringTable } from './PadiTable'; 
 import { PalawijaMonitoringTable } from './PalawijaTable';
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function UbinanMonitoringPage() {
   const { selectedYear } = useYear();
   const [selectedSubround, setSelectedSubround] = React.useState<string>('all');
 
-  const { processedPadiData, padiTotals, loadingPadi, errorPadi, lastUpdate } = usePadiMonitoringData(selectedYear, selectedSubround);
-  const { processedPalawijaData, palawijaTotals, loadingPalawija, errorPalawija, lastUpdatePalawija } = usePalawijaMonitoringData(selectedYear, selectedSubround);
+  // Ambil data dan ID dari setiap hook
+  const { processedPadiData, padiTotals, loadingPadi, errorPadi, lastUpdate, kegiatanId: padiKegiatanId } = usePadiMonitoringData(selectedYear, selectedSubround);
+  const { processedPalawijaData, palawijaTotals, loadingPalawija, errorPalawija, lastUpdatePalawija, kegiatanId: palawijaKegiatanId } = usePalawijaMonitoringData(selectedYear, selectedSubround);
+  const { jadwalData, isLoading: isJadwalLoading } = useJadwalData(selectedYear);
+
+  // Logika mapping otomatis berdasarkan ID
+  const jadwalPadi = React.useMemo(() => 
+    !isJadwalLoading && padiKegiatanId ? jadwalData.find(k => k.id === padiKegiatanId) : undefined
+  , [jadwalData, isJadwalLoading, padiKegiatanId]);
+
+  const jadwalPalawija = React.useMemo(() => 
+    !isJadwalLoading && palawijaKegiatanId ? jadwalData.find(k => k.id === palawijaKegiatanId) : undefined
+  , [jadwalData, isJadwalLoading, palawijaKegiatanId]);
+
+  const pageIsLoading = loadingPadi || loadingPalawija || isJadwalLoading;
 
   return (
     <div className="flex flex-col gap-4 min-w-0">
-      {/* ✅ 1. UBAH TATA LETAK FILTER AGAR FLEKSIBEL DAN RESPONSIVE */}
       <div className="flex items-center justify-end flex-wrap gap-2">
-        {/*
-          - 'flex-wrap' akan membuat item turun baris jika tidak muat.
-          - 'gap-2' memberi jarak yang konsisten.
-          - Elemen filter Tahun dan Tema Toggle Anda (yang ada di layout.tsx) akan otomatis menyesuaikan diri.
-        */}
         <Select value={selectedSubround} onValueChange={setSelectedSubround}>
-           {/* ✅ 2. UBAH LEBAR DROPDOWN MENJADI RESPONSIVE */}
           <SelectTrigger className="w-full md:w-[180px]">
             <SelectValue placeholder="Pilih Subround" />
           </SelectTrigger>
@@ -43,25 +50,36 @@ export default function UbinanMonitoringPage() {
         </Select>
       </div>
 
-      <PadiMonitoringTable 
-        data={processedPadiData || []}
-        totals={padiTotals}
-        isLoading={loadingPadi}
-        error={errorPadi}
-        lastUpdate={lastUpdate}
-        selectedYear={selectedYear}
-        selectedSubround={selectedSubround}
-      />
-      
-      <PalawijaMonitoringTable
-        data={processedPalawijaData || []}
-        totals={palawijaTotals}
-        isLoading={loadingPalawija}
-        error={errorPalawija}
-        lastUpdate={lastUpdatePalawija}
-        selectedYear={selectedYear}
-        selectedSubround={selectedSubround}
-      />
+      {pageIsLoading ? (
+        <>
+          <Skeleton className="h-[400px] w-full" />
+          <Skeleton className="h-[400px] w-full" />
+        </>
+      ) : (
+        <>
+          <PadiMonitoringTable 
+            data={processedPadiData || []}
+            totals={padiTotals}
+            isLoading={loadingPadi}
+            error={errorPadi}
+            lastUpdate={lastUpdate}
+            selectedYear={selectedYear}
+            selectedSubround={selectedSubround}
+            jadwal={jadwalPadi} // Prop jadwal diteruskan ke komponen tabel
+          />
+          
+          <PalawijaMonitoringTable
+            data={processedPalawijaData || []}
+            totals={palawijaTotals}
+            isLoading={loadingPalawija}
+            error={errorPalawija}
+            lastUpdate={lastUpdatePalawija}
+            selectedYear={selectedYear}
+            selectedSubround={selectedSubround}
+            jadwal={jadwalPalawija} // Prop jadwal diteruskan ke komponen tabel
+          />
+        </>
+      )}
     </div>
   );
 }

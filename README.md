@@ -82,6 +82,30 @@ Berikut adalah fitur yang telah diimplementasikan, dikelompokkan berdasarkan men
         * Menampilkan rincian progres laporan tahunan untuk "Lahan", "Alsin", dan "Benih" dalam bentuk *badge*.
         * Dilengkapi tombol "Lihat Detail" yang mengarah ke `/monitoring/simtp`.
 
+### 🔗 Portal Bahan Produksi (`/bahan-produksi`)
+
+Halaman ini berfungsi sebagai portal terpusat untuk semua materi dan link terkait fungsi produksi, dengan fitur manajemen konten penuh untuk admin.
+
+* **A. Kartu Materi dan Pedoman Survei (`MateriPedomanCard`)**:
+    * Menampilkan kartu utama sebagai pusat dokumentasi dengan tombol "Lihat Semua Dokumen".
+    * Link tujuan tombol bersifat dinamis, diambil dari database tabel `app_settings` saat halaman dimuat di server.
+    * **Fitur Admin**: Pengguna dengan peran `super_admin` dapat melihat tombol pengaturan (`<Settings />`). Tombol ini membuka dialog (`MateriPedomanDialog`) untuk mengubah link tujuan, yang kemudian disimpan melalui Server Action (`updateMateriPedomanLink`).
+
+* **B. Portal Subsektor Interaktif (`BahanProduksiClient`)**:
+    * **Carousel Kartu Flipping**: Fitur utama halaman ini adalah carousel horizontal (`Carousel`) yang berisi kartu-kartu interaktif untuk setiap subsektor (misalnya, Tanaman Pangan, Hortikultura).
+    * **Animasi**: Kartu menggunakan `framer-motion` untuk memberikan efek membalik (flip) 3D saat diklik.
+    * **Sisi Depan Kartu**: Menampilkan ikon dan nama subsektor, berfungsi sebagai tombol untuk membalik kartu.
+    * **Sisi Belakang Kartu**: Setelah dibalik, kartu menampilkan daftar link yang relevan dengan subsektor tersebut. Setiap link memiliki ikon, label, dan akan membuka di tab baru. Terdapat tombol "Kembali" untuk membalik kartu ke sisi depan.
+    * **Konten Dinamis**: Data untuk sektor dan link diambil dari database menggunakan *custom hook* `useBahanProduksiData`, dan ikon dipetakan secara dinamis dari `icon-map`. Saat data dimuat, sebuah komponen skeleton (`BahanProduksiSkeleton`) akan ditampilkan.
+
+* **C. Manajemen Konten (`ContentManagementDialog`) - Khusus Admin**:
+    * **Dialog Terpusat**: Admin dapat mengelola semua konten melalui satu dialog komprehensif (`ContentManagementDialog`) yang diaktifkan oleh tombol pengaturan di header portal.
+    * **CRUD Sektor & Link**: Memungkinkan admin untuk Tambah, Edit, dan Hapus Sektor maupun Link di dalamnya melalui antarmuka dua panel (daftar sektor di kiri, daftar link di kanan).
+    * **Drag-and-Drop Reordering**: Fitur canggih menggunakan **`@dnd-kit/sortable`** yang memungkinkan admin untuk mengubah urutan sektor hanya dengan menyeret dan melepasnya di daftar. Perubahan urutan disimpan ke database melalui Server Action `updateSektorOrder`.
+    * **Backend & Validasi**: Semua operasi (CRUD dan reordering) ditangani oleh **Server Actions** yang dilindungi (`verifySuperAdmin`). Validasi input form menggunakan skema terpusat dari **Zod** (`@/lib/schemas`).
+    * **Konfirmasi Aman**: Setiap aksi penghapusan (baik sektor maupun link) akan menampilkan `AlertDialog` untuk konfirmasi, mencegah penghapusan yang tidak disengaja.
+
+
 ### 📈 Menu Monitoring
 
 #### Monitoring Ubinan (`/monitoring/ubinan`)
@@ -211,6 +235,7 @@ Berikut adalah fitur yang telah diimplementasikan, dikelompokkan berdasarkan men
 * `/`: Dashboard Utama
 * `/auth/login`: Halaman Login
 * `/auth/register`: Halaman Registrasi
+* `/bahan-produksi`: Portal Bahan Produksi
 * `/monitoring/ubinan`: Monitoring Ubinan Padi & Palawija
 * `/monitoring/ksa`: Monitoring KSA Padi
 * `/monitoring/simtp`: Monitoring SIMTP
