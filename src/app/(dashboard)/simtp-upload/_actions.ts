@@ -5,7 +5,7 @@ import { cookies } from 'next/headers';
 import { google } from 'googleapis';
 import { Readable } from 'stream';
 
-// Helper Function untuk otentikasi (sebaiknya diekstrak jika belum)
+// Helper Function untuk otentikasi (tidak berubah)
 async function getSupabaseClientWithAuthenticatedUser() {
   const cookieStore = await cookies();
   const supabase = await createSupabaseServerClientWithUserContext(cookieStore);
@@ -17,6 +17,7 @@ async function getSupabaseClientWithAuthenticatedUser() {
   return { supabase, user };
 }
 
+// Fungsi untuk client Google Drive (tidak berubah)
 function getDriveClient() {
   const decodedServiceAccount = Buffer.from(
     process.env.GOOGLE_SERVICE_ACCOUNT_BASE64!,
@@ -46,6 +47,22 @@ export async function uploadSimtpAction(formData: FormData) {
     if (!kodeKabupaten || !yearString) {
       return { success: false, error: "Data tidak lengkap: Kode Kabupaten atau Tahun tidak valid." };
     }
+
+    // =======================================================================
+    // ✅ BARU: Ambil ID untuk kegiatan 'SIMTP' dari database sekali saja
+    // =======================================================================
+    const { data: kegiatanData, error: kegiatanError } = await supabase
+        .from('kegiatan')
+        .select('id')
+        .eq('nama_kegiatan', 'SIMTP')
+        .single();
+
+    if (kegiatanError || !kegiatanData) {
+        throw new Error("Konfigurasi error: Kegiatan 'SIMTP' tidak ditemukan di tabel 'kegiatan'. Harap buat terlebih dahulu.");
+    }
+    const simtpKegiatanId = kegiatanData.id;
+    // =======================================================================
+
     
     const uploadDetails: string[] = [];
     const drive = getDriveClient();
@@ -63,7 +80,6 @@ export async function uploadSimtpAction(formData: FormData) {
       const file = formData.get(fileInfo.key) as File | null;
       if (!file || file.size === 0) continue;
 
-      // Logika baru untuk menentukan tahun data
       let yearForData = currentUploadYear;
       const isAnnualFile = ['LAHAN_TAHUNAN', 'ALSIN_TAHUNAN', 'BENIH_TAHUNAN'].includes(fileInfo.type);
       if (isAnnualFile) {
@@ -98,7 +114,8 @@ export async function uploadSimtpAction(formData: FormData) {
       }
 
       const currentMonth = new Date().getMonth() + 1;
-      // Menyimpan ke database dengan tahun data yang benar
+      
+      // ✅ DIUBAH: Tambahkan 'kegiatan_id' ke dalam data yang di-insert
       const { error: logError } = await supabase.from('simtp_uploads').insert({
         uploader_id: user.id,
         file_type: fileInfo.type,
@@ -107,6 +124,7 @@ export async function uploadSimtpAction(formData: FormData) {
         year: yearForData,
         month: currentMonth,
         kabupaten_kode: kodeKabupaten,
+        kegiatan_id: simtpKegiatanId, // <-- INI DIA
       });
 
       if (logError) {
@@ -129,7 +147,7 @@ export async function uploadSimtpAction(formData: FormData) {
   }
 }
 
-// --- ACTION UNTUK MENGAMBIL RIWAYAT (Refactored) ---
+// --- ACTION UNTUK MENGAMBIL RIWAYAT (Tidak ada perubahan di sini) ---
 export async function getUploadHistoryAction({ year, satkerId }: { year: number; satkerId: string; }) {
   try {
     const { supabase, user } = await getSupabaseClientWithAuthenticatedUser();

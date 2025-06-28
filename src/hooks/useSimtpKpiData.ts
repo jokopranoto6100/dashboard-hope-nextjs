@@ -1,20 +1,39 @@
-// src/hooks/useSimtpKpiData.ts
 "use client";
 
 import { useState, useEffect } from "react";
+// Pastikan path impor ini benar
 import { getSimtpKpiData, SimtpKpiData } from "@/app/(dashboard)/_actions/getSimtpKpiAction";
 
-export function useSimtpKpiData() {
+// BARU: Definisikan tipe untuk nilai yang dikembalikan oleh hook
+export interface SimtpKpiDataHook {
+  data: SimtpKpiData | null;
+  isLoading: boolean;
+  error: string | null;
+  kegiatanId: string | null; // Properti yang akan kita teruskan
+}
+
+export function useSimtpKpiData(): SimtpKpiDataHook {
   const [data, setData] = useState<SimtpKpiData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [kegiatanId, setKegiatanId] = useState<string | null>(null); // BARU: State untuk menyimpan ID
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
+        setKegiatanId(null); // Reset ID setiap kali fetch
+        
+        // Panggil server action
         const result = await getSimtpKpiData();
-        setData(result);
+
+        // Cek jika hasilnya ada
+        if (result) {
+          setData(result);
+          // ✅ DIUBAH: Ambil kegiatanId dari hasil dan simpan di state
+          setKegiatanId(result.kegiatanId); 
+        }
+
       } catch (err) {
         setError(err instanceof Error ? err.message : "Terjadi kesalahan tidak diketahui");
       } finally {
@@ -25,5 +44,6 @@ export function useSimtpKpiData() {
     fetchData();
   }, []); // Dijalankan sekali saat komponen dimuat
 
-  return { data, isLoading, error };
+  // ✅ DIUBAH: Kembalikan kegiatanId bersama dengan data lainnya
+  return { data, isLoading, error, kegiatanId };
 }
