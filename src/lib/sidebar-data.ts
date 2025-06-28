@@ -6,6 +6,7 @@ import {
     BotMessageSquare,
     Binoculars,
     ChartNoAxesCombined,
+    CalendarDays,
     // Impor ikon lain yang Anda perlukan dari lucide-react
     // ChevronDown, // Mungkin tidak perlu di sini, akan ditangani oleh komponen Collapsible
   } from 'lucide-react';
@@ -55,6 +56,12 @@ export interface UserData {
         url: "/bahan-produksi",
         icon: Table2,
         isActive: (currentPath) => currentPath === "/bahan-produksi",
+      },
+      {
+        title: "Jadwal Kegiatan",
+        url: "/jadwal",
+        icon: CalendarDays,
+        isActive: (currentPath) => currentPath === "/jadwal",
       },
       {
         title: "Monitoring",

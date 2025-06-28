@@ -24,51 +24,37 @@ import { JadwalDesktop } from './jadwal-desktop';
 import { JadwalForm } from './JadwalForm';
 import { KegiatanForm } from './KegiatanForm';
 
-// Definisikan interface untuk props yang akan diterima komponen ini
+// ✅ DIUBAH: Interface ini sekarang mendefinisikan props yang akan diterima dari page.tsx
 interface JadwalClientProps {
   data: Kegiatan[];
   tahun: number;
   refreshJadwal: () => void;
 }
 
+// ✅ DIUBAH: Komponen menerima props, dan tidak lagi memanggil hook data
 export function JadwalClient({ data, tahun, refreshJadwal }: JadwalClientProps) {
   const { userRole, supabase } = useAuth();
   const isMobile = useIsMobile();
   
-  // State untuk UI dikelola di sini
+  // State untuk interaksi UI tetap dikelola di sini
   const [detailModalItem, setDetailModalItem] = useState<JadwalItem | null>(null);
   const [isJadwalFormOpen, setIsJadwalFormOpen] = useState(false);
   const [isKegiatanFormOpen, setIsKegiatanFormOpen] = useState(false);
   const [editItem, setEditItem] = useState<JadwalItem | null>(null);
-  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [isJadwalAlertOpen, setIsJadwalAlertOpen] = useState(false);
+  const [kegiatanToDelete, setKegiatanToDelete] = useState<Kegiatan | null>(null);
 
-  // --- Handlers ---
-  const handleBlockClick = (item: JadwalItem) => {
-    setDetailModalItem(item);
-  };
-
-  const handleOpenAddForm = () => {
-    setEditItem(null);
-    setIsJadwalFormOpen(true);
-  };
+  const handleBlockClick = (item: JadwalItem) => { setDetailModalItem(item); };
+  const handleOpenAddForm = () => { setEditItem(null); setIsJadwalFormOpen(true); };
+  const handleOpenEditForm = (item: JadwalItem) => { setDetailModalItem(null); setEditItem(item); setIsJadwalFormOpen(true); };
   
-  const handleOpenEditForm = (item: JadwalItem) => {
-    setDetailModalItem(null);
-    setEditItem(item);
-    setIsJadwalFormOpen(true);
-  };
-  
-  const handleDeleteConfirmation = () => {
-    if (!detailModalItem?.id) {
-        toast.error("Gagal menghapus: ID jadwal tidak ditemukan.");
-        return;
-    };
+  const handleDeleteJadwalItemConfirmation = () => {
+    const itemToDelete = detailModalItem; 
+    if (!itemToDelete?.id) return;
 
     const deletePromise = async () => {
-        const { error } = await supabase.rpc('delete_jadwal_item', { p_item_id: detailModalItem.id });
-        if (error) {
-            throw new Error(error.message);
-        }
+        const { error } = await supabase.rpc('delete_jadwal_item', { p_item_id: itemToDelete.id });
+        if (error) throw new Error(error.message);
     };
     
     toast.promise(deletePromise(), {
@@ -82,11 +68,32 @@ export function JadwalClient({ data, tahun, refreshJadwal }: JadwalClientProps) 
     });
   };
 
+  const handleOpenDeleteKegiatanDialog = (kegiatan: Kegiatan) => {
+    setKegiatanToDelete(kegiatan);
+  };
+
+  const handleConfirmDeleteKegiatan = () => {
+    if (!kegiatanToDelete?.id) return;
+    const deletePromise = async () => {
+      const { error } = await supabase.rpc('delete_kegiatan', { p_kegiatan_id: kegiatanToDelete.id });
+      if (error) throw new Error(error.message);
+    };
+    toast.promise(deletePromise(), {
+      loading: `Menghapus kegiatan "${kegiatanToDelete.kegiatan}"...`,
+      success: () => {
+        setKegiatanToDelete(null);
+        refreshJadwal(); // Memanggil fungsi refresh dari props
+        return 'Kegiatan berhasil dihapus.';
+      },
+      error: (err) => `Gagal menghapus: ${err.message}`,
+    });
+  };
+
   const handleFormSuccess = () => {
     setIsJadwalFormOpen(false);
     setIsKegiatanFormOpen(false);
     refreshJadwal(); // Memanggil fungsi refresh dari props
-  }
+  };
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -107,14 +114,20 @@ export function JadwalClient({ data, tahun, refreshJadwal }: JadwalClientProps) 
             </div>
           )}
         </div>
-        
+
         {isMobile ? (
           <GanttMiniMobile data={data} tahun={tahun} onBlockClick={handleBlockClick} />
         ) : (
-          <JadwalDesktop data={data} tahun={tahun} onBlockClick={handleBlockClick} />
+          <JadwalDesktop
+            data={data}
+            tahun={tahun}
+            onBlockClick={handleBlockClick}
+            userRole={userRole}
+            onDeleteKegiatan={handleOpenDeleteKegiatanDialog}
+          />
         )}
         
-        <Dialog open={!!detailModalItem} onOpenChange={() => setDetailModalItem(null)}>
+        <Dialog open={!!detailModalItem} onOpenChange={(isOpen) => !isOpen && setDetailModalItem(null)}>
           <DialogContent className="sm:max-w-sm">
             {detailModalItem && (
               <>
@@ -128,7 +141,7 @@ export function JadwalClient({ data, tahun, refreshJadwal }: JadwalClientProps) 
                 </div>
                 {userRole === 'super_admin' && (
                   <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-between sm:space-x-2 pt-4">
-                    <Button variant="destructive" size="sm" onClick={() => setIsAlertOpen(true)}>
+                    <Button variant="destructive" size="sm" onClick={() => setIsJadwalAlertOpen(true)}>
                       <Trash2 className="mr-2 h-4 w-4" /> Hapus
                     </Button>
                     <div className='flex justify-end gap-2'>
@@ -144,38 +157,41 @@ export function JadwalClient({ data, tahun, refreshJadwal }: JadwalClientProps) 
           </DialogContent>
         </Dialog>
 
-        <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+        <AlertDialog open={isJadwalAlertOpen} onOpenChange={setIsJadwalAlertOpen}>
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Anda Benar-Benar Yakin?</AlertDialogTitle>
+                    <AlertDialogTitle>Anda Yakin Ingin Menghapus Jadwal Ini?</AlertDialogTitle>
                     <AlertDialogDescription>
-                        Tindakan ini tidak bisa dibatalkan. Ini akan menghapus jadwal 
-                        <span className='font-semibold'>"{detailModalItem?.nama}"</span> secara permanen dari database.
+                        Tindakan ini hanya akan menghapus item jadwal <span className='font-semibold'>"{detailModalItem?.nama}"</span>, bukan kegiatannya.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                     <AlertDialogCancel>Batal</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDeleteConfirmation}>
-                        Ya, Hapus Jadwal
+                    <AlertDialogAction onClick={handleDeleteJadwalItemConfirmation}>Ya, Hapus Jadwal</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+        
+        <AlertDialog open={!!kegiatanToDelete} onOpenChange={(isOpen) => !isOpen && setKegiatanToDelete(null)}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Konfirmasi Hapus Kegiatan</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Tindakan ini tidak bisa dibatalkan. Ini akan menghapus kegiatan <span className='font-semibold'>"{kegiatanToDelete?.kegiatan}"</span> dan **SEMUA JADWAL** di dalamnya.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Batal</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleConfirmDeleteKegiatan} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                      Ya, Hapus Kegiatan Ini
                     </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
 
-        <JadwalForm
-          isOpen={isJadwalFormOpen}
-          setIsOpen={setIsJadwalFormOpen}
-          kegiatanList={data}
-          onSuccess={handleFormSuccess}
-          jadwalItem={editItem}
-        />
+        <JadwalForm isOpen={isJadwalFormOpen} setIsOpen={setIsJadwalFormOpen} kegiatanList={data} onSuccess={handleFormSuccess} jadwalItem={editItem} />
         
-        <KegiatanForm 
-          isOpen={isKegiatanFormOpen}
-          setIsOpen={setIsKegiatanFormOpen}
-          kegiatanList={data}
-          onSuccess={handleFormSuccess}
-        />
+        <KegiatanForm isOpen={isKegiatanFormOpen} setIsOpen={setIsKegiatanFormOpen} kegiatanList={data} onSuccess={handleFormSuccess} />
       </div>
     </TooltipProvider>
   );

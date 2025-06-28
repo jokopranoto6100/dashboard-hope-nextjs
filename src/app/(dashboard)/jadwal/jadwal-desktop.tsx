@@ -1,4 +1,3 @@
-// src/app/(dashboard)/jadwal/jadwal-desktop.tsx
 "use client";
 
 import { useState, useRef, useEffect } from 'react';
@@ -6,15 +5,16 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { ChevronRight, ChevronDown, LocateFixed } from 'lucide-react';
+import { ChevronRight, ChevronDown, LocateFixed, Trash2 } from 'lucide-react';
 import { type Kegiatan, type JadwalItem } from './jadwal.config';
 import { getDaysInYear, getDayOfYear, colorVariants } from './jadwal.utils';
 
-// --- INTERFACE PROPS ---
 interface JadwalDesktopProps {
   data: Kegiatan[];
   tahun: number;
   onBlockClick: (item: JadwalItem) => void;
+  userRole: string | null;
+  onDeleteKegiatan: (kegiatan: Kegiatan) => void;
 }
 
 interface JadwalRowProps {
@@ -25,11 +25,12 @@ interface JadwalRowProps {
   expandedRows: string[];
   isSub?: boolean;
   viewMode: 'harian' | 'bulanan';
+  userRole: string | null;
+  onDeleteKegiatan: (kegiatan: Kegiatan) => void;
 }
 
-// --- KOMPONEN JADWAL ROW (Spesifik untuk Desktop) ---
 function JadwalRow({
-  kegiatan, tahun, onBlockClick, onToggleRow, expandedRows, isSub = false, viewMode,
+  kegiatan, tahun, onBlockClick, onToggleRow, expandedRows, isSub = false, viewMode, userRole, onDeleteKegiatan
 }: JadwalRowProps) {
   const isExpanded = expandedRows.includes(kegiatan.kegiatan);
   const hasSub = kegiatan.subKegiatan && kegiatan.subKegiatan.length > 0;
@@ -37,7 +38,6 @@ function JadwalRow({
 
   let displayJadwal: JadwalItem[] = kegiatan.jadwal || [];
 
-  // Jika parent memiliki sub-kegiatan, buat bar ringkasan abu-abu
   if (hasSub) {
     const allSubDates = kegiatan.subKegiatan!.flatMap(sub => sub.jadwal || []).map(j => ({
       start: new Date(j.startDate),
@@ -48,10 +48,9 @@ function JadwalRow({
       const earliestStart = new Date(Math.min(...allSubDates.map(d => d.start.getTime())));
       const latestEnd = new Date(Math.max(...allSubDates.map(d => d.end.getTime())));
 
-      // ✅ PERBAIKAN DI SINI: Tambahkan properti id dan kegiatan_id yang hilang
       displayJadwal = [{
-        id: `summary-${kegiatan.id}`, // ID sintetis untuk display dan key
-        kegiatan_id: kegiatan.id,     // ID dari kegiatan induk
+        id: `summary-${kegiatan.id}`,
+        kegiatan_id: kegiatan.id,
         nama: `${kegiatan.kegiatan}`,
         keterangan: `Seluruh rentang kegiatan untuk ${kegiatan.kegiatan}`,
         startDate: earliestStart.toISOString().split('T')[0],
@@ -63,28 +62,42 @@ function JadwalRow({
 
   return (
     <>
-      <div className="flex border-t min-h-[48px]">
+      <div className="flex border-t min-h-[48px] group">
         <div className={`sticky left-0 z-10 flex items-center border-r bg-background p-2 text-sm font-semibold ${isSub ? 'pl-8' : ''}`} style={{ width: '250px', minWidth: '250px' }}>
           {hasSub && (
             <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => onToggleRow(kegiatan.kegiatan)}>
               {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
             </Button>
           )}
-          <span className={`truncate ${!hasSub && isSub ? 'pl-9' : 'pl-1'}`}>{kegiatan.kegiatan}</span>
+          <span className={`truncate flex-grow ${!hasSub && isSub ? 'pl-9' : 'pl-1'}`}>{kegiatan.kegiatan}</span>
+
+          {userRole === 'super_admin' && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-6 w-6 shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={(e) => { e.stopPropagation(); onDeleteKegiatan(kegiatan); }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Hapus Kegiatan "{kegiatan.kegiatan}"</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
         </div>
 
         <div className="relative flex-1">
           {displayJadwal.map((item, itemIdx) => {
             const startDate = new Date(item.startDate);
             const endDate = new Date(item.endDate);
-            
-            // Filter jadwal yang tidak relevan dengan tahun yang dipilih
             if (startDate.getFullYear() > tahun || endDate.getFullYear() < tahun) return null;
-
             const startDay = getDayOfYear(new Date(Math.max(startDate.getTime(), new Date(tahun, 0, 1).getTime())));
             const endDay = getDayOfYear(new Date(Math.min(endDate.getTime(), new Date(tahun, 11, 31).getTime())));
             const duration = endDay - startDay + 1;
-            
             let left, width;
             if (viewMode === 'harian') {
               left = `${((startDay - 1) / daysInYear) * 100}%`;
@@ -96,7 +109,6 @@ function JadwalRow({
               left = `${(startMonthFraction / 12) * 100}%`;
               width = `${(durationInMonths / 12) * 100}%`;
             }
-
             return (
               <Tooltip key={item.id || itemIdx}>
                 <TooltipTrigger asChild>
@@ -122,16 +134,14 @@ function JadwalRow({
 
       {hasSub && isExpanded && (
         kegiatan.subKegiatan?.map(sub => (
-          <JadwalRow key={sub.kegiatan} kegiatan={sub} tahun={tahun} onBlockClick={onBlockClick} onToggleRow={onToggleRow} expandedRows={expandedRows} isSub={true} viewMode={viewMode} />
+          <JadwalRow key={sub.kegiatan} kegiatan={sub} tahun={tahun} onBlockClick={onBlockClick} onToggleRow={onToggleRow} expandedRows={expandedRows} isSub={true} viewMode={viewMode} userRole={userRole} onDeleteKegiatan={onDeleteKegiatan}/>
         ))
       )}
     </>
   );
 }
 
-
-// --- KOMPONEN UTAMA TAMPILAN DESKTOP ---
-export function JadwalDesktop({ data, tahun, onBlockClick }: JadwalDesktopProps) {
+export function JadwalDesktop({ data, tahun, onBlockClick, userRole, onDeleteKegiatan }: JadwalDesktopProps) {
   const [viewMode, setViewMode] = useState<'harian' | 'bulanan'>('bulanan');
   const [expandedRows, setExpandedRows] = useState<string[]>([]);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -196,7 +206,6 @@ export function JadwalDesktop({ data, tahun, onBlockClick }: JadwalDesktopProps)
                   const day = currentDate.getDay();
                   const isWeekend = day === 0 || day === 6;
                   const isToday = isTodayVisible && currentDate.toDateString() === new Date().toDateString();
-
                   return (
                     <div key={dayIdx} className={`w-[32px] shrink-0 text-center p-2 text-xs border-l relative ${isWeekend ? 'text-rose-500 font-semibold bg-muted' : 'text-muted-foreground'}`}>
                       {dayIdx + 1}
@@ -234,7 +243,17 @@ export function JadwalDesktop({ data, tahun, onBlockClick }: JadwalDesktopProps)
             {renderHeader()}
             <div>
               {data.map(kegiatan => (
-                <JadwalRow key={kegiatan.kegiatan} kegiatan={kegiatan} tahun={tahun} onBlockClick={onBlockClick} onToggleRow={handleToggleRow} expandedRows={expandedRows} viewMode={viewMode} />
+                <JadwalRow 
+                  key={kegiatan.id} 
+                  kegiatan={kegiatan} 
+                  tahun={tahun} 
+                  onBlockClick={onBlockClick} 
+                  onToggleRow={handleToggleRow} 
+                  expandedRows={expandedRows} 
+                  viewMode={viewMode}
+                  userRole={userRole}
+                  onDeleteKegiatan={onDeleteKegiatan}
+                />
               ))}
             </div>
             {viewMode === 'harian' && todayDayOfYear !== -1 && (
