@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable prefer-const */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // Lokasi File: src/app/(dashboard)/update-data/ubinan/_actions.ts
 "use server";
@@ -279,6 +281,22 @@ export async function uploadUbinanRawAction(formData: FormData): Promise<ActionR
   if (!file) return { success: false, message: "File tidak ditemukan." };
   
   try {
+    // ✅ BARU: Ambil ID kegiatan Padi dan Palawija di awal
+    const [padiResult, palawijaResult] = await Promise.all([
+        supabaseServer.from('kegiatan').select('id').eq('nama_kegiatan', 'Ubinan Padi').single(),
+        supabaseServer.from('kegiatan').select('id').eq('nama_kegiatan', 'Ubinan Palawija').single()
+    ]);
+
+    if (padiResult.error || !padiResult.data) {
+        throw new Error("Konfigurasi error: Kegiatan 'Ubinan Padi' tidak ditemukan di tabel 'kegiatan'.");
+    }
+    if (palawijaResult.error || !palawijaResult.data) {
+        throw new Error("Konfigurasi error: Kegiatan 'Ubinan Palawija' tidak ditemukan di tabel 'kegiatan'.");
+    }
+
+    const padiKegiatanId = padiResult.data.id;
+    const palawijaKegiatanId = palawijaResult.data.id;
+
     const fileContent = await file.text();
     const records: any[] = parse(fileContent, { columns: true, skip_empty_lines: true, trim: true });
     if (records.length === 0) return { success: false, message: "Tidak ada data untuk diimpor." };
@@ -329,6 +347,12 @@ export async function uploadUbinanRawAction(formData: FormData): Promise<ActionR
             }
         }
       }
+      
+      // ✅ DIUBAH: Tambahkan kegiatan_id ke setiap baris data yang akan di-insert
+      const komoditasValue = newRow['komoditas'];
+      const isPadi = ['1 - Padi Sawah', '3 - Padi Ladang'].includes(komoditasValue);
+      newRow['kegiatan_id'] = isPadi ? padiKegiatanId : palawijaKegiatanId;
+      
       allRowsToInsert.push(newRow);
     }
     
