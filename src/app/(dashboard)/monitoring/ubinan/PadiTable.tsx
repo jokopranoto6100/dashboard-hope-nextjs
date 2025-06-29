@@ -157,38 +157,40 @@ export function PadiMonitoringTable({ data, totals, isLoading, error, lastUpdate
       {/* ✅ PERUBAHAN TATA LETAK FINAL DI SINI                                   */}
       {/* ====================================================================== */}
       <CardHeader>
-        {/* Baris 1: Judul di kiri, Status Jadwal di kanan */}
-        <div className="flex justify-between items-center">
-          <CardTitle>Monitoring Ubinan Padi</CardTitle>
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
+          {/* Bagian Judul dan Countdown */}
+          <div className='flex-grow'>
+            <CardTitle>Monitoring Ubinan Padi</CardTitle>
+          </div>
           {countdownStatus && !isLoading && (
-            <div className={`flex items-center text-xs p-2 rounded-md border bg-gray-50 dark:bg-gray-800`}>
+            <div className={`flex items-center text-xs p-2 rounded-md border bg-gray-50 dark:bg-gray-800 w-full sm:w-auto`}>
                 <Clock className={`h-4 w-4 mr-2 flex-shrink-0 ${countdownStatus.color}`} />
                 <span className={`font-medium whitespace-nowrap ${countdownStatus.color}`}>{countdownStatus.text}</span>
             </div>
           )}
         </div>
         
-        {/* Baris 2: Deskripsi di kiri, Tombol Aksi di kanan */}
-        <div className="flex justify-between items-end pt-2">
-            <CardDescription className="text-sm text-gray-500 h-5">
-              {isLoading ? ( <Skeleton className="h-4 w-48" /> ) : ( <span>{lastUpdate ? `Terakhir diperbarui: ${lastUpdate}`: ''}</span> )}
-            </CardDescription>
+        <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-2 pt-2">
+          {/* Bagian Deskripsi dan Tombol */}
+          <CardDescription className="text-sm text-gray-500">
+            {isLoading ? ( <Skeleton className="h-4 w-48" /> ) : ( <span>{lastUpdate ? `Terakhir diperbarui: ${lastUpdate}`: ''}</span> )}
+          </CardDescription>
 
-            <div className='flex items-center justify-end gap-2'>
-              {isMobile && (
-                <Button variant="outline" size="sm" onClick={() => setShowAllColumns(prev => !prev)}>
-                  {showAllColumns ? <EyeOff className="mr-2 h-4 w-4" /> : <Eye className="mr-2 h-4 w-4" />}
-                  {showAllColumns ? "Ringkas" : "Lengkap"}
-                </Button>
-              )}
-              
-              {(!isMobile || showAllColumns) && (
-                <Button variant="outline" size="sm" onClick={() => setIsGeneratifExpanded(!isGeneratifExpanded)}>
-                  {isGeneratifExpanded ? <ChevronDown className="mr-2 h-4 w-4" /> : <ChevronRight className="mr-2 h-4 w-4" />}
-                  {isGeneratifExpanded ? "Ringkas Generatif" : "Detail Generatif"}
-                </Button>
-              )}
-            </div>
+          <div className='flex items-center justify-start md:justify-end gap-2 flex-wrap'>
+            {isMobile && (
+              <Button variant="outline" size="sm" onClick={() => setShowAllColumns(prev => !prev)}>
+                {showAllColumns ? <EyeOff className="mr-2 h-4 w-4" /> : <Eye className="mr-2 h-4 w-4" />}
+                {showAllColumns ? "Ringkas" : "Lengkap"}
+              </Button>
+            )}
+            
+            {(!isMobile || showAllColumns) && (
+              <Button variant="outline" size="sm" onClick={() => setIsGeneratifExpanded(!isGeneratifExpanded)}>
+                {isGeneratifExpanded ? <ChevronDown className="mr-2 h-4 w-4" /> : <ChevronRight className="mr-2 h-4" />}
+                {isGeneratifExpanded ? "Ringkas Generatif" : "Detail Generatif"}
+              </Button>
+            )}
+          </div>
         </div>
       </CardHeader>
       

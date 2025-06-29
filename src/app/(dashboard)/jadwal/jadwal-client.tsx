@@ -98,13 +98,13 @@ export function JadwalClient({ data, tahun, refreshJadwal }: JadwalClientProps) 
   return (
     <TooltipProvider delayDuration={200}>
       <div className="space-y-4">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center">
           <div>
             <h1 className="text-2xl font-bold">Jadwal Kegiatan</h1>
             <p className="text-muted-foreground">Timeline kegiatan survei fungsi produksi tahun {tahun}.</p>
           </div>
           {userRole === 'super_admin' && (
-            <div className="flex gap-2">
+            <div className="flex flex-shrink-0 gap-2">
               <Button variant="outline" onClick={() => setIsKegiatanFormOpen(true)}>
                 <FolderPlus className="mr-2 h-4 w-4" /> Buat Kegiatan
               </Button>

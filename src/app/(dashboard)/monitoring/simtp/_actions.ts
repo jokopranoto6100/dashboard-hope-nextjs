@@ -3,29 +3,52 @@
 import { createSupabaseServerClientWithUserContext } from '@/lib/supabase-server';
 import { SimtpMonitoringData } from './types';
 
+// Tipe return diubah untuk menyertakan kegiatanId
 export async function getSimtpMonitoringData(monitoringYear: number): Promise<{
   data: SimtpMonitoringData;
   lastUpdate: string | null;
+  kegiatanId: string | null; // Properti baru
 }> {
   const supabase = await createSupabaseServerClientWithUserContext();
   const processedData: SimtpMonitoringData = {};
   let latestTimestamp: Date | null = null;
 
-  // --- 1. Ambil data BULANAN untuk tahun monitoring (logika bulan N+1) ---
-  const monthlyStartDate = `${monitoringYear}-02-01T00:00:00Z`;
-  const monthlyEndDate = `${monitoringYear + 1}-02-01T00:00:00Z`;
+  // Jalankan semua query yang dibutuhkan secara paralel
+  const [
+    monthlyResult,
+    annualResult,
+    kegiatanResult
+  ] = await Promise.all([
+    supabase
+      .from('simtp_uploads')
+      .select('kabupaten_kode, file_type, file_name, uploaded_at')
+      .eq('file_type', 'STP_BULANAN')
+      .gte('uploaded_at', `${monitoringYear}-02-01T00:00:00Z`)
+      .lt('uploaded_at', `${monitoringYear + 1}-02-01T00:00:00Z`),
+    supabase
+      .from('simtp_uploads')
+      .select('kabupaten_kode, file_type, file_name, uploaded_at')
+      .eq('year', monitoringYear - 1)
+      .in('file_type', ['LAHAN_TAHUNAN', 'ALSIN_TAHUNAN', 'BENIH_TAHUNAN']),
+    // Query tambahan untuk mengambil ID kegiatan 'SIMTP'
+    supabase
+      .from('kegiatan')
+      .select('id')
+      .eq('nama_kegiatan', 'SIMTP')
+      .single()
+  ]);
 
-  const { data: monthlyData, error: monthlyError } = await supabase
-    .from('simtp_uploads')
-    .select('kabupaten_kode, file_type, file_name, uploaded_at')
-    .eq('file_type', 'STP_BULANAN')
-    .gte('uploaded_at', monthlyStartDate)
-    .lt('uploaded_at', monthlyEndDate);
-
-  if (monthlyError) {
-    console.error('Error fetching SIMTP monthly data:', monthlyError);
+  if (monthlyResult.error) {
+    console.error('Error fetching SIMTP monthly data:', monthlyResult.error);
     throw new Error('Gagal mengambil data monitoring bulanan.');
   }
+  const monthlyData = monthlyResult.data;
+
+  if (annualResult.error) {
+    console.error('Error fetching SIMTP annual data:', annualResult.error);
+    throw new Error('Gagal mengambil data monitoring tahunan.');
+  }
+  const annualData = annualResult.data;
 
   // Proses data bulanan
   for (const row of monthlyData) {
@@ -35,8 +58,9 @@ export async function getSimtpMonitoringData(monitoringYear: number): Promise<{
     let reportMonth = uploadDate.getUTCMonth();
     let reportYear = uploadDate.getUTCFullYear();
 
-    if (reportMonth === 0) {
-      reportMonth = 12;
+    // Logika untuk menangani laporan Des yg masuk di Jan tahun berikutnya
+    if (reportMonth === 0) { // Januari
+      reportMonth = 12; // Dianggap sebagai laporan Desember
       reportYear = reportYear - 1;
     }
 
@@ -59,19 +83,6 @@ export async function getSimtpMonitoringData(monitoringYear: number): Promise<{
     }
   }
 
-  // --- 2. Ambil data TAHUNAN untuk periode tahun monitoring - 1 ---
-  const annualDataYear = monitoringYear - 1;
-  const { data: annualData, error: annualError } = await supabase
-    .from('simtp_uploads')
-    .select('kabupaten_kode, file_type, file_name, uploaded_at')
-    .eq('year', annualDataYear)
-    .in('file_type', ['LAHAN_TAHUNAN', 'ALSIN_TAHUNAN', 'BENIH_TAHUNAN']);
-
-  if (annualError) {
-    console.error('Error fetching SIMTP annual data:', annualError);
-    throw new Error('Gagal mengambil data monitoring tahunan.');
-  }
-  
   // Gabungkan data tahunan ke dalam hasil
   for (const row of annualData) {
     const { kabupaten_kode, file_type, uploaded_at, file_name } = row;
@@ -95,5 +106,9 @@ export async function getSimtpMonitoringData(monitoringYear: number): Promise<{
       hour: '2-digit', minute: '2-digit',
     }) : null;
 
-  return { data: processedData, lastUpdate };
+  // Ekstrak ID dari hasil query kegiatan
+  const kegiatanId = kegiatanResult.data?.id || null;
+
+  // Kembalikan objek yang sudah mencakup kegiatanId
+  return { data: processedData, lastUpdate, kegiatanId };
 }

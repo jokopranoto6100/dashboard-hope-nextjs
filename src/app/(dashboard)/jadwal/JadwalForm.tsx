@@ -62,13 +62,20 @@ export function JadwalForm({ isOpen, setIsOpen, kegiatanList, onSuccess, jadwalI
   }, [isOpen, jadwalItem, form]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    const formatDateForDB = (date: Date) => date.toISOString().split('T')[0];
+    // ✅ BARU: Helper function yang aman dari timezone untuk format YYYY-MM-DD
+    const toYYYYMMDD = (date: Date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0'); // getMonth() 0-indexed
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
 
     const rpcPayload = {
       p_nama: values.nama,
       p_keterangan: values.keterangan,
-      p_start_date: formatDateForDB(values.tanggal.from),
-      p_end_date: formatDateForDB(values.tanggal.to),
+      // ✅ DIUBAH: Gunakan fungsi baru yang aman timezone
+      p_start_date: toYYYYMMDD(values.tanggal.from),
+      p_end_date: toYYYYMMDD(values.tanggal.to),
       p_warna: values.warna,
     };
 
@@ -117,123 +124,59 @@ export function JadwalForm({ isOpen, setIsOpen, kegiatanList, onSuccess, jadwalI
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-2">
-            <FormField
-              control={form.control}
-              name="kegiatan_id"
-              render={({ field }) => (
+            <FormField control={form.control} name="kegiatan_id" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Kegiatan</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value} disabled={isEditMode}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Pilih kegiatan..." />
-                      </SelectTrigger>
-                    </FormControl>
+                    <FormControl><SelectTrigger><SelectValue placeholder="Pilih kegiatan..." /></SelectTrigger></FormControl>
                     <SelectContent>
-                      {selectableKegiatanList.map(k => (
-                        <SelectItem key={k.id} value={k.id}>{k.name}</SelectItem>
-                      ))}
+                      {selectableKegiatanList.map(k => (<SelectItem key={k.id} value={k.id}>{k.name}</SelectItem>))}
                     </SelectContent>
                   </Select>
                   <FormMessage />
                 </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="nama"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nama Jadwal</FormLabel>
-                  <FormControl>
-                    <Input placeholder="cth: Pencacahan Lapangan" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="keterangan"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Keterangan</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="Deskripsi singkat jadwal (opsional)..." {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="tanggal"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Rentang Tanggal</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={"outline"}
-                          className={cn("pl-3 text-left font-normal", !field.value?.from && "text-muted-foreground")}
-                        >
-                          {field.value?.from ? (
-                            field.value.to ? (
-                              <>
-                                {field.value.from.toLocaleDateString('id-ID', { dateStyle: 'long' })} - {field.value.to.toLocaleDateString('id-ID', { dateStyle: 'long' })}
-                              </>
-                            ) : (
-                              field.value.from.toLocaleDateString('id-ID', { dateStyle: 'long' })
-                            )
+            )}/>
+            <FormField control={form.control} name="nama" render={({ field }) => (
+                <FormItem><FormLabel>Nama Jadwal</FormLabel><FormControl><Input placeholder="cth: Pencacahan Lapangan" {...field} /></FormControl><FormMessage /></FormItem>
+            )}/>
+            <FormField control={form.control} name="keterangan" render={({ field }) => (
+                <FormItem><FormLabel>Keterangan</FormLabel><FormControl><Textarea placeholder="Deskripsi singkat jadwal (opsional)..." {...field} /></FormControl><FormMessage /></FormItem>
+            )}/>
+            <FormField control={form.control} name="tanggal" render={({ field }) => (
+              <FormItem className="flex flex-col"><FormLabel>Rentang Tanggal</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value?.from && "text-muted-foreground")}>
+                        {field.value?.from ? (
+                          field.value.to ? (
+                            <>
+                              {field.value.from.toLocaleDateString('id-ID', { dateStyle: 'long' })} - {field.value.to.toLocaleDateString('id-ID', { dateStyle: 'long' })}
+                            </>
                           ) : (
-                            <span>Pilih tanggal</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="range"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        numberOfMonths={2}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="warna"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Warna</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Pilih warna..." />
-                      </SelectTrigger>
+                            field.value.from.toLocaleDateString('id-ID', { dateStyle: 'long' })
+                          )
+                        ) : (<span>Pilih tanggal</span>)}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
                     </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start"><Calendar mode="range" selected={field.value} onSelect={field.onChange} numberOfMonths={2}/></PopoverContent>
+                </Popover><FormMessage />
+              </FormItem>
+            )}/>
+            <FormField control={form.control} name="warna" render={({ field }) => (
+                <FormItem><FormLabel>Warna</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl><SelectTrigger><SelectValue placeholder="Pilih warna..." /></SelectTrigger></FormControl>
                     <SelectContent>
-                      <SelectItem value="sky">Biru Langit</SelectItem>
-                      <SelectItem value="green">Hijau</SelectItem>
-                      <SelectItem value="amber">Kuning</SelectItem>
-                      <SelectItem value="blue">Biru Tua</SelectItem>
-                      <SelectItem value="slate">Abu-abu</SelectItem>
+                      <SelectItem value="sky">Biru Langit</SelectItem><SelectItem value="green">Hijau</SelectItem><SelectItem value="amber">Kuning</SelectItem><SelectItem value="blue">Biru Tua</SelectItem><SelectItem value="slate">Abu-abu</SelectItem>
                     </SelectContent>
-                  </Select>
-                  <FormMessage />
+                  </Select><FormMessage />
                 </FormItem>
-              )}
-            />
+            )}/>
             <DialogFooter>
-              <Button type="submit" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting ? "Menyimpan..." : "Simpan"}
-              </Button>
+              <Button type="submit" disabled={form.formState.isSubmitting}>{form.formState.isSubmitting ? "Menyimpan..." : "Simpan"}</Button>
             </DialogFooter>
           </form>
         </Form>

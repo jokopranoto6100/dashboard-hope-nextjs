@@ -12,6 +12,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { CheckCircle2, Circle, HardDrive, Tractor, Wheat, Clock } from 'lucide-react';
 import { ColumnDef, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { SimtpMonitoringData, SimtpMonthStatus, SimtpTableRow } from './types';
+import { useJadwalData } from '@/hooks/useJadwalData';
+
+const getDiffInDays = (d1: Date, d2: Date): number => {
+    const timeDiff = d2.getTime() - d1.getTime();
+    return Math.round(timeDiff / (1000 * 60 * 60 * 24));
+}
 
 const AnnualStatusIcon = ({ status, Icon, label }: { status?: any, Icon: React.ElementType, label: string }) => (
     <TooltipProvider delayDuration={100}>
@@ -39,22 +45,24 @@ const AnnualStatusIcon = ({ status, Icon, label }: { status?: any, Icon: React.E
 export function SimtpMonitoringClient() {
   const { selectedYear } = useYear();
   
-  // DIHAPUS: State untuk expand/collapse tidak diperlukan lagi
-  // const [isAnnualExpanded, setIsAnnualExpanded] = React.useState(false);
-
   const [monitoringData, setMonitoringData] = React.useState<SimtpMonitoringData>({});
   const [lastUpdate, setLastUpdate] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const [kegiatanId, setKegiatanId] = React.useState<string | null>(null);
+
+  const { jadwalData, isLoading: isJadwalLoading } = useJadwalData(selectedYear);
 
   React.useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
       setError(null);
+      setKegiatanId(null);
       try {
         const result = await getSimtpMonitoringData(selectedYear);
         setMonitoringData(result.data);
         setLastUpdate(result.lastUpdate);
+        setKegiatanId(result.kegiatanId);
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Terjadi kesalahan tidak diketahui');
       } finally {
@@ -63,6 +71,32 @@ export function SimtpMonitoringClient() {
     };
     fetchData();
   }, [selectedYear]);
+  
+  const jadwalSimtp = React.useMemo(() => !isJadwalLoading && kegiatanId ? jadwalData.find(k => k.id === kegiatanId) : undefined, [jadwalData, isJadwalLoading, kegiatanId]);
+  
+  const countdownStatus = React.useMemo(() => {
+    if (!jadwalSimtp) return null;
+    const allJadwalItems = [...(jadwalSimtp.jadwal || []), ...(jadwalSimtp.subKegiatan?.flatMap(sub => sub.jadwal || []) || [])];
+    if (allJadwalItems.length === 0) return null;
+    const allStartDates = allJadwalItems.map(j => new Date(j.startDate));
+    const allEndDates = allJadwalItems.map(j => new Date(j.endDate));
+    const earliestStart = new Date(Math.min(...allStartDates.map(d => d.getTime())));
+    const latestEnd = new Date(Math.max(...allEndDates.map(d => d.getTime())));
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (today > latestEnd) return { text: "Jadwal Telah Berakhir", color: "text-gray-500" };
+    if (today >= earliestStart && today <= latestEnd) {
+      const daysLeft = getDiffInDays(today, latestEnd);
+      if (daysLeft === 0) return { text: "Berakhir Hari Ini", color: "text-red-600 font-bold" };
+      return { text: `Berakhir dalam ${daysLeft} hari`, color: "text-green-600" };
+    }
+    if (today < earliestStart) {
+      const daysUntil = getDiffInDays(today, earliestStart);
+       if (daysUntil === 1) return { text: "Dimulai Besok", color: "text-blue-600" };
+      return { text: `Dimulai dalam ${daysUntil} hari`, color: "text-blue-600" };
+    }
+    return null;
+  }, [jadwalSimtp]);
 
   const tableData = React.useMemo<SimtpTableRow[]>(() => {
     return kabMap.map(satker => {
@@ -81,61 +115,28 @@ export function SimtpMonitoringClient() {
 
   const columns = React.useMemo<ColumnDef<SimtpTableRow>[]>(() => {
     const now = new Date();
-    // Koreksi kecil: Laporan bulan Juni (bulan 6) diupload Juli (getMonth() = 6). Jadi bulan laporan adalah getMonth().
-    const currentReportMonth = now.getMonth(); // Jan=0, Feb=1... Laporan untuk bulan lalu.
+    const currentReportMonth = now.getMonth();
     const currentYear = now.getFullYear();
 
     const monthColumns: ColumnDef<SimtpTableRow>[] = Array.from({ length: 12 }, (_, i) => {
       const month = i + 1;
       const monthName = new Date(selectedYear, month - 1, 1).toLocaleString('id-ID', { month: 'short' });
-      
       return {
         id: String(month),
         header: () => <div className="text-center">{monthName}</div>,
         cell: ({ row }) => {
           const status = row.original[month.toString() as keyof SimtpTableRow] as SimtpMonthStatus | null;
-
           let isOngoingPeriod = false;
-          // Periode berjalan adalah untuk bulan lalu. Misal sekarang Juli, maka periode berjalan adalah laporan Juni.
           if (selectedYear === currentYear && month === currentReportMonth) {
               isOngoingPeriod = true;
           }
-
           return (
             <div className="flex justify-center items-center h-full">
               {status ? (
-                <TooltipProvider delayDuration={100}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                       <div tabIndex={0} className="focus:outline-none focus:ring-2 focus:ring-ring rounded-sm">
-                         <CheckCircle2 className="h-5 w-5 text-green-500" />
-                       </div>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                       <p className='font-semibold'>Periode: {monthName} {selectedYear}</p>
-                       <p className='text-xs'>{status.file_name}</p>
-                       <p className='text-xs'>
-                        Diupload pada: {new Date(status.uploaded_at).toLocaleString('id-ID')}
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <TooltipProvider delayDuration={100}><Tooltip><TooltipTrigger asChild><div tabIndex={0} className="focus:outline-none focus:ring-2 focus:ring-ring rounded-sm"><CheckCircle2 className="h-5 w-5 text-green-500" /></div></TooltipTrigger><TooltipContent><p className='font-semibold'>Periode: {monthName} {selectedYear}</p><p className='text-xs'>{status.file_name}</p><p className='text-xs'>Diupload pada: {new Date(status.uploaded_at).toLocaleString('id-ID')}</p></TooltipContent></Tooltip></TooltipProvider>
               ) : isOngoingPeriod ? (
-                <TooltipProvider delayDuration={100}>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <div tabIndex={0} className="focus:outline-none focus:ring-2 focus:ring-ring rounded-sm">
-                                <Clock className="h-4 w-4 text-blue-500" />
-                            </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>Periode pelaporan sedang berjalan.</p>
-                        </TooltipContent>
-                    </Tooltip>
-                </TooltipProvider>
-              ) : (
-                <Circle className="h-2 w-2 text-gray-300" />
-              )}
+                <TooltipProvider delayDuration={100}><Tooltip><TooltipTrigger asChild><div tabIndex={0} className="focus:outline-none focus:ring-2 focus:ring-ring rounded-sm"><Clock className="h-4 w-4 text-blue-500" /></div></TooltipTrigger><TooltipContent><p>Periode pelaporan sedang berjalan.</p></TooltipContent></Tooltip></TooltipProvider>
+              ) : (<Circle className="h-2 w-2 text-gray-300" />)}
             </div>
           );
         },
@@ -143,37 +144,15 @@ export function SimtpMonitoringClient() {
       };
     });
     
-    // DIUBAH: Kolom detail tahunan sekarang menjadi default
     const annualDetailColumns: ColumnDef<SimtpTableRow>[] = [
-        { 
-          id: 'lahan', 
-          header: () => <div className="text-center">Lahan</div>, 
-          size: 60, 
-          cell: ({row}) => <div className="flex justify-center"><AnnualStatusIcon status={row.original.annuals.LAHAN_TAHUNAN} Icon={HardDrive} label="Lahan" /></div>
-        },
-        { 
-          id: 'alsin', 
-          header: () => <div className="text-center">Alsin</div>, 
-          size: 60, 
-          cell: ({row}) => <div className="flex justify-center"><AnnualStatusIcon status={row.original.annuals.ALSIN_TAHUNAN} Icon={Tractor} label="Alsin" /></div>
-        },
-        { 
-          id: 'benih', 
-          header: () => <div className="text-center">Benih</div>, 
-          size: 60, 
-          cell: ({row}) => <div className="flex justify-center"><AnnualStatusIcon status={row.original.annuals.BENIH_TAHUNAN} Icon={Wheat} label="Benih" /></div>
-        },
+        { id: 'lahan', header: () => <div className="text-center">Lahan</div>, size: 60, cell: ({row}) => <div className="flex justify-center"><AnnualStatusIcon status={row.original.annuals.LAHAN_TAHUNAN} Icon={HardDrive} label="Lahan" /></div> },
+        { id: 'alsin', header: () => <div className="text-center">Alsin</div>, size: 60, cell: ({row}) => <div className="flex justify-center"><AnnualStatusIcon status={row.original.annuals.ALSIN_TAHUNAN} Icon={Tractor} label="Alsin" /></div> },
+        { id: 'benih', header: () => <div className="text-center">Benih</div>, size: 60, cell: ({row}) => <div className="flex justify-center"><AnnualStatusIcon status={row.original.annuals.BENIH_TAHUNAN} Icon={Wheat} label="Benih" /></div> },
     ];
 
     return [
-      {
-        accessorKey: 'nmkab',
-        header: 'Kabupaten/Kota',
-        cell: ({ row }) => <div className="truncate font-medium">{row.original.nmkab}</div>,
-        size: 180,
-      },
+      { accessorKey: 'nmkab', header: 'Kabupaten/Kota', cell: ({ row }) => <div className="truncate font-medium">{row.original.nmkab}</div>, size: 180, },
       ...monthColumns,
-      // DIUBAH: Langsung tampilkan kolom detail, hapus logika ternary
       ...annualDetailColumns,
     ];
   }, [selectedYear, monitoringData]);
@@ -184,20 +163,30 @@ export function SimtpMonitoringClient() {
     getCoreRowModel: getCoreRowModel(),
   });
 
+  const pageIsLoading = isLoading || isJadwalLoading;
+
   return (
     <Card>
       <CardHeader>
-        <div>
+        <div className="flex justify-between items-center">
           <CardTitle>Monitoring Upload SIMTP {selectedYear}</CardTitle>
-          <CardDescription className="mt-2 text-sm text-gray-500 h-5">
-            {isLoading ? <Skeleton className="h-4 w-64" /> : (
+            {countdownStatus && !pageIsLoading && (
+              <div className={`flex items-center text-xs p-2 rounded-md border bg-gray-50 dark:bg-gray-800`}>
+                  <Clock className={`h-4 w-4 mr-2 flex-shrink-0 ${countdownStatus.color}`} />
+                  <span className={`font-medium whitespace-nowrap ${countdownStatus.color}`}>{countdownStatus.text}</span>
+              </div>
+            )}
+        </div>
+        <div className="flex justify-between items-end pt-2">
+          <CardDescription className="text-sm text-gray-500 h-5">
+            {pageIsLoading ? <Skeleton className="h-4 w-64" /> : (
               <span>{lastUpdate ? `Terakhir diperbarui: ${lastUpdate}`: 'Belum ada data untuk tahun ini.'}</span>
             )}
           </CardDescription>
         </div>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
+        {pageIsLoading ? (
             <div className="rounded-md border">
                  <Table>
                     <TableHeader>

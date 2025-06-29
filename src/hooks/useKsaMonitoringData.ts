@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useYear } from '@/context/YearContext';
 
-// --- (Semua Interface tidak berubah) ---
+// Interface dari file Anda
 interface KsaAmatanRow { id: number; id_segmen: string | null; subsegmen: string | null; nama: string | null; n: number | null; amatan: string | null; status: string | null; evaluasi: string | null; tanggal: string; flag_kode_12: string | null; note: string | null; kode_kab: string | null; kode_kec: string | null; kabupaten: string | null; bulan: number | null; tahun: number | null; }
 export interface StatusValue { count: number; percentage: number; }
 export interface ProcessedKsaDistrictData { kabupaten: string; kode_kab: string; target: number; realisasi: number; persentase: number; inkonsisten: number; kode_12: number; statuses?: Record<string, StatusValue>; }
@@ -11,12 +11,27 @@ export interface KsaDistrictTotals { target: number; realisasi: number; persenta
 export interface ProcessedKsaNamaData { nama: string; target: number; realisasi: number; persentase: number; inkonsisten: number; kode_12: number; statuses?: Record<string, StatusValue>; }
 export interface KsaNamaTotals { target: number; realisasi: number; persentase: number; inkonsisten: number; kode_12: number; statuses?: Record<string, StatusValue>; }
 
-export const useKsaMonitoringData = () => {
+// BARU: Definisikan tipe untuk nilai return dari hook
+export interface KsaMonitoringHookResult {
+    districtLevelData: ProcessedKsaDistrictData[];
+    districtTotals: KsaDistrictTotals | null;
+    isLoading: boolean;
+    error: string | null;
+    lastUpdated: string | null;
+    displayMonth: string | undefined;
+    setDisplayMonth: React.Dispatch<React.SetStateAction<string | undefined>>;
+    uniqueStatusNames: string[];
+    namaLevelData: ProcessedKsaNamaData[];
+    namaLevelTotals: KsaNamaTotals | null;
+    setSelectedKabupatenCode: React.Dispatch<React.SetStateAction<string | null>>;
+    kegiatanId: string | null; // Properti baru untuk integrasi
+}
+
+export const useKsaMonitoringData = (): KsaMonitoringHookResult => {
     const { supabase } = useAuth();
     const { selectedYear } = useYear();
   
     const [displayMonth, setDisplayMonth] = useState<string | undefined>(undefined);
-    
     const [districtLevelData, setDistrictLevelData] = useState<ProcessedKsaDistrictData[]>([]);
     const [districtTotals, setDistrictTotals] = useState<KsaDistrictTotals | null>(null);
     const [selectedKabupatenCode, setSelectedKabupatenCode] = useState<string | null>(null);
@@ -27,13 +42,10 @@ export const useKsaMonitoringData = () => {
     const [error, setError] = useState<string | null>(null);
     const [lastUpdated, setLastUpdated] = useState<string | null>(null);
     const [uniqueStatusNames, setUniqueStatusNames] = useState<string[]>([]);
+    const [kegiatanId, setKegiatanId] = useState<string | null>(null); // BARU: State untuk ID Kegiatan
     
-    // ✅ PERBAIKAN: Tambahkan dependensi yang benar ke useCallback
     const processNamaLevelData = useCallback((rawDataFilteredByKab: KsaAmatanRow[], currentUniqueStatuses: string[]) => {
-      if (!rawDataFilteredByKab || rawDataFilteredByKab.length === 0) {
-          setNamaLevelData([]); setNamaLevelTotals(null); return;
-      }
-      // ... (isi fungsi sama persis)
+      if (!rawDataFilteredByKab || rawDataFilteredByKab.length === 0) { setNamaLevelData([]); setNamaLevelTotals(null); return; }
       const groupedMap = new Map<string, { targetCount: number; realisasiCount: number; inkonsistenCount: number; nIs12Count: number; flagKode12Count: number; statusCounts: Record<string, number>; totalEntriesWithStatus: number; }>();
       let kabTarget = 0, kabRealisasi = 0, kabInkonsisten = 0, kabN12 = 0, kabF12 = 0;
       const kabOverallStatusCounts: Record<string, number> = {};
@@ -48,12 +60,8 @@ export const useKsaMonitoringData = () => {
       setNamaLevelTotals({ target: kabTarget, realisasi: kabRealisasi, persentase: kabOvPersentase, inkonsisten: kabInkonsisten, kode_12: kabTotalKode12, statuses: kabOverallStatuses, });
     }, []);
 
-    // ✅ PERBAIKAN: Tambahkan dependensi yang benar ke useCallback
     const processDistrictData = useCallback((rawData: KsaAmatanRow[], currentUniqueStatuses: string[]) => {
-      if (!rawData || rawData.length === 0) {
-          setDistrictLevelData([]); setDistrictTotals(null); return;
-      }
-      // ... (isi fungsi sama persis)
+      if (!rawData || rawData.length === 0) { setDistrictLevelData([]); setDistrictTotals(null); return; }
       const groupedMap = new Map<string, { kode_kab: string; targetCount: number; realisasiCount: number; inkonsistenCount: number; nIs12Count: number; flagKode12Count: number; statusCounts: Record<string, number>; totalEntriesWithStatus: number; }>();
       let ovTarget = 0, ovRealisasi = 0, ovInkonsisten = 0, ovN12 = 0, ovF12 = 0;
       const overallStatusCounts: Record<string, number> = {};
@@ -68,18 +76,12 @@ export const useKsaMonitoringData = () => {
       setDistrictTotals({ target: ovTarget, realisasi: ovRealisasi, persentase: ovPersentase, inkonsisten: ovInkonsisten, kode_12: totalKode12, statuses: overallStatuses, });
     }, []);
 
-    // ✅ PERBAIKAN: Tambahkan dependensi yang benar ke useCallback
     const extractUniqueStatusesAndDate = useCallback((rawData: KsaAmatanRow[]) => {
       let maxTs: Date | null = null;
       const discoveredStatuses = new Set<string>();
       rawData.forEach(item => {
-          if (item.tanggal) {
-              const currentTs = new Date(item.tanggal);
-              if (!maxTs || currentTs > maxTs) maxTs = currentTs;
-          }
-          if (item.status && item.status.trim() !== '') {
-              discoveredStatuses.add(item.status.trim());
-          }
+          if (item.tanggal) { const currentTs = new Date(item.tanggal); if (!maxTs || currentTs > maxTs) maxTs = currentTs; }
+          if (item.status && item.status.trim() !== '') { discoveredStatuses.add(item.status.trim()); }
       });
       setLastUpdated(maxTs ? (maxTs as Date).toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'long'}) : null);
       const sortedUniqueStatuses = Array.from(discoveredStatuses).sort();
@@ -89,7 +91,7 @@ export const useKsaMonitoringData = () => {
 
     useEffect(() => {
       const findInitialMonth = async () => {
-        if (!selectedYear) { setIsLoading(false); setDisplayMonth(undefined); return; };
+        if (!supabase || !selectedYear) { setIsLoading(false); setDisplayMonth(undefined); return; };
         setIsLoading(true); setError(null);
         const { data, error: dbError } = await supabase.from('ksa_amatan').select('bulan').eq('tahun', selectedYear).not('bulan', 'is', null).order('bulan', { ascending: false }).limit(1).single();
         if (dbError && dbError.code !== 'PGRST116') { setError("Gagal menentukan bulan awal: " + dbError.message); setIsLoading(false); return; }
@@ -101,21 +103,32 @@ export const useKsaMonitoringData = () => {
 
     useEffect(() => {
         const executeFetch = async () => {
-            if (!selectedYear || !displayMonth) return;
-            setIsLoading(true); setError(null);
+            if (!supabase || !selectedYear || !displayMonth) return;
+            setIsLoading(true); setError(null); setKegiatanId(null);
             try {
-                let rawData: KsaAmatanRow[] = [];
-                const selectColumns = ['kabupaten', 'kode_kab', 'subsegmen', 'n', 'evaluasi', 'flag_kode_12', 'tanggal', 'tahun', 'bulan', 'status', 'nama'];
-                let query = supabase.from('ksa_amatan').select(selectColumns.join(',')).eq('tahun', selectedYear);
-                if (displayMonth !== "Semua") { query = query.eq('bulan', parseInt(displayMonth)); }
-                let currentPage = 0; const itemsPerPage = 1000;
-                while(true) {
-                    const { data: pageData, error: dbError } = await query.range(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage - 1);
-                    if (dbError) throw dbError;
-                    if (pageData) rawData = rawData.concat(pageData as unknown as KsaAmatanRow[]);
-                    if (!pageData || pageData.length < itemsPerPage) break;
-                    currentPage++;
-                }
+                const [kegiatanResult, ksaDataResult] = await Promise.all([
+                    supabase.from('kegiatan').select('id').eq('nama_kegiatan', 'Kerangka Sampel Area').single(),
+                    (async () => {
+                        let rawData: KsaAmatanRow[] = [];
+                        const selectColumns = ['kabupaten', 'kode_kab', 'subsegmen', 'n', 'evaluasi', 'flag_kode_12', 'tanggal', 'tahun', 'bulan', 'status', 'nama'];
+                        let query = supabase.from('ksa_amatan').select(selectColumns.join(',')).eq('tahun', selectedYear);
+                        if (displayMonth !== "Semua") { query = query.eq('bulan', parseInt(displayMonth)); }
+                        let currentPage = 0; const itemsPerPage = 1000;
+                        while(true) {
+                            const { data: pageData, error: dbError } = await query.range(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage - 1);
+                            if (dbError) throw dbError;
+                            if (pageData) rawData = rawData.concat(pageData as unknown as KsaAmatanRow[]);
+                            if (!pageData || pageData.length < itemsPerPage) break;
+                            currentPage++;
+                        }
+                        return rawData;
+                    })()
+                ]);
+
+                if (kegiatanResult.error) console.error("Gagal mengambil ID kegiatan KSA:", kegiatanResult.error.message);
+                else setKegiatanId(kegiatanResult.data?.id || null);
+
+                const rawData = ksaDataResult;
                 setAllRawDataCache(rawData);
                 const currentUniqueStatuses = extractUniqueStatusesAndDate(rawData);
                 processDistrictData(rawData, currentUniqueStatuses);
@@ -138,6 +151,7 @@ export const useKsaMonitoringData = () => {
         districtLevelData, districtTotals, isLoading, error, lastUpdated, 
         displayMonth, setDisplayMonth, uniqueStatusNames,
         namaLevelData, namaLevelTotals, 
-        setSelectedKabupatenCode
+        setSelectedKabupatenCode,
+        kegiatanId 
     };
 };
