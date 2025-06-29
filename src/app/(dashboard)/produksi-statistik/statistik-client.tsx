@@ -227,25 +227,24 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
         </p>
       </div>
       {/* --- AKHIR BLOK YANG DITAMBAHKAN --- */}
-      <div className="p-4 border rounded-lg bg-slate-50 dark:bg-slate-800/50 space-y-4">
-        <div className="flex w-full flex-col items-end gap-4 sm:flex-row sm:justify-between">
-          <div className="flex w-full flex-wrap items-center gap-4">
-            <div>
-                <Label htmlFor="filter-bulan" className="mb-1.5 block text-xs font-medium text-muted-foreground">Periode Bulan</Label>
-                <Select value={filters.bulan} onValueChange={(v) => handleFilterChange('bulan', v)}><SelectTrigger id="filter-bulan"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="tahunan">Tahunan</SelectItem><Separator className="my-1"/>{Object.values(FULL_MONTH_NAMES).map(([num, name]) => <SelectItem key={num} value={num}>{name}</SelectItem>)}</SelectContent></Select>
-            </div>
-            <div>
-                <Label htmlFor="filter-indikator" className="mb-1.5 block text-xs font-medium text-muted-foreground">Indikator</Label>
-                <Select value={filters.indikatorNama} onValueChange={(v) => handleFilterChange('indikatorNama', v)}><SelectTrigger id="filter-indikator"><SelectValue /></SelectTrigger><SelectContent>{availableIndicators.map(i => <SelectItem key={i.id} value={i.nama_resmi}>{i.nama_resmi}</SelectItem>)}</SelectContent></Select>
-            </div>
-            <div>
-                <Label htmlFor="filter-level" className="mb-1.5 block text-xs font-medium text-muted-foreground">Level Wilayah</Label>
-                <Select value={filters.level} onValueChange={(v) => handleFilterChange('level', v as 'provinsi' | 'kabupaten')}><SelectTrigger id="filter-level"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="provinsi">Provinsi</SelectItem><SelectItem value="kabupaten">Kabupaten/Kota</SelectItem></SelectContent></Select>
-            </div>
-            <div>
-                <Label htmlFor="filter-tahun-pembanding" className="mb-1.5 block text-xs font-medium text-muted-foreground">Bandingkan Dengan Tahun</Label>
-                <Select value={filters.tahunPembanding} onValueChange={(v) => handleFilterChange('tahunPembanding', v)}><SelectTrigger id="filter-tahun-pembanding"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="tidak">Tidak ada perbandingan</SelectItem><Separator className="my-1"/>{generateYears().filter(y => y !== selectedYear.toString()).map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent></Select>
-            </div>
+      <div className="p-4 border rounded-lg bg-slate-50 dark:bg-slate-800/50">
+        {/* ✅ PERUBAHAN DI SINI: Menggunakan CSS Grid untuk layout responsif */}
+        <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:items-end">
+          <div>
+              <Label htmlFor="filter-bulan" className="mb-1.5 block text-xs font-medium text-muted-foreground">Periode Bulan</Label>
+              <Select value={filters.bulan} onValueChange={(v) => handleFilterChange('bulan', v)}><SelectTrigger id="filter-bulan"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="tahunan">Tahunan</SelectItem><Separator className="my-1"/>{Object.values(FULL_MONTH_NAMES).map(([num, name]) => <SelectItem key={num} value={num}>{name}</SelectItem>)}</SelectContent></Select>
+          </div>
+          <div>
+              <Label htmlFor="filter-indikator" className="mb-1.5 block text-xs font-medium text-muted-foreground">Indikator</Label>
+              <Select value={filters.indikatorNama} onValueChange={(v) => handleFilterChange('indikatorNama', v)}><SelectTrigger id="filter-indikator"><SelectValue /></SelectTrigger><SelectContent>{availableIndicators.map(i => <SelectItem key={i.id} value={i.nama_resmi}>{i.nama_resmi}</SelectItem>)}</SelectContent></Select>
+          </div>
+          <div>
+              <Label htmlFor="filter-level" className="mb-1.5 block text-xs font-medium text-muted-foreground">Level Wilayah</Label>
+              <Select value={filters.level} onValueChange={(v) => handleFilterChange('level', v as 'provinsi' | 'kabupaten')}><SelectTrigger id="filter-level"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="provinsi">Provinsi</SelectItem><SelectItem value="kabupaten">Kabupaten/Kota</SelectItem></SelectContent></Select>
+          </div>
+          <div>
+              <Label htmlFor="filter-tahun-pembanding" className="mb-1.5 block text-xs font-medium text-muted-foreground">Bandingkan Dengan Tahun</Label>
+              <Select value={filters.tahunPembanding} onValueChange={(v) => handleFilterChange('tahunPembanding', v)}><SelectTrigger id="filter-tahun-pembanding"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="tidak">Tidak ada perbandingan</SelectItem><Separator className="my-1"/>{generateYears().filter(y => y !== selectedYear.toString()).map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent></Select>
           </div>
         </div>
       </div>

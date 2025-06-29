@@ -1,25 +1,36 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+// src/hooks/usePalawijaMonitoringData.ts
 import { useState, useEffect } from 'react';
 import { useAuth } from "@/context/AuthContext";
 import { toast } from 'sonner';
+
+// Impor tipe dari lokasi baru di dalam folder fitur
 import { PalawijaDataRow, PalawijaTotals } from '@/app/(dashboard)/monitoring/ubinan/types';
 
-// Helper function untuk mengubah format nama Kabupaten
-const toTitleCase = (str: string) => {
-  if (!str) return '';
-  return str.toLowerCase().split(' ').map((word) => {
-    return word.charAt(0).toUpperCase() + word.slice(1);
-  }).join(' ');
+const KAB_CODE_TO_NAME: { [key: string]: string } = {
+  '1': 'Sambas',
+  '2': 'Bengkayang',
+  '3': 'Landak',
+  '4': 'Mempawah',
+  '5': 'Sanggau',
+  '6': 'Ketapang',
+  '7': 'Sintang',
+  '8': 'Kapuas Hulu',
+  '9': 'Sekadau',
+  '10': 'Melawi',
+  '11': 'Kayong Utara',
+  '12': 'Kubu Raya',
+  '71': 'Pontianak',
+  '72': 'Singkawang',
 };
 
-// DIUBAH: Definisikan tipe return value hook dengan tambahan kegiatanId
+// Definisikan tipe untuk return value hook ini
 interface PalawijaMonitoringDataHook {
   processedPalawijaData: PalawijaDataRow[] | null;
   palawijaTotals: PalawijaTotals | null;
   loadingPalawija: boolean;
   errorPalawija: string | null;
   lastUpdatePalawija: string | null;
-  kegiatanId: string | null; // BARU
 }
 
 export const usePalawijaMonitoringData = (selectedYear: number, selectedSubround: string): PalawijaMonitoringDataHook => {
@@ -30,41 +41,40 @@ export const usePalawijaMonitoringData = (selectedYear: number, selectedSubround
   const [loadingPalawija, setLoadingPalawija] = useState(true);
   const [errorPalawija, setErrorPalawija] = useState<string | null>(null);
   const [lastUpdatePalawija, setLastUpdatePalawija] = useState<string | null>(null);
-  const [kegiatanId, setKegiatanId] = useState<string | null>(null); // BARU: State untuk ID
 
   useEffect(() => {
-    if (!supabase) return;
-
     const fetchAndProcessPalawijaData = async () => {
       setLoadingPalawija(true);
       setErrorPalawija(null);
       setLastUpdatePalawija(null);
-      setKegiatanId(null); // BARU: Reset ID
 
-      let allRawData: any[] = [];
+      let allRawPalawijaData: any[] = [];
       let currentPage = 0;
       const itemsPerPage = 1000;
 
-      // DIUBAH: Kolom disesuaikan dengan 'ubinan_dashboard'
       const selectColumns = [
-        'nmkab', 'kab', 'jenis_sampel', 'r701', 'validasi', 'komoditas', 'tahun', 'subround', 'timestamp_refresh', 'kegiatan_id'
+        'kab',
+        'prioritas',
+        'r701',
+        'validasi',
+        'komoditas',
+        'tahun',
+        'subround',
+        'uploaded_at'
       ];
 
       while (true) {
-        // DIUBAH: Fetch dari 'ubinan_dashboard', bukan 'ubinan_raw'
-        let query = supabase
-          .from('ubinan_dashboard')
+        let queryPalawija = supabase
+          .from('ubinan_raw')
           .select(selectColumns.join(','));
 
-        query = query.eq('tahun', selectedYear);
+        queryPalawija = queryPalawija.eq('tahun', selectedYear);
         if (selectedSubround !== 'all') {
-          query = query.eq('subround', parseInt(selectedSubround));
+          queryPalawija = queryPalawija.eq('subround', parseInt(selectedSubround));
         }
-        
-        // DIUBAH: Filter menjadi lebih spesifik untuk mengecualikan Padi
-        query = query.not('komoditas', 'in', '("1 - Padi Sawah", "3 - Padi Ladang")');
+        queryPalawija = queryPalawija.not('komoditas', 'ilike', '%padi%');
 
-        const { data, error } = await query
+        const { data, error } = await queryPalawija
           .range(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage - 1);
 
         if (error) {
@@ -73,78 +83,152 @@ export const usePalawijaMonitoringData = (selectedYear: number, selectedSubround
           setLoadingPalawija(false);
           return;
         }
-        if (data) allRawData = allRawData.concat(data);
+        if (data) allRawPalawijaData = allRawPalawijaData.concat(data);
         if (!data || data.length < itemsPerPage) break;
         currentPage++;
       }
 
-      // BARU: Ambil kegiatan_id dari baris data pertama
-      if (allRawData && allRawData.length > 0) {
-        setKegiatanId(allRawData[0].kegiatan_id);
-      }
+      const groupedData: {
+        [key: string]: {
+          nmkab: string;
+          kab_sort_key: string;
+          target: number;
+          realisasi: number;
+          clean: number;
+          warning: number;
+          error: number;
+        }
+      } = {};
 
-      const groupedData: { [key: string]: PalawijaDataRow } = {};
-      let totalTarget = 0, totalRealisasi = 0, totalClean = 0, totalWarning = 0, totalError = 0;
+      let totalTarget = 0;
+      let totalRealisasi = 0;
+      let totalClean = 0;
+      let totalWarning = 0;
+      let totalError = 0;
       let maxTimestamp: Date | null = null;
 
-      allRawData.forEach(row => {
-        // DIUBAH: Logika grouping disederhanakan, tidak perlu mapping manual KAB_CODE_TO_NAME
-        const groupKey = row.kab || 'unknown';
-        if (!groupedData[groupKey]) {
-          groupedData[groupKey] = {
-            nmkab: toTitleCase(String(row.nmkab || 'Kabupaten Tidak Diketahui').replace(/KABUPATEN\s|KOTA\s/g, '').trim()),
-            kab_sort_key: String(row.kab || 'zzzz').trim(),
-            target: 0, realisasi: 0, clean: 0, warning: 0, error: 0, persentase: 0,
-          };
-        }
-        const group = groupedData[groupKey];
+      if (allRawPalawijaData) {
+        allRawPalawijaData.forEach(row => {
+          const kabValue = row.kab;
+          let displayName: string;
+          let groupAndSortKey: string;
 
-        // DIUBAH: Menggunakan 'jenis_sampel' untuk konsistensi
-        if (row.jenis_sampel === "U") {
-          group.target++;
-          totalTarget++;
-        }
+          const kabCodeString = (kabValue !== null && kabValue !== undefined) ? String(kabValue).trim() : '';
 
-        if (row.r701 !== null) {
-          group.realisasi++;
-          totalRealisasi++;
+          if (kabCodeString && KAB_CODE_TO_NAME[kabCodeString]) {
+            displayName = KAB_CODE_TO_NAME[kabCodeString];
+            groupAndSortKey = kabCodeString;
+          } else if (kabCodeString) {
+            displayName = `Kabupaten/Kota (Kode: ${kabCodeString})`;
+            groupAndSortKey = kabCodeString;
+          } else {
+            displayName = "Kabupaten Tidak Diketahui";
+            groupAndSortKey = "zzzz_UnknownKab";
+          }
+          
+          if (!groupedData[groupAndSortKey]) {
+            groupedData[groupAndSortKey] = {
+              nmkab: displayName,
+              kab_sort_key: groupAndSortKey,
+              target: 0,
+              realisasi: 0,
+              clean: 0,
+              warning: 0,
+              error: 0,
+            };
+          }
 
-          // Asumsi 'validasi' bernilai 'CLEAN', 'WARNING', 'ERROR'
-          if (row.validasi === 'CLEAN') { group.clean++; totalClean++; }
-          else if (row.validasi === 'WARNING') { group.warning++; totalWarning++; }
-          else if (row.validasi === 'ERROR') { group.error++; totalError++; }
-        }
-        
-        if (row.timestamp_refresh) {
-          const ts = new Date(row.timestamp_refresh);
-          if (!maxTimestamp || ts > ts) maxTimestamp = ts;
-        }
-      });
+          if (row.prioritas === "UTAMA") {
+            groupedData[groupAndSortKey].target += 1;
+            totalTarget += 1;
+          }
+
+          if (row.r701 !== null && row.r701 !== undefined && String(row.r701).trim() !== '') {
+            groupedData[groupAndSortKey].realisasi += 1;
+            totalRealisasi += 1;
+
+            if (row.validasi === 'CLEAN') {
+              groupedData[groupAndSortKey].clean += 1;
+              totalClean += 1;
+            } else if (row.validasi === 'WARNING') {
+              groupedData[groupAndSortKey].warning += 1;
+              totalWarning += 1;
+            } else if (row.validasi === 'ERROR') {
+              groupedData[groupAndSortKey].error += 1;
+              totalError += 1;
+            }
+          }
+          
+          if (row.uploaded_at) {
+            const currentTimestamp = new Date(row.uploaded_at);
+            if (!maxTimestamp || currentTimestamp > maxTimestamp) maxTimestamp = currentTimestamp;
+          }
+        });
+      }
 
       const finalProcessedData = Object.values(groupedData).map(item => ({
         ...item,
-        persentase: item.target > 0 ? (item.realisasi / item.target) * 100 : 0
-      })).sort((a, b) => a.kab_sort_key.localeCompare(b.kab_sort_key));
+        persentase: item.target > 0 ? ((item.realisasi / item.target) * 100) : 0
+      })).sort((a, b) => {
+        const fallbackSortString = "zzzz_UnknownKab";
 
-      const totalPersentase = totalTarget > 0 ? (totalRealisasi / totalTarget) * 100 : 0;
+        const isAFallback = a.kab_sort_key === fallbackSortString;
+        const isBFallback = b.kab_sort_key === fallbackSortString;
+
+        if (isAFallback && isBFallback) return 0;
+        if (isAFallback) return 1;
+        if (isBFallback) return -1;
+
+        const numA = parseInt(a.kab_sort_key, 10);
+        const numB = parseInt(b.kab_sort_key, 10);
+
+        if (isNaN(numA) && isNaN(numB)) return a.kab_sort_key.localeCompare(b.kab_sort_key);
+        if (isNaN(numA)) return 1;
+        if (isNaN(numB)) return -1;
+
+        return numA - numB;
+      });
+      
+      // Mengubah persentase menjadi string setelah sorting
+      const finalDataWithStringPercentage = finalProcessedData.map(item => ({
+        ...item,
+        persentase: item.persentase.toFixed(2)
+      }));
+
+
+      const totalPersentase = totalTarget > 0 ? ((totalRealisasi / totalTarget) * 100) : 0;
 
       setPalawijaTotals({
-        target: totalTarget, realisasi: totalRealisasi, clean: totalClean,
-        warning: totalWarning, error: totalError, persentase: totalPersentase
+        target: totalTarget,
+        realisasi: totalRealisasi,
+        clean: totalClean,
+        warning: totalWarning,
+        error: totalError,
+        persentase: parseFloat(totalPersentase.toFixed(2))
       });
-      setProcessedPalawijaData(finalProcessedData);
+      setProcessedPalawijaData(finalDataWithStringPercentage as PalawijaDataRow[]);
       setLoadingPalawija(false);
 
       if (maxTimestamp) {
-        setLastUpdatePalawija((maxTimestamp as Date).toLocaleString('id-ID', { dateStyle: 'long', timeStyle: 'medium' }));
+        setLastUpdatePalawija((maxTimestamp as Date).toLocaleString('id-ID', {
+            year: 'numeric', month: 'long', day: 'numeric',
+            hour: '2-digit', minute: '2-digit', second: '2-digit'
+        }));
       } else {
-        setLastUpdatePalawija('N/A');
+        const anyTimestamp = allRawPalawijaData.find(d => d.uploaded_at)?.uploaded_at;
+        if (anyTimestamp) {
+            setLastUpdatePalawija(new Date(anyTimestamp).toLocaleString('id-ID', {
+                year: 'numeric', month: 'long', day: 'numeric',
+                hour: '2-digit', minute: '2-digit', second: '2-digit'
+            }));
+        } else {
+            setLastUpdatePalawija('N/A');
+        }
       }
     };
 
     fetchAndProcessPalawijaData();
   }, [selectedYear, selectedSubround, supabase]);
 
-  // DIUBAH: Kembalikan kegiatanId
-  return { processedPalawijaData, palawijaTotals, loadingPalawija, errorPalawija, lastUpdatePalawija, kegiatanId };
+  return { processedPalawijaData, palawijaTotals, loadingPalawija, errorPalawija, lastUpdatePalawija };
 };
