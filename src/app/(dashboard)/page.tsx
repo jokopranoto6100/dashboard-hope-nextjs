@@ -1,65 +1,72 @@
 "use client";
 
 import * as React from "react";
-import Link from 'next/link';
 import { useYear } from '@/context/YearContext';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Clock, CheckCircle, AlertTriangle } from "lucide-react";
-
+// Import hooks
 import { useJadwalData } from "@/hooks/useJadwalData";
 import { usePadiMonitoringData } from '@/hooks/usePadiMonitoringData';
 import { usePalawijaMonitoringData } from '@/hooks/usePalawijaMonitoringData';
 import { useKsaMonitoringData } from "@/hooks/useKsaMonitoringData";
 import { useSimtpKpiData } from "@/hooks/useSimtpKpiData";
-import { type Kegiatan } from "@/app/(dashboard)/jadwal/jadwal.config";
 
-// ✅ DIUBAH: Fungsi ini sekarang lebih akurat dan aman dari masalah timezone/pembulatan
+// Import komponen-komponen modular dan UI
+import { PadiSummaryCard } from "@/app/(dashboard)/_components/homepage/PadiSummaryCard";
+import { PalawijaSummaryCard } from "@/app/(dashboard)/_components/homepage/PalawijaSummaryCard";
+import { KsaSummaryCard } from "@/app/(dashboard)/_components/homepage/KsaSummaryCard";
+import { SimtpSummaryCard } from "@/app/(dashboard)/_components/homepage/SimtpSummaryCard";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+
+// Import tipe data dan ikon
+import { type Kegiatan } from "@/app/(dashboard)/jadwal/jadwal.config";
+import { Clock, CheckCircle, AlertTriangle } from "lucide-react";
+
+// ✅ BAGIAN BARU: Komponen Skeleton untuk seluruh halaman
+const HomepageSkeleton = () => (
+  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-6">
+    {Array.from({ length: 4 }).map((_, index) => (
+      <Card key={index}>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <Skeleton className="h-5 w-3/5" />
+          <Skeleton className="h-8 w-1/4" />
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2 mt-4">
+            <Skeleton className="h-5 w-4/5" />
+            <Skeleton className="h-8 w-1/2" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-2/3" />
+          </div>
+        </CardContent>
+      </Card>
+    ))}
+  </div>
+);
+
+// Fungsi helper
 const getDiffInDays = (d1: Date, d2: Date): number => {
-  // Mengatur ulang jam, menit, detik, dan milidetik ke 0 untuk kedua tanggal
   const utc1 = Date.UTC(d1.getFullYear(), d1.getMonth(), d1.getDate());
   const utc2 = Date.UTC(d2.getFullYear(), d2.getMonth(), d2.getDate());
-  const oneDay = 1000 * 60 * 60 * 24;
-  // Sekarang kita bisa menggunakan pembulatan standar karena perbedaannya akan tepat kelipatan hari
-  return Math.round((utc2 - utc1) / oneDay);
+  return Math.round((utc2 - utc1) / (1000 * 60 * 60 * 24));
 }
-
-const getMonthName = (monthNumberStr: string | undefined): string => {
-  if (!monthNumberStr) return "Bulan Ini";
-  if (monthNumberStr.toLowerCase() === "semua") return "Data Tahunan";
-  const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-  const monthIndex = parseInt(monthNumberStr, 10) - 1;
-  if (monthIndex >= 0 && monthIndex < 12) {
-    return monthNames[monthIndex];
-  }
-  return monthNumberStr; 
-};
 
 export default function HomePage() {
   const { selectedYear } = useYear();
   const ubinanSubround = 'all';
 
+  // Bagian 1: Pengambilan Data
   const { padiTotals, loadingPadi, errorPadi, lastUpdate, uniqueStatusNames: padiUniqueStatusNames, kegiatanId: padiKegiatanId } = usePadiMonitoringData(selectedYear, ubinanSubround);
   const { palawijaTotals, loadingPalawija, errorPalawija, lastUpdatePalawija, kegiatanId: palawijaKegiatanId } = usePalawijaMonitoringData(selectedYear, ubinanSubround);
-  
-  // ✅ DIUBAH: Destrukturisasi semua properti dari hook KSA secara eksplisit
-  const { 
-    districtTotals: ksaTotals, 
-    isLoading: loadingKsa, 
-    error: errorKsa, 
-    lastUpdated: lastUpdatedKsa, 
-    displayMonth: ksaDisplayMonth, 
-    uniqueStatusNames: ksaUniqueStatusNames, 
-    kegiatanId: ksaKegiatanId 
-  } = useKsaMonitoringData();
-  
+  const { districtTotals: ksaTotals, isLoading: loadingKsa, error: errorKsa, lastUpdated: lastUpdatedKsa, displayMonth: ksaDisplayMonth, uniqueStatusNames: ksaUniqueStatusNames, kegiatanId: ksaKegiatanId } = useKsaMonitoringData();
   const { data: simtpData, isLoading: loadingSimtp, error: errorSimtp, kegiatanId: simtpKegiatanId } = useSimtpKpiData();
   const { jadwalData, isLoading: isJadwalLoading } = useJadwalData(selectedYear);
 
+  // ✅ BAGIAN BARU: Gabungkan semua status loading menjadi satu
+  const isAnythingLoading = loadingPadi || loadingPalawija || loadingKsa || loadingSimtp || isJadwalLoading;
+
+  // Bagian 2: Kalkulasi & Memoization (Tidak berubah)
+  // ... (semua useMemo Anda untuk kalkulasi tetap sama)
   const jadwalPadi = React.useMemo(() => !isJadwalLoading && padiKegiatanId ? jadwalData.find(k => k.id === padiKegiatanId) : undefined, [jadwalData, isJadwalLoading, padiKegiatanId]);
   const jadwalPalawija = React.useMemo(() => !isJadwalLoading && palawijaKegiatanId ? jadwalData.find(k => k.id === palawijaKegiatanId) : undefined, [jadwalData, isJadwalLoading, palawijaKegiatanId]);
   const jadwalSimtp = React.useMemo(() => !isJadwalLoading && simtpKegiatanId ? jadwalData.find(k => k.id === simtpKegiatanId) : undefined, [jadwalData, isJadwalLoading, simtpKegiatanId]);
@@ -73,241 +80,93 @@ export default function HomePage() {
     const allEndDates = allJadwalItems.map(j => new Date(j.endDate));
     const earliestStart = new Date(Math.min(...allStartDates.map(d => d.getTime())));
     const latestEnd = new Date(Math.max(...allEndDates.map(d => d.getTime())));
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
     if (today > latestEnd) return { text: "Jadwal Telah Berakhir", color: "text-gray-500", icon: CheckCircle };
     if (today >= earliestStart && today <= latestEnd) {
       const daysLeft = getDiffInDays(today, latestEnd);
-      if (daysLeft === 0) return { text: "Berakhir Hari Ini", color: "text-red-600 font-bold", icon: Clock };
-      return { text: `Berakhir dalam ${daysLeft} hari`, color: "text-green-600", icon: Clock };
+      return { text: daysLeft === 0 ? "Berakhir Hari Ini" : `Berakhir dalam ${daysLeft} hari`, color: daysLeft === 0 ? "text-red-600 font-bold" : "text-green-600", icon: Clock };
     }
     if (today < earliestStart) {
       const daysUntil = getDiffInDays(today, earliestStart);
-       if (daysUntil === 1) return { text: "Dimulai Besok", color: "text-blue-600", icon: Clock };
-      return { text: `Dimulai dalam ${daysUntil} hari`, color: "text-blue-600", icon: Clock };
+      return { text: daysUntil === 1 ? "Dimulai Besok" : `Dimulai dalam ${daysUntil} hari`, color: "text-blue-600", icon: Clock };
     }
     return null;
   }
-
+  
   const countdownStatusPadi = React.useMemo(() => calculateCountdown(jadwalPadi), [jadwalPadi]);
   const countdownStatusPalawija = React.useMemo(() => calculateCountdown(jadwalPalawija), [jadwalPalawija]);
-  
+  // ... (Kalkulasi simtpDisplayStatus dan ksaDisplayStatus tetap sama)
   const simtpDisplayStatus = React.useMemo(() => {
     if (!jadwalSimtp || !simtpData) return null;
     const allJadwalItems = [...(jadwalSimtp.jadwal || []), ...(jadwalSimtp.subKegiatan?.flatMap(sub => sub.jadwal || []) || [])].sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
     if (allJadwalItems.length === 0) return null;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
     const currentOrNextSegment = allJadwalItems.find(item => today <= new Date(item.endDate));
-    if (!currentOrNextSegment) {
-        const kpiStatus = simtpData.monthly.percentage >= 100 ? 'Selesai' : 'Terlambat';
-        return { line1: { text: `Status Laporan: ${kpiStatus}`, color: "text-gray-500", icon: CheckCircle } };
-    }
+    if (!currentOrNextSegment) { return { line1: { text: `Status Laporan: ${simtpData.monthly.percentage >= 100 ? 'Selesai' : 'Terlambat'}`, color: "text-gray-500", icon: CheckCircle } }; }
     const segmentStart = new Date(currentOrNextSegment.startDate);
     const segmentEnd = new Date(currentOrNextSegment.endDate);
-    const segmentMonthName = segmentStart.toLocaleString('id-ID', { month: 'long' });
     if (today >= segmentStart && today <= segmentEnd) {
         const daysLeft = getDiffInDays(today, segmentEnd);
-        let text = `Batas laporan ${segmentMonthName} berakhir dalam ${daysLeft} hari`;
-        if (daysLeft === 0) text = `Batas laporan ${segmentMonthName} berakhir hari ini`;
+        let text = `Batas laporan ${segmentStart.toLocaleString('id-ID', { month: 'long' })} berakhir dalam ${daysLeft} hari`;
+        if (daysLeft === 0) text = `Batas laporan ${segmentStart.toLocaleString('id-ID', { month: 'long' })} berakhir hari ini`;
         return { line1: { text, color: daysLeft === 0 ? "text-red-600 font-bold" : "text-green-600", icon: Clock } };
     }
     if (today < segmentStart) {
-        const kpiMonthName = simtpData.monthly.reportForMonthName;
         const kpiProgress = simtpData.monthly.percentage;
-        const line1Text = kpiProgress >= 100 ? `Laporan ${kpiMonthName}: Selesai` : `Laporan ${kpiMonthName}: Terlambat`;
-        const line1Color = kpiProgress >= 100 ? "text-green-600" : "text-amber-600";
-        const line1Icon = kpiProgress >= 100 ? CheckCircle : AlertTriangle;
-        const daysUntil = getDiffInDays(today, segmentStart);
-        const line2Text = daysUntil === 1 ? `Periode berikutnya dimulai besok` : `Periode berikutnya dimulai dalam ${daysUntil} hari`;
-        return { line1: { text: line1Text, color: line1Color, icon: line1Icon }, line2: { text: line2Text, color: "text-blue-600", icon: Clock } };
+        return {
+          line1: { text: kpiProgress >= 100 ? `Laporan ${simtpData.monthly.reportForMonthName}: Selesai` : `Laporan ${simtpData.monthly.reportForMonthName}: Terlambat`, color: kpiProgress >= 100 ? "text-green-600" : "text-amber-600", icon: kpiProgress >= 100 ? CheckCircle : AlertTriangle },
+          line2: { text: `Periode berikutnya dimulai dalam ${getDiffInDays(today, segmentStart)} hari`, color: "text-blue-600", icon: Clock }
+        };
     }
     return null;
   }, [jadwalSimtp, simtpData]);
   
   const ksaDisplayStatus = React.useMemo(() => {
-    // ✅ DIUBAH: Gunakan ksaDisplayMonth, bukan ksaData.displayMonth
     if (!jadwalKsa || !ksaDisplayMonth || !ksaTotals) return null;
     const allJadwalItems = [...(jadwalKsa.jadwal || []), ...(jadwalKsa.subKegiatan?.flatMap(sub => sub.jadwal || []) || [])].sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
     if (allJadwalItems.length === 0) return null;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const kpiMonthIndex = parseInt(ksaDisplayMonth, 10) - 1;
-    const currentKsaSegment = allJadwalItems.find(item => new Date(item.startDate).getMonth() === kpiMonthIndex);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const currentKsaSegment = allJadwalItems.find(item => new Date(item.startDate).getMonth() === (parseInt(ksaDisplayMonth, 10) - 1));
     if (!currentKsaSegment) return null;
     const segmentStart = new Date(currentKsaSegment.startDate);
     const segmentEnd = new Date(currentKsaSegment.endDate);
     if (today >= segmentStart && today <= segmentEnd) {
       const daysLeft = getDiffInDays(today, segmentEnd);
-      if (daysLeft === 0) return { text: `Berakhir hari ini`, color: "text-red-600 font-bold", icon: Clock };
-      return { text: `Berakhir dalam ${daysLeft} hari`, color: "text-green-600", icon: Clock };
+      return { text: daysLeft === 0 ? `Berakhir hari ini` : `Berakhir dalam ${daysLeft} hari`, color: daysLeft === 0 ? "text-red-600 font-bold" : "text-green-600", icon: Clock };
     }
-    if (today > segmentEnd) {
-        const kpiProgress = ksaTotals.persentase;
-        const statusText = kpiProgress >= 100 ? "Pengamatan Selesai" : "Pengamatan Terlambat";
-        const statusColor = kpiProgress >= 100 ? "text-green-600" : "text-amber-600";
-        const statusIcon = kpiProgress >= 100 ? CheckCircle : AlertTriangle;
-        return { text: statusText, color: statusColor, icon: statusIcon };
-    }
+    if (today > segmentEnd) { return { text: ksaTotals.persentase >= 100 ? "Pengamatan Selesai" : "Pengamatan Terlambat", color: ksaTotals.persentase >= 100 ? "text-green-600" : "text-amber-600", icon: ksaTotals.persentase >= 100 ? CheckCircle : AlertTriangle }; }
     if (today < segmentStart) {
       const daysUntil = getDiffInDays(today, segmentStart);
-      if (daysUntil === 1) return { text: "Pengamatan dimulai besok", color: "text-blue-600", icon: Clock };
-      return { text: `Pengamatan dimulai dalam ${daysUntil} hari`, color: "text-blue-600", icon: Clock };
+      return { text: daysUntil === 1 ? "Pengamatan dimulai besok" : `Pengamatan dimulai dalam ${daysUntil} hari`, color: "text-blue-600", icon: Clock };
     }
     return null;
   }, [jadwalKsa, ksaDisplayMonth, ksaTotals]);
+  // --- Akhir dari blok kalkulasi ---
 
+  const sortedKpiCards = React.useMemo(() => {
+    const kpiCards = [
+      { id: 'padi', percentage: padiTotals?.persentase ?? Infinity, component: <PadiSummaryCard isLoading={isAnythingLoading} error={errorPadi} totals={padiTotals} countdownStatus={countdownStatusPadi} uniqueStatusNames={padiUniqueStatusNames || []} lastUpdate={lastUpdate} selectedYear={selectedYear} /> },
+      { id: 'palawija', percentage: palawijaTotals?.persentase ?? Infinity, component: <PalawijaSummaryCard isLoading={isAnythingLoading} error={errorPalawija} totals={palawijaTotals} countdownStatus={countdownStatusPalawija} lastUpdate={lastUpdatePalawija} selectedYear={selectedYear} /> },
+      { id: 'ksa', percentage: ksaTotals?.persentase ?? Infinity, component: <KsaSummaryCard isLoading={isAnythingLoading} error={errorKsa} totals={ksaTotals} displayStatus={ksaDisplayStatus} displayMonth={ksaDisplayMonth || ''} uniqueStatusNames={ksaUniqueStatusNames || []} lastUpdate={lastUpdatedKsa} selectedYear={selectedYear} /> },
+      { id: 'simtp', percentage: simtpData?.monthly.percentage ?? Infinity, component: <SimtpSummaryCard isLoading={isAnythingLoading} error={errorSimtp} data={simtpData} displayStatus={simtpDisplayStatus} /> }
+    ];
+    return kpiCards.sort((a, b) => a.percentage - b.percentage);
+  }, [padiTotals, palawijaTotals, ksaTotals, simtpData, isAnythingLoading]); // dependensi disederhanakan
+
+  // Bagian 3: Rendering
   return (
     <>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-6">
-        <Card className="h-full">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ubinan Padi ({selectedYear})</CardTitle>
-            <Button asChild variant="outline" size="sm"><Link href="/monitoring/ubinan">Lihat Detail</Link></Button>
-          </CardHeader>
-          <CardContent className="flex flex-col h-full">
-            {loadingPadi || isJadwalLoading ? (
-              <div className="space-y-2"><Skeleton className="h-5 w-3/4" /><Skeleton className="h-8 w-1/2" /><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-2/3" /></div>
-            ) : errorPadi ? (
-              <p className="text-xs text-red-500">Error: {errorPadi}</p>
-            ) : padiTotals && typeof padiTotals.persentase === 'number' ? (
-              <>
-                {countdownStatusPadi && ( <div className="flex items-center text-xs text-muted-foreground mb-4"><Clock className={`h-4 w-4 mr-2 ${countdownStatusPadi.color}`} /><span className={`font-medium ${countdownStatusPadi.color}`}>{countdownStatusPadi.text}</span></div> )}
-                <div className="flex-grow">
-                  <div className="text-2xl font-bold">{padiTotals.persentase.toFixed(2)}%</div>
-                  <p className="text-xs text-muted-foreground">Realisasi: {padiTotals.realisasi} dari {padiTotals.targetUtama} Target Utama</p>
-                  <div className="flex flex-col md:flex-row md:gap-6">
-                      <p className="text-xs text-muted-foreground mt-1 flex items-center flex-wrap">Total Lewat Panen:&nbsp;<Badge variant={padiTotals.lewatPanen > 0 ? "destructive" : "success"}>{padiTotals.lewatPanen}</Badge></p>
-                      <p className="text-xs text-muted-foreground mt-1 flex items-center flex-wrap">Jumlah Anomali:&nbsp;<Badge variant={padiTotals.anomali > 0 ? "destructive" : "success"}>{padiTotals.anomali}</Badge></p>
-                  </div>
-                </div>
-                {padiTotals.statuses && padiUniqueStatusNames && padiUniqueStatusNames.length > 0 && (
-                  <div className="text-xs text-muted-foreground mt-3 pt-2 border-t">
-                    <h4 className="font-semibold mb-1 text-foreground">Detail Status Ubinan:</h4>
-                    <div className="flex flex-wrap gap-1">
-                      {padiUniqueStatusNames.map(statusName => {
-                        const count = padiTotals.statuses?.[statusName];
-                        if (count !== undefined) { return ( <Badge key={statusName} variant="secondary">{statusName}: {count}</Badge> ); }
-                        return null;
-                      })}
-                    </div>
-                  </div>
-                )}
-                {lastUpdate && <p className="text-xs text-muted-foreground mt-1">Data per: {lastUpdate}</p>}
-              </>
-            ) : ( <p className="text-sm text-muted-foreground">Data Padi tidak tersedia.</p> )}
-          </CardContent>
-        </Card>
-
-        <Card className="h-full">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ubinan Palawija ({selectedYear})</CardTitle>
-            <Button asChild variant="outline" size="sm"><Link href="/monitoring/ubinan">Lihat Detail</Link></Button>
-          </CardHeader>
-          <CardContent className="flex flex-col h-full">
-            {loadingPalawija || isJadwalLoading ? ( <div className="space-y-2"><Skeleton className="h-5 w-3/4" /><Skeleton className="h-8 w-1/2" /><Skeleton className="h-4 w-full" /></div>
-            ) : errorPalawija ? ( <p className="text-xs text-red-500">Error: {errorPalawija}</p>
-            ) : palawijaTotals && typeof palawijaTotals.persentase === 'number' ? (
-              <>
-                {countdownStatusPalawija && (<div className="flex items-center text-xs text-muted-foreground mb-4"><Clock className={`h-4 w-4 mr-2 ${countdownStatusPalawija.color}`} /><span className={`font-medium ${countdownStatusPalawija.color}`}>{countdownStatusPalawija.text}</span></div>)}
-                <div className="flex-grow">
-                    <div className="text-2xl font-bold">{palawijaTotals.persentase.toFixed(2)}%</div>
-                    <p className="text-xs text-muted-foreground">Realisasi: {palawijaTotals.realisasi} dari {palawijaTotals.target} Target</p>
-                </div>
-                <div className="text-xs text-muted-foreground mt-3 pt-2 border-t">
-                  <h4 className="font-semibold mb-1 text-foreground">Detail Status Validasi:</h4>
-                  <div className="flex flex-wrap items-center gap-1"><Badge variant="secondary">Clean: {palawijaTotals.clean}</Badge><Badge variant="secondary">Warning: {palawijaTotals.warning}</Badge><Badge variant="secondary">Error: {palawijaTotals.error}</Badge></div>
-                </div>
-                {lastUpdatePalawija && <p className="text-xs text-muted-foreground mt-1">Data per: {lastUpdatePalawija}</p>}
-              </>
-            ) : ( <p className="text-sm text-muted-foreground">Data Palawija tidak tersedia.</p>)}
-          </CardContent>
-        </Card>
-
-        {/* Card 3: KSA Padi */}
-        <Card className="h-full">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">KSA Padi ({selectedYear}) - {getMonthName(ksaDisplayMonth)}</CardTitle>
-            <Button asChild variant="outline" size="sm"><Link href="/monitoring/ksa">Lihat Detail</Link></Button>
-          </CardHeader>
-          <CardContent className="flex flex-col h-full">
-            {loadingKsa || isJadwalLoading ? ( <div className="space-y-2"><Skeleton className="h-8 w-3/4 mb-1" /><Skeleton className="h-4 w-full mb-1" /><Skeleton className="h-4 w-2/3 mt-1" /></div>
-            ) : errorKsa ? ( <p className="text-xs text-red-500">Error: {errorKsa}</p>
-            ) : ksaTotals ? (
-              <>
-                {ksaDisplayStatus && (
-                    <div className="flex items-center text-xs text-muted-foreground mb-4">
-                        <ksaDisplayStatus.icon className={`h-4 w-4 mr-2 ${ksaDisplayStatus.color}`} />
-                        <span className={`font-medium ${ksaDisplayStatus.color}`}>{ksaDisplayStatus.text}</span>
-                    </div>
-                )}
-                <div className="flex-grow">
-                    <div className="text-2xl font-bold">{ksaTotals.persentase.toFixed(2)}%</div>
-                    <p className="text-xs text-muted-foreground">Realisasi: {ksaTotals.realisasi} dari {ksaTotals.target} Target</p>
-                    <div className="flex flex-col md:flex-row md:gap-6">
-                        <p className="text-xs text-muted-foreground mt-1 flex items-center flex-wrap">Inkonsisten:&nbsp;<Badge variant={ksaTotals.inkonsisten > 0 ? "destructive" : "success"}>{ksaTotals.inkonsisten}</Badge></p>
-                        <p className="text-xs text-muted-foreground mt-1 flex items-center">Total Kode 12:&nbsp;<Badge variant="warning">{ksaTotals.kode_12}</Badge></p>
-                    </div>
-                </div>
-                {/* ✅ DIUBAH: Gunakan ksaUniqueStatusNames dari destructuring yang benar */}
-                {ksaTotals.statuses && ksaUniqueStatusNames && ksaUniqueStatusNames.length > 0 && (
-                  <div className="text-xs text-muted-foreground mt-3 pt-2 border-t">
-                    <h4 className="font-semibold mb-1 text-foreground">Detail Status KSA:</h4>
-                    <div className="flex flex-wrap gap-1">
-                      {ksaUniqueStatusNames.map(statusName => {
-                          const statusData = ksaTotals.statuses?.[statusName];
-                          if (statusData) {
-                              let statusVariant: "default" | "secondary" | "destructive" | "success" | "warning" = "secondary";
-                              if (statusName.toLowerCase().includes("selesai") || statusName.toLowerCase().includes("panen")) statusVariant = "success";
-                              if (statusName.toLowerCase().includes("belum") || statusName.toLowerCase().includes("kosong")) statusVariant = "default";
-                              return ( <Badge key={statusName} variant={statusVariant}>{statusName}: {statusData.count}</Badge> );
-                          }
-                          return null;
-                        })}
-                    </div>
-                  </div>
-                )}
-                {lastUpdatedKsa && <p className="text-xs text-muted-foreground mt-1">Data per: {lastUpdatedKsa}</p>}
-              </>
-            ) : (<p className="text-sm text-muted-foreground">Data KSA tidak tersedia.</p>)}
-          </CardContent>
-        </Card>
-
-        <Card className="h-full">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">SIMTP - {simtpData ? simtpData.monthly.reportForMonthName : "Data tidak tersedia"}</CardTitle>
-            <Button asChild variant="outline" size="sm"><Link href="/monitoring/simtp">Lihat Detail</Link></Button>
-          </CardHeader>
-          <CardContent className="flex flex-col h-full">
-            {loadingSimtp || isJadwalLoading ? (
-              <div className="space-y-2"><Skeleton className="h-5 w-3/4" /><Skeleton className="h-8 w-1/2" /><Skeleton className="h-4 w-full mb-1" /><Skeleton className="h-4 w-2/3 mt-2" /></div>
-            ) : errorSimtp ? (
-              <p className="text-xs text-red-500">Error: {errorSimtp}</p>
-            ) : simtpData ? (
-              <>
-                <div className='space-y-1 mb-4'>
-                  {simtpDisplayStatus?.line1 && ( <div className="flex items-center text-xs text-muted-foreground"><simtpDisplayStatus.line1.icon className={`h-4 w-4 mr-2 ${simtpDisplayStatus.line1.color}`} /><span className={`font-medium ${simtpDisplayStatus.line1.color}`}>{simtpDisplayStatus.line1.text}</span></div> )}
-                  {simtpDisplayStatus?.line2 && ( <div className="flex items-center text-xs text-muted-foreground"><simtpDisplayStatus.line2.icon className={`h-4 w-4 mr-2 ${simtpDisplayStatus.line2.color}`} /><span className={`font-medium ${simtpDisplayStatus.line2.color}`}>{simtpDisplayStatus.line2.text}</span></div> )}
-                </div>
-                <div className="flex-grow">
-                  <div className="text-2xl font-bold">{simtpData.monthly.percentage.toFixed(2)}%</div>
-                  <p className="text-xs text-muted-foreground">Laporan Bulanan: <span className="font-semibold text-foreground">{` ${simtpData.monthly.uploadedCount} dari ${simtpData.monthly.totalDistricts} Kab/Kota`}</span></p>
-                  <Progress value={simtpData.monthly.percentage} className="mt-2 h-2" />
-                </div>
-                <div className="text-xs text-muted-foreground mt-3 pt-2 border-t">
-                  <h4 className="font-semibold mb-1 text-foreground">Data Tahunan ({simtpData.annual.reportForYear}):</h4>
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                    <Badge variant="secondary">Lahan: {simtpData.annual.lahanCount}/{simtpData.annual.totalDistricts}</Badge>
-                    <Badge variant="secondary">Alsin: {simtpData.annual.alsinCount}/{simtpData.annual.totalDistricts}</Badge>
-                    <Badge variant="secondary">Benih: {simtpData.annual.benihCount}/{simtpData.annual.totalDistricts}</Badge>
-                  </div>
-                </div>
-                {simtpData.lastUpdate && <p className="text-xs text-muted-foreground mt-2">Data per: {simtpData.lastUpdate}</p>}
-              </>
-            ) : (<p className="text-sm text-muted-foreground">Data SIMTP tidak tersedia.</p>)}
-          </CardContent>
-        </Card>
-      </div>
+      {isAnythingLoading ? (
+        <HomepageSkeleton />
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-6">
+          {sortedKpiCards.map(card => (
+            <React.Fragment key={card.id}>
+              {card.component}
+            </React.Fragment>
+          ))}
+        </div>
+      )}
       <p className="mt-6 text-gray-500 text-center text-xs">
         Selamat datang di dashboard pemantauan Anda.
       </p>
