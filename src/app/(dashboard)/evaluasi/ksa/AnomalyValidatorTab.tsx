@@ -29,9 +29,9 @@ const ANOMALY_TYPE_MAP: Record<string, string> = {
   'S-1': 'Stagnansi',
   'T-1': 'Lompatan Ekstrem',
   'T-2': 'Fase Mundur',
-  'T-3': 'Panen Tdk Logis',
-  'T-4': 'Alih Fungsi',
-  'T-5': 'Re-aktivasi',
+  'T-3': 'Illogical Harvest',
+  'T-4': 'Alih Fungsi ke Non-Pertanian',
+  'T-5': 'Alih Fungsi ke Pertanian',
 };
 
 // Removed the unused NoDataDisplay function to resolve the error.
