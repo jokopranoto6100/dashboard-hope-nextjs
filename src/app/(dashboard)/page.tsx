@@ -106,7 +106,7 @@ export default function HomePage() {
 
       const currentOrNextSegment = allJadwalItems.find(item => {
           const itemEnd = new Date(item.endDate);
-          itemEnd.setHours(0, 0, 0, 0); // --> PERBAIKAN: Normalisasi tanggal akhir
+          itemEnd.setHours(0, 0, 0, 0); 
           return today <= itemEnd;
       });
 
@@ -115,10 +115,10 @@ export default function HomePage() {
       }
 
       const segmentStart = new Date(currentOrNextSegment.startDate);
-      segmentStart.setHours(0, 0, 0, 0); // --> PERBAIKAN: Normalisasi tanggal mulai
+      segmentStart.setHours(0, 0, 0, 0); 
 
       const segmentEnd = new Date(currentOrNextSegment.endDate);
-      segmentEnd.setHours(0, 0, 0, 0); // --> PERBAIKAN: Normalisasi tanggal akhir
+      segmentEnd.setHours(0, 0, 0, 0);
 
       if (today >= segmentStart && today <= segmentEnd) {
           const daysLeft = getDiffInDays(today, segmentEnd);
@@ -135,7 +135,7 @@ export default function HomePage() {
           };
       }
 
-      return null; // Fallback jika kondisi di atas tidak ada yang cocok
+      return null;
   }, [jadwalSimtp, simtpData]);
   
   const ksaDisplayStatus = React.useMemo(() => {

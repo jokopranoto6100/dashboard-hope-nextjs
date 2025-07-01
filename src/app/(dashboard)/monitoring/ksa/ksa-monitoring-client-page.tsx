@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// src/app/(dashboard)/monitoring/ksa/ksa-monitoring-client-page.tsx
+// Lokasi: src/app/(dashboard)/monitoring/ksa/ksa-monitoring-client-page.tsx
 "use client";
 
 import React, { useMemo, useState } from 'react';
 import { useYear } from '@/context/YearContext';
-import { useAuth } from '@/context/AuthContext'; // PERUBAHAN: Import useAuth untuk akses supabase
+import { useAuth } from '@/context/AuthContext';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -15,23 +15,21 @@ import { useKsaMonitoringData, ProcessedKsaDistrictData, ProcessedKsaNamaData } 
 
 import { DistrictKsaTable } from './DistrictKsaTable';
 import { NamaKsaTable } from './NamaKsaTable';
-// PERUBAHAN: Import modal
 import { BeritaAcaraModal, BaData } from './components/BeritaAcaraModal'; 
+import { LeaderboardCard } from './LeaderboardCard';
 
 type ViewMode = 'district' | 'nama';
 
 export default function KsaMonitoringClientPage() {
   const { selectedYear } = useYear();
-  const { supabase } = useAuth(); // PERUBAHAN: Dapatkan instance supabase
+  const { supabase } = useAuth();
   const [currentView, setCurrentView] = useState<ViewMode>('district');
   const [selectedKabupatenDetail, setSelectedKabupatenDetail] = useState<ProcessedKsaDistrictData | null>(null);
 
-  // PERUBAHAN: State untuk modal Berita Acara
   const [isBaModalOpen, setIsBaModalOpen] = useState(false);
   const [baModalData, setBaModalData] = useState<BaData[]>([]);
   const [selectedPetugasForBa, setSelectedPetugasForBa] = useState<ProcessedKsaNamaData | null>(null);
   const [isBaLoading, setIsBaLoading] = useState(false);
-
 
   const { 
     districtLevelData,
@@ -45,6 +43,7 @@ export default function KsaMonitoringClientPage() {
     setSelectedKabupatenCode,
     displayMonth,
     setDisplayMonth,
+    leaderboardData,
   } = useKsaMonitoringData();
   
   const handleMonthChange = (newMonthValue: string) => {
@@ -66,10 +65,8 @@ export default function KsaMonitoringClientPage() {
     setSelectedKabupatenCode(null);
   };
   
-  // PERUBAHAN: Handler untuk memanggil RPC
   const handleGenerateBaClick = async (petugasData: ProcessedKsaNamaData) => {
     if (!selectedKabupatenDetail?.kode_kab || !displayMonth || !selectedYear) {
-      // Log ini akan muncul jika salah satu data penting tidak ada
       console.error("Gagal memulai Generate BA karena data tidak lengkap:", {
         "selectedKabupatenDetail.kode_kab": selectedKabupatenDetail?.kode_kab,
         "displayMonth": displayMonth,
@@ -108,6 +105,10 @@ export default function KsaMonitoringClientPage() {
     { value: "10", label: "Oktober" }, { value: "11", label: "November" }, { value: "12", label: "Desember" }
   ], []);
 
+  const selectedMonthLabel = useMemo(() => {
+    return months.find(m => m.value === displayMonth)?.label || '';
+  }, [displayMonth, months]);
+
   if (error) { 
     return (
       <div className="min-w-0 flex flex-col gap-4">
@@ -122,7 +123,6 @@ export default function KsaMonitoringClientPage() {
   
   return ( 
     <div className="min-w-0 flex flex-col gap-4">
-       {/* PERUBAHAN: Render Modal */}
       <BeritaAcaraModal
         isOpen={isBaModalOpen}
         onClose={() => setIsBaModalOpen(false)}
@@ -154,27 +154,36 @@ export default function KsaMonitoringClientPage() {
       )}
 
       {currentView === 'district' && (
-        <DistrictKsaTable
-          title="Monitoring KSA Padi"
-          description={!isLoading && lastUpdated ? `Terakhir diperbarui: ${lastUpdated}` : ' '}
-          data={districtLevelData || []}
-          totals={districtTotals}
-          uniqueStatusNames={uniqueStatusNames || []}
-          onRowClick={handleDistrictRowClick}
-          isLoading={isLoading || !displayMonth}
-        />
+        <>
+          <LeaderboardCard 
+            data={leaderboardData} 
+            isLoading={isLoading || !displayMonth}
+            monthName={selectedMonthLabel}
+            year={selectedYear || new Date().getFullYear()}
+          />
+
+          <DistrictKsaTable
+            title="Monitoring KSA Padi"
+            description={!isLoading && lastUpdated ? `Terakhir diperbarui: ${lastUpdated}` : ' '}
+            data={districtLevelData || []}
+            totals={districtTotals}
+            uniqueStatusNames={uniqueStatusNames || []}
+            onRowClick={handleDistrictRowClick}
+            isLoading={isLoading || !displayMonth} // <-- Sudah diperbaiki
+          />
+        </>
       )}
       
       {currentView === 'nama' && selectedKabupatenDetail && (
         <NamaKsaTable
           title={`Detail KSA Padi - ${selectedKabupatenDetail.kabupaten}`}
-          description={`Data untuk Tahun ${selectedYear} - Bulan ${months.find(m => m.value === displayMonth)?.label || ''}`}
+          description={`Data untuk Tahun ${selectedYear} - Bulan ${selectedMonthLabel}`}
           data={namaLevelData || []}
           totals={namaLevelTotals}
           uniqueStatusNames={uniqueStatusNames || []}
           kabupatenName={selectedKabupatenDetail.kabupaten || ''}
-          isLoading={isLoading || isBaLoading} // PERUBAHAN: Tambahkan isBaLoading agar tabel menunjukkan loading saat RPC dipanggil
-          onGenerateBaClick={handleGenerateBaClick} // PERUBAHAN: Teruskan handler ke tabel
+          isLoading={isLoading || isBaLoading}
+          onGenerateBaClick={handleGenerateBaClick}
         />
       )}
     </div>

@@ -1,7 +1,8 @@
-// src/hooks/useKsaMonitoringData.ts
+// Lokasi: src/hooks/useKsaMonitoringData.ts
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useYear } from '@/context/YearContext';
+import { LeaderboardEntry } from '@/app/(dashboard)/monitoring/ksa/LeaderboardCard';
 
 // Interface dari file Anda
 interface KsaAmatanRow { id: number; id_segmen: string | null; subsegmen: string | null; nama: string | null; n: number | null; amatan: string | null; status: string | null; evaluasi: string | null; tanggal: string; flag_kode_12: string | null; note: string | null; kode_kab: string | null; kode_kec: string | null; kabupaten: string | null; bulan: number | null; tahun: number | null; }
@@ -11,7 +12,6 @@ export interface KsaDistrictTotals { target: number; realisasi: number; persenta
 export interface ProcessedKsaNamaData { nama: string; target: number; realisasi: number; persentase: number; inkonsisten: number; kode_12: number; statuses?: Record<string, StatusValue>; }
 export interface KsaNamaTotals { target: number; realisasi: number; persentase: number; inkonsisten: number; kode_12: number; statuses?: Record<string, StatusValue>; }
 
-// BARU: Definisikan tipe untuk nilai return dari hook
 export interface KsaMonitoringHookResult {
     districtLevelData: ProcessedKsaDistrictData[];
     districtTotals: KsaDistrictTotals | null;
@@ -24,7 +24,8 @@ export interface KsaMonitoringHookResult {
     namaLevelData: ProcessedKsaNamaData[];
     namaLevelTotals: KsaNamaTotals | null;
     setSelectedKabupatenCode: React.Dispatch<React.SetStateAction<string | null>>;
-    kegiatanId: string | null; // Properti baru untuk integrasi
+    leaderboardData: LeaderboardEntry[];
+    kegiatanId: string | null;
 }
 
 export const useKsaMonitoringData = (): KsaMonitoringHookResult => {
@@ -42,7 +43,8 @@ export const useKsaMonitoringData = (): KsaMonitoringHookResult => {
     const [error, setError] = useState<string | null>(null);
     const [lastUpdated, setLastUpdated] = useState<string | null>(null);
     const [uniqueStatusNames, setUniqueStatusNames] = useState<string[]>([]);
-    const [kegiatanId, setKegiatanId] = useState<string | null>(null); // BARU: State untuk ID Kegiatan
+    const [kegiatanId, setKegiatanId] = useState<string | null>(null);
+    const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
     
     const processNamaLevelData = useCallback((rawDataFilteredByKab: KsaAmatanRow[], currentUniqueStatuses: string[]) => {
       if (!rawDataFilteredByKab || rawDataFilteredByKab.length === 0) { setNamaLevelData([]); setNamaLevelTotals(null); return; }
@@ -105,8 +107,10 @@ export const useKsaMonitoringData = (): KsaMonitoringHookResult => {
         const executeFetch = async () => {
             if (!supabase || !selectedYear || !displayMonth) return;
             setIsLoading(true); setError(null); setKegiatanId(null);
+            setLeaderboardData([]);
+
             try {
-                const [kegiatanResult, ksaDataResult] = await Promise.all([
+                const [kegiatanResult, ksaDataResult, leaderboardResult] = await Promise.all([
                     supabase.from('kegiatan').select('id').eq('nama_kegiatan', 'Kerangka Sampel Area').single(),
                     (async () => {
                         let rawData: KsaAmatanRow[] = [];
@@ -122,7 +126,11 @@ export const useKsaMonitoringData = (): KsaMonitoringHookResult => {
                             currentPage++;
                         }
                         return rawData;
-                    })()
+                    })(),
+                    supabase.rpc('get_ksa_monthly_leaderboard', {
+                        p_tahun: selectedYear,
+                        p_bulan: parseInt(displayMonth)
+                    })
                 ]);
 
                 if (kegiatanResult.error) console.error("Gagal mengambil ID kegiatan KSA:", kegiatanResult.error.message);
@@ -132,6 +140,13 @@ export const useKsaMonitoringData = (): KsaMonitoringHookResult => {
                 setAllRawDataCache(rawData);
                 const currentUniqueStatuses = extractUniqueStatusesAndDate(rawData);
                 processDistrictData(rawData, currentUniqueStatuses);
+
+                if (leaderboardResult.error) {
+                    console.error("Gagal mengambil data leaderboard KSA:", leaderboardResult.error.message);
+                } else {
+                    setLeaderboardData(leaderboardResult.data || []);
+                }
+
             } catch (err) { setError((err as Error).message || 'Gagal mengambil data KSA.');
             } finally { setIsLoading(false); }
         };
@@ -152,6 +167,7 @@ export const useKsaMonitoringData = (): KsaMonitoringHookResult => {
         displayMonth, setDisplayMonth, uniqueStatusNames,
         namaLevelData, namaLevelTotals, 
         setSelectedKabupatenCode,
-        kegiatanId 
+        kegiatanId,
+        leaderboardData
     };
 };
