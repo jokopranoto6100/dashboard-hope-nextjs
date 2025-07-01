@@ -46,7 +46,16 @@ const columns: ColumnDef<OfficerPerformanceData>[] = [
     { accessorKey: "kabupaten", header: () => <div className="text-center">Kabupaten</div>, cell: ({ row }) => <div className="text-center">{row.getValue("kabupaten")}</div> },
     { 
       accessorKey: "total_entri", 
-      header: () => <div className="text-center">Subsegmen</div>, 
+      // --- PERUBAHAN DI SINI ---
+      header: ({ column }) => (
+        <div className="flex justify-center">
+            <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+                Subsegmen
+                <ArrowUpDown className="ml-2 h-4 w-4" />
+            </Button>
+        </div>
+      ),
+      // --- AKHIR PERUBAHAN ---
       cell: ({ row }) => <div className="text-center font-mono">{row.getValue("total_entri")}</div> 
     },
     { id: "rentang_kerja", header: () => <div className="text-center">Rentang Kerja</div>, cell: ({ row }) => {

@@ -95,30 +95,47 @@ export default function HomePage() {
   
   const countdownStatusPadi = React.useMemo(() => calculateCountdown(jadwalPadi), [jadwalPadi]);
   const countdownStatusPalawija = React.useMemo(() => calculateCountdown(jadwalPalawija), [jadwalPalawija]);
-  // ... (Kalkulasi simtpDisplayStatus dan ksaDisplayStatus tetap sama)
   const simtpDisplayStatus = React.useMemo(() => {
-    if (!jadwalSimtp || !simtpData) return null;
-    const allJadwalItems = [...(jadwalSimtp.jadwal || []), ...(jadwalSimtp.subKegiatan?.flatMap(sub => sub.jadwal || []) || [])].sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
-    if (allJadwalItems.length === 0) return null;
-    const today = new Date(); today.setHours(0, 0, 0, 0);
-    const currentOrNextSegment = allJadwalItems.find(item => today <= new Date(item.endDate));
-    if (!currentOrNextSegment) { return { line1: { text: `Status Laporan: ${simtpData.monthly.percentage >= 100 ? 'Selesai' : 'Terlambat'}`, color: "text-gray-500", icon: CheckCircle } }; }
-    const segmentStart = new Date(currentOrNextSegment.startDate);
-    const segmentEnd = new Date(currentOrNextSegment.endDate);
-    if (today >= segmentStart && today <= segmentEnd) {
-        const daysLeft = getDiffInDays(today, segmentEnd);
-        let text = `Batas laporan ${segmentStart.toLocaleString('id-ID', { month: 'long' })} berakhir dalam ${daysLeft} hari`;
-        if (daysLeft === 0) text = `Batas laporan ${segmentStart.toLocaleString('id-ID', { month: 'long' })} berakhir hari ini`;
-        return { line1: { text, color: daysLeft === 0 ? "text-red-600 font-bold" : "text-green-600", icon: Clock } };
-    }
-    if (today < segmentStart) {
-        const kpiProgress = simtpData.monthly.percentage;
-        return {
-          line1: { text: kpiProgress >= 100 ? `Laporan ${simtpData.monthly.reportForMonthName}: Selesai` : `Laporan ${simtpData.monthly.reportForMonthName}: Terlambat`, color: kpiProgress >= 100 ? "text-green-600" : "text-amber-600", icon: kpiProgress >= 100 ? CheckCircle : AlertTriangle },
-          line2: { text: `Periode berikutnya dimulai dalam ${getDiffInDays(today, segmentStart)} hari`, color: "text-blue-600", icon: Clock }
-        };
-    }
-    return null;
+      if (!jadwalSimtp || !simtpData) return null;
+      
+      const allJadwalItems = [...(jadwalSimtp.jadwal || []), ...(jadwalSimtp.subKegiatan?.flatMap(sub => sub.jadwal || []) || [])].sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+      if (allJadwalItems.length === 0) return null;
+
+      const today = new Date(); 
+      today.setHours(0, 0, 0, 0);
+
+      const currentOrNextSegment = allJadwalItems.find(item => {
+          const itemEnd = new Date(item.endDate);
+          itemEnd.setHours(0, 0, 0, 0); // --> PERBAIKAN: Normalisasi tanggal akhir
+          return today <= itemEnd;
+      });
+
+      if (!currentOrNextSegment) { 
+          return { line1: { text: `Status Laporan: ${simtpData.monthly.percentage >= 100 ? 'Selesai' : 'Terlambat'}`, color: "text-gray-500", icon: CheckCircle } }; 
+      }
+
+      const segmentStart = new Date(currentOrNextSegment.startDate);
+      segmentStart.setHours(0, 0, 0, 0); // --> PERBAIKAN: Normalisasi tanggal mulai
+
+      const segmentEnd = new Date(currentOrNextSegment.endDate);
+      segmentEnd.setHours(0, 0, 0, 0); // --> PERBAIKAN: Normalisasi tanggal akhir
+
+      if (today >= segmentStart && today <= segmentEnd) {
+          const daysLeft = getDiffInDays(today, segmentEnd);
+          let text = `Laporan ${segmentStart.toLocaleString('id-ID', { month: 'long' })} berakhir dalam ${daysLeft} hari`;
+          if (daysLeft === 0) text = `Batas laporan ${segmentStart.toLocaleString('id-ID', { month: 'long' })} berakhir hari ini`;
+          return { line1: { text, color: daysLeft === 0 ? "text-red-600 font-bold" : "text-green-600", icon: Clock } };
+      }
+
+      if (today < segmentStart) {
+          const kpiProgress = simtpData.monthly.percentage;
+          return {
+            line1: { text: kpiProgress >= 100 ? `Laporan ${simtpData.monthly.reportForMonthName}: Selesai` : `Laporan ${simtpData.monthly.reportForMonthName}: Terlambat`, color: kpiProgress >= 100 ? "text-green-600" : "text-amber-600", icon: kpiProgress >= 100 ? CheckCircle : AlertTriangle },
+            line2: { text: `Periode berikutnya dimulai dalam ${getDiffInDays(today, segmentStart)} hari`, color: "text-blue-600", icon: Clock }
+          };
+      }
+
+      return null; // Fallback jika kondisi di atas tidak ada yang cocok
   }, [jadwalSimtp, simtpData]);
   
   const ksaDisplayStatus = React.useMemo(() => {
