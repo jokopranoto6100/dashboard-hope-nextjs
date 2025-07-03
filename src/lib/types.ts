@@ -32,7 +32,7 @@ export interface ChartDataPoint {
   name: string;
   nilai?: number;
   kode_wilayah?: string;
-  annotations?: Annotation[];
+  annotations: Annotation[]; // Made mandatory
   [key: string]: any; // Keep this for now as recharts payload can be complex
 }
 
