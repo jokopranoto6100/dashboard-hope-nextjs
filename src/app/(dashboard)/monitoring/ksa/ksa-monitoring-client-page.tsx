@@ -8,15 +8,24 @@ import { useAuth } from '@/context/AuthContext';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Terminal, ArrowLeft } from "lucide-react";
+import { Terminal, ArrowLeft, Clock, CheckCircle, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 import { useKsaMonitoringData, ProcessedKsaDistrictData, ProcessedKsaNamaData } from '@/hooks/useKsaMonitoringData';
+import { useJadwalData } from "@/hooks/useJadwalData";
+import { useCountdown } from "@/hooks/useCountdown";
 
 import { DistrictKsaTable } from './DistrictKsaTable';
 import { NamaKsaTable } from './NamaKsaTable';
 import { BeritaAcaraModal, BaData } from './components/BeritaAcaraModal'; 
 import { LeaderboardCard } from './LeaderboardCard';
+
+// Helper function untuk menghitung selisih hari (dikembalikan secara lokal)
+const getDiffInDays = (d1: Date, d2: Date): number => {
+  const utc1 = Date.UTC(d1.getFullYear(), d1.getMonth(), d1.getDate());
+  const utc2 = Date.UTC(d2.getFullYear(), d2.getMonth(), d2.getDate());
+  return Math.round((utc2 - utc1) / (1000 * 60 * 60 * 24));
+};
 
 type ViewMode = 'district' | 'nama';
 
@@ -44,7 +53,14 @@ export default function KsaMonitoringClientPage() {
     displayMonth,
     setDisplayMonth,
     leaderboardData,
+    kegiatanId: ksaKegiatanId,
   } = useKsaMonitoringData();
+
+  const { jadwalData, isLoading: isJadwalLoading } = useJadwalData(selectedYear);
+
+  const jadwalKsa = React.useMemo(() => 
+    !isJadwalLoading && ksaKegiatanId ? jadwalData.find(k => k.id === ksaKegiatanId) : undefined
+  , [jadwalData, isJadwalLoading, ksaKegiatanId]);
   
   const handleMonthChange = (newMonthValue: string) => {
     setDisplayMonth(newMonthValue); 
@@ -109,6 +125,8 @@ export default function KsaMonitoringClientPage() {
     return months.find(m => m.value === displayMonth)?.label || '';
   }, [displayMonth, months]);
 
+  const pageIsLoading = isLoading || isJadwalLoading; // Combine loading states
+
   if (error) { 
     return (
       <div className="min-w-0 flex flex-col gap-4">
@@ -134,7 +152,7 @@ export default function KsaMonitoringClientPage() {
       
       {currentView === 'district' ? (
         <div className="flex flex-wrap items-center justify-end gap-4">
-          {isLoading && !displayMonth ? (
+          {pageIsLoading && !displayMonth ? (
              <Skeleton className="h-10 w-full md:w-[180px]" />
           ) : (
             <Select onValueChange={handleMonthChange} value={displayMonth}>
@@ -144,6 +162,7 @@ export default function KsaMonitoringClientPage() {
               </SelectContent>
             </Select>
           )}
+          
         </div>
       ) : (
         <div>
@@ -169,7 +188,9 @@ export default function KsaMonitoringClientPage() {
             totals={districtTotals}
             uniqueStatusNames={uniqueStatusNames || []}
             onRowClick={handleDistrictRowClick}
-            isLoading={isLoading || !displayMonth} // <-- Sudah diperbaiki
+            isLoading={isLoading || !displayMonth}
+            jadwal={jadwalKsa}
+            displayMonth={displayMonth}
           />
         </>
       )}
@@ -184,6 +205,8 @@ export default function KsaMonitoringClientPage() {
           kabupatenName={selectedKabupatenDetail.kabupaten || ''}
           isLoading={isLoading || isBaLoading}
           onGenerateBaClick={handleGenerateBaClick}
+          jadwal={jadwalKsa}
+          displayMonth={displayMonth}
         />
       )}
     </div>

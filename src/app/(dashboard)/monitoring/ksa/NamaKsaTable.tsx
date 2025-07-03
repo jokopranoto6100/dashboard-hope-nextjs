@@ -12,6 +12,9 @@ import { ArrowUpDown, CheckCircle2, Eye, EyeOff, FileDown } from "lucide-react";
 import { getPercentageBadgeVariant } from "@/lib/utils";
 import { ProcessedKsaNamaData } from '@/hooks/useKsaMonitoringData';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Clock, CheckCircle, AlertTriangle } from "lucide-react";
+import { useCountdown } from "@/hooks/useCountdown";
+import { type Kegiatan } from '@/app/(dashboard)/jadwal/jadwal.config';
 
 import {
   ColumnDef,
@@ -32,7 +35,15 @@ interface NamaKsaTableProps {
   isLoading: boolean;
   // PERUBAHAN: Tambahkan prop untuk menangani klik tombol generate BA
   onGenerateBaClick: (petugasData: ProcessedKsaNamaData) => void;
+  jadwal?: Kegiatan;
+  displayMonth: string | undefined;
 }
+
+const getDiffInDays = (d1: Date, d2: Date): number => {
+  const utc1 = Date.UTC(d1.getFullYear(), d1.getMonth(), d1.getDate());
+  const utc2 = Date.UTC(d2.getFullYear(), d2.getMonth(), d2.getDate());
+  return Math.round((utc2 - utc1) / (1000 * 60 * 60 * 24));
+};
 
 const TableSkeleton = ({ columns }: { columns: ColumnDef<ProcessedKsaNamaData, unknown>[] }) => (
     <div className="rounded-md border">
@@ -53,11 +64,41 @@ const TableSkeleton = ({ columns }: { columns: ColumnDef<ProcessedKsaNamaData, u
     </div>
 );
 
-// PERUBAHAN: Tambahkan onGenerateBaClick ke props
-export function NamaKsaTable({ title, description, data, totals, uniqueStatusNames, kabupatenName, isLoading, onGenerateBaClick }: NamaKsaTableProps) {
+export function NamaKsaTable({ title, description, data, totals, uniqueStatusNames, kabupatenName, isLoading, onGenerateBaClick, jadwal, displayMonth }: NamaKsaTableProps) {
   const isMobile = useIsMobile();
   const [showAllColumns, setShowAllColumns] = useState(false);
   const [sorting, setSorting] = useState<SortingState>([]);
+
+  const countdownStatus = React.useMemo(() => {
+    if (!jadwal || !displayMonth) return null;
+    const currentMonth = parseInt(displayMonth, 10) - 1; // Bulan di Date object 0-indexed
+
+    const allJadwalItems = [...(jadwal.jadwal || []), ...(jadwal.subKegiatan?.flatMap(sub => sub.jadwal || []) || [])]
+      .filter(item => new Date(item.startDate).getMonth() === currentMonth);
+
+    if (allJadwalItems.length === 0) return null;
+
+    const allStartDates = allJadwalItems.map(j => new Date(j.startDate));
+    const allEndDates = allJadwalItems.map(j => new Date(j.endDate));
+    const earliestStart = new Date(Math.min(...allStartDates.map(d => d.getTime())));
+    const latestEnd = new Date(Math.max(...allEndDates.map(d => d.getTime())));
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (today > latestEnd) return { text: "Jadwal Telah Berakhir", color: "text-gray-500" };
+    if (today >= earliestStart && today <= latestEnd) {
+      const daysLeft = getDiffInDays(today, latestEnd);
+      if (daysLeft === 0) return { text: "Berakhir Hari Ini", color: "text-red-600 font-bold" };
+      return { text: `Berakhir dalam ${daysLeft} hari`, color: "text-green-600" };
+    }
+    if (today < earliestStart) {
+      const daysUntil = getDiffInDays(today, earliestStart);
+       if (daysUntil === 1) return { text: "Dimulai Besok", color: "text-blue-600" };
+      return { text: `Dimulai dalam ${daysUntil} hari`, color: "text-blue-600" };
+    }
+    return null;
+  }, [jadwal, displayMonth]);
 
   const mobileHiddenColumns = ['target', 'inkonsisten', 'kode_12', ...uniqueStatusNames.map(s => `status_nama_${s.replace(/\s+/g, '_')}`)];
 
@@ -128,19 +169,29 @@ export function NamaKsaTable({ title, description, data, totals, uniqueStatusNam
   return (
     <Card>
       <CardHeader>
-        <div>
-          <CardTitle>{title}</CardTitle>
-          <CardDescription className="mt-2 text-sm text-gray-500 h-5">
-            <span>{description}</span>
-          </CardDescription>
-        </div>
-        <div className='flex justify-end items-center gap-2 pt-2'>
-          {isMobile && (
-            <Button variant="outline" size="sm" onClick={() => setShowAllColumns(prev => !prev)}>
-              {showAllColumns ? <EyeOff className="mr-2 h-4 w-4" /> : <Eye className="mr-2 h-4 w-4" />}
-              {showAllColumns ? "Ringkas" : "Lengkap"}
-            </Button>
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
+          <div className='flex-grow'>
+            <CardTitle>{title}</CardTitle>
+          </div>
+          {countdownStatus && !isLoading && (
+            <div className={`flex items-center text-xs p-2 rounded-md border bg-gray-50 dark:bg-gray-800 w-full sm:w-auto`}>
+                <Clock className={`h-4 w-4 mr-2 flex-shrink-0 ${countdownStatus.color}`} />
+                <span className={`font-medium whitespace-nowrap ${countdownStatus.color}`}>{countdownStatus.text}</span>
+            </div>
           )}
+        </div>
+        <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-2 pt-2">
+          <CardDescription className="text-sm text-gray-500">
+            {isLoading ? ( <Skeleton className="h-4 w-48" /> ) : ( <span>{description}</span> )}
+          </CardDescription>
+          <div className='flex justify-end items-center gap-2 pt-2'>
+            {isMobile && (
+              <Button variant="outline" size="sm" onClick={() => setShowAllColumns(prev => !prev)}>
+                {showAllColumns ? <EyeOff className="mr-2 h-4 w-4" /> : <Eye className="mr-2 h-4 w-4" />}
+                {showAllColumns ? "Ringkas" : "Lengkap"}
+              </Button>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent>

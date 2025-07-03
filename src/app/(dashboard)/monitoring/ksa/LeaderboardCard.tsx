@@ -6,7 +6,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Trophy, Award, Medal } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// Definisikan tipe data untuk leaderboard
 export interface LeaderboardEntry {
   peringkat: number;
   kabupaten: string;
