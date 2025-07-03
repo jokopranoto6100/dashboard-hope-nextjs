@@ -36,6 +36,14 @@ export interface ChartDataPoint {
   [key: string]: any; // Keep this for now as recharts payload can be complex
 }
 
+export interface RechartsDotProps {
+  cx: number;
+  cy: number;
+  payload: ChartDataPoint;
+  // Recharts might pass other properties, so we can add an index signature if needed
+  [key: string]: any;
+}
+
 export interface BarChartClickPayload {
   activePayload?: {
     payload: ChartDataPoint;
