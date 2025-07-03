@@ -19,10 +19,12 @@ export function UbinanComparisonChart({ data, currentYear, comparisonYear, isLoa
   // DIPERBARUI: Transformasi data dibungkus dengan useMemo
   const chartData = useMemo(() => data.map(item => ({
     name: item.namaKabupaten,
+    nilai: item.mean, // Added nilai
+    kode_wilayah: item.kodeKabupaten, // Added kode_wilayah
     [String(currentYear)]: item.mean,
     ...(comparisonYear && { [String(comparisonYear)]: item.comparisonMean }),
-    annotations: [], // Add empty annotations array
-  })), [data, currentYear, comparisonYear]); // Dependensi: hanya kalkulasi ulang jika input berubah
+    annotations: [],
+  })), [data, currentYear, comparisonYear]);
 
   if (isLoading) {
     return (

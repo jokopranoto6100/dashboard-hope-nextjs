@@ -4,6 +4,7 @@
 export interface DescriptiveStatsRow {
   kab?: number;
   namaKabupaten: string;
+  kodeKabupaten: string; // Added kodeKabupaten
   count: number;
   mean: number | null;
   median: number | null;

@@ -21,6 +21,7 @@ export interface MonthlyDataPoint {
   bulan: number | null;
   nilai: number;
   kode_wilayah: string;
+  level_wilayah?: string; // Added level_wilayah
 }
 
 export interface LineChartRawData {
@@ -30,10 +31,10 @@ export interface LineChartRawData {
 
 export interface ChartDataPoint {
   name: string;
-  nilai?: number;
-  kode_wilayah?: string;
-  annotations: Annotation[]; // Made mandatory
-  [key: string]: any; // Keep this for now as recharts payload can be complex
+  nilai: number | null | undefined;
+  kode_wilayah: string | null | undefined;
+  annotations: Annotation[];
+  [key: string]: any;
 }
 
 export interface RechartsDotProps {
