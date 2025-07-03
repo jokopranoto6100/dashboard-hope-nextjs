@@ -1,22 +1,23 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // Lokasi: src/app/(dashboard)/produksi-statistik/bar-chart-wrapper.tsx
 "use client";
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
-const formatNumber = (num: number) => new Intl.NumberFormat('id-ID').format(num);
+import { formatNumber } from "@/lib/utils";
+
+import { ChartDataPoint, BarChartClickPayload } from "@/lib/types";
 
 interface BarChartWrapperProps {
-  data: any[];
+  data: ChartDataPoint[];
   dataKey1: string;
   dataKey2?: string;
-  onClick: (payload: any) => void;
+  onClick: (payload: BarChartClickPayload) => void;
 }
 
 export default function BarChartWrapper({ data, dataKey1, dataKey2, onClick }: BarChartWrapperProps) {
   
   return (
     <>
-      {/* TAMPILAN MOBILE: GRAFIK VERTIKAL (Tampil di bawah breakpoint 'lg') */}
+      
       <div className="block lg:hidden">
         <ResponsiveContainer width="100%" height={data.length * 45}>
           <BarChart 
@@ -43,7 +44,7 @@ export default function BarChartWrapper({ data, dataKey1, dataKey2, onClick }: B
         </ResponsiveContainer>
       </div>
 
-      {/* TAMPILAN DESKTOP: GRAFIK HORIZONTAL (Tampil dari breakpoint 'lg' ke atas) */}
+      
       <div className="hidden lg:block">
         <ResponsiveContainer width="100%" height={300}>
             <BarChart data={data} onClick={onClick}>

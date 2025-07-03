@@ -2,11 +2,8 @@
 "use client";
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-
-interface PieChartData {
-  name: string;
-  value: number;
-}
+import { formatNumber } from "@/lib/utils";
+import { PieChartData, PieChartTooltipPayload } from "@/lib/types";
 
 interface PieChartWrapperProps {
   data: PieChartData[];
@@ -18,17 +15,15 @@ const COLORS = [
     '#03A9F4', '#4CAF50', '#F9C802', '#F9A3A4'
 ];
 
-const formatNumber = (num: number) => new Intl.NumberFormat('id-ID').format(num);
-
 interface CustomTooltipProps {
   active?: boolean;
-  payload?: { name: string; value: number }[];
+  payload?: { payload: PieChartTooltipPayload }[];
   total: number;
 }
 
 const CustomTooltip = ({ active, payload, total }: CustomTooltipProps) => {
     if (active && payload && payload.length) {
-      const data = payload[0];
+      const data = payload[0].payload;
       const percentage = total > 0 ? (data.value / total) * 100 : 0;
       return (
         <div className="p-2 text-sm bg-background/90 border rounded-md shadow-lg">

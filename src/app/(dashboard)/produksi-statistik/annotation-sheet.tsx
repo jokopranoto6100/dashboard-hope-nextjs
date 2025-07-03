@@ -12,12 +12,7 @@ import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 
 // Tipe data untuk anotasi (pastikan sama dengan di client)
-interface Annotation {
-  id: number;
-  created_at: string;
-  komentar: string;
-  user_fullname: string | null;
-}
+import { Annotation } from "@/lib/types";
 
 interface AnnotationSheetProps {
   isOpen: boolean;

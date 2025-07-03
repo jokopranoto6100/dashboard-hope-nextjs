@@ -6,27 +6,9 @@ import { Badge } from "@/components/ui/badge"
 import { ArrowUpDown, TrendingUp, TrendingDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
-export interface AugmentedAtapDataPoint {
-  indikator: string;
-  tahun: number;
-  bulan: number | null;
-  kode_wilayah: string;
-  level_wilayah: 'provinsi' | 'kabupaten';
-  nama_wilayah: string;
-  nilai: number;
-  satuan: string | null;
-  kontribusi?: number;
-  nilaiTahunLalu?: number | null;
-  pertumbuhan?: number | null;
-}
+import { AugmentedAtapDataPoint } from "@/lib/types";
 
-const formatNumber = (num: number) => {
-    if (num === null || num === undefined) return '-';
-    return new Intl.NumberFormat('id-ID', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-    }).format(num);
-};
+import { formatNumber } from "@/lib/utils";
 
 export const getColumns = (
   selectedYear: number, 

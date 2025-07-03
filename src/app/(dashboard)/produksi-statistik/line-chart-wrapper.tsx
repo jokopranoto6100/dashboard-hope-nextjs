@@ -1,20 +1,20 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // Lokasi: src/app/(dashboard)/produksi-statistik/line-chart-wrapper.tsx
 "use client";
 
 import { Line, LineChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis, LabelList } from 'recharts';
 
-const formatNumber = (num: number) => new Intl.NumberFormat('id-ID').format(num);
+import { formatNumber } from "@/lib/utils";
+import { ChartDataPoint, Annotation } from "@/lib/types";
 
 interface LineChartWrapperProps {
-  data: any[];
+  data: ChartDataPoint[];
   dataKey1: string; // Misal: "2024"
   dataKey2?: string; // Misal: "2023"
-  onPointClick: (payload: any) => void;
+  onPointClick: (payload: ChartDataPoint) => void;
   showLabels: boolean;
 }
 
-const CustomActiveDot = ({ cx, cy, payload, onPointClick }: any) => {
+const CustomActiveDot = ({ cx, cy, payload, onPointClick }: { cx: number; cy: number; payload: ChartDataPoint; onPointClick: (payload: ChartDataPoint) => void; }) => {
   if (cx === null || cy === null) {
     return null;
   }
@@ -55,8 +55,7 @@ export default function LineChartWrapper({ data, dataKey1, dataKey2, onPointClic
             type="monotone" 
             dataKey={dataKey1} 
             stroke="#8884d8" 
-            // --- PERBAIKAN DI SINI ---
-            // Gunakan `dataKey1` yang sudah pasti berisi tahun yang benar
+            
             name={`Tahun ${dataKey1}`} 
             connectNulls 
             dot={false}
@@ -69,7 +68,7 @@ export default function LineChartWrapper({ data, dataKey1, dataKey2, onPointClic
                 type="monotone" 
                 dataKey={dataKey2} 
                 stroke="#82ca9d" 
-                // Ini sudah benar, menggunakan dataKey2
+                
                 name={`Tahun ${dataKey2}`} 
                 connectNulls 
                 dot={false}
