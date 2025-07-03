@@ -59,7 +59,7 @@ export default function LineChartWrapper({ data, dataKey1, dataKey2, onPointClic
             name={`Tahun ${dataKey1}`} 
             connectNulls 
             dot={false}
-            activeDot={(props) => <CustomActiveDot {...props} onPointClick={onPointClick} />}
+            activeDot={(props: { cx: number; cy: number; payload: ChartDataPoint; }) => <CustomActiveDot {...props} onPointClick={onPointClick} />}
         >
           {showLabels && <LabelList dataKey={dataKey1} position="top" offset={10} formatter={(value: number) => formatNumber(value)} fontSize={10} />}
         </Line>
@@ -72,7 +72,7 @@ export default function LineChartWrapper({ data, dataKey1, dataKey2, onPointClic
                 name={`Tahun ${dataKey2}`} 
                 connectNulls 
                 dot={false}
-                activeDot={(props) => <CustomActiveDot {...props} onPointClick={onPointClick} />}
+                activeDot={(props: { cx: number; cy: number; payload: ChartDataPoint; }) => <CustomActiveDot {...props} onPointClick={onPointClick} />}
             >
                  {showLabels && <LabelList dataKey={dataKey2} position="top" offset={10} formatter={(value: number) => formatNumber(value)} fontSize={10} />}
             </Line>
