@@ -25,7 +25,7 @@ import { Clock, CheckCircle, AlertTriangle } from "lucide-react";
 // Komponen Skeleton untuk seluruh halaman
 const HomepageSkeleton = () => (
   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-6">
-    {Array.from({ length: 4 }).map((_, index) => (
+    {Array.from({ length: 6 }).map((_, index) => ( // ✅ Ubah dari 4 menjadi 6
       <Card key={index}>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <Skeleton className="h-5 w-3/5" />
@@ -42,6 +42,29 @@ const HomepageSkeleton = () => (
       </Card>
     ))}
   </div>
+);
+
+// ✅ TAMBAHKAN: Komponen dummy card untuk kegiatan lainnya
+const KegiatanLainnyaCard = ({ title }: { title: string }) => (
+  <Card className="border-dashed border-2 border-gray-200 bg-gray-50/50">
+    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      <div className="text-sm font-medium text-gray-500">{title}</div>
+      <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">
+        <Clock className="h-4 w-4 text-gray-400" />
+      </div>
+    </CardHeader>
+    <CardContent>
+      <div className="mt-4 space-y-2">
+        <div className="text-2xl font-bold text-gray-400">---</div>
+        <div className="text-xs text-gray-400">Belum tersedia</div>
+        <div className="text-xs text-gray-400">Data akan ditambahkan kemudian</div>
+        <div className="flex items-center text-xs text-gray-400">
+          <Clock className="mr-1 h-3 w-3" />
+          Dalam pengembangan
+        </div>
+      </div>
+    </CardContent>
+  </Card>
 );
 
 export default function HomePage() {
@@ -141,7 +164,10 @@ export default function HomePage() {
       { id: 'padi', percentage: padiTotals?.persentase ?? Infinity, component: <PadiSummaryCard isLoading={isAnythingLoading} error={errorPadi} totals={padiTotals} countdownStatus={countdownStatusPadi} uniqueStatusNames={padiUniqueStatusNames || []} lastUpdate={lastUpdate} selectedYear={selectedYear} /> },
       { id: 'palawija', percentage: palawijaTotals?.persentase ?? Infinity, component: <PalawijaSummaryCard isLoading={isAnythingLoading} error={errorPalawija} totals={palawijaTotals} countdownStatus={countdownStatusPalawija} lastUpdate={lastUpdatePalawija} selectedYear={selectedYear} /> },
       { id: 'ksa', percentage: ksaTotals?.persentase ?? Infinity, component: <KsaSummaryCard isLoading={isAnythingLoading} error={errorKsa} totals={ksaTotals} displayStatus={ksaDisplayStatus} displayMonth={ksaDisplayMonth || ''} uniqueStatusNames={ksaUniqueStatusNames || []} lastUpdate={lastUpdatedKsa} selectedYear={selectedYear} /> },
-      { id: 'simtp', percentage: simtpData?.monthly.percentage ?? Infinity, component: <SimtpSummaryCard isLoading={isAnythingLoading} error={errorSimtp} data={simtpData} displayStatus={simtpDisplayStatus} /> }
+      { id: 'simtp', percentage: simtpData?.monthly.percentage ?? Infinity, component: <SimtpSummaryCard isLoading={isAnythingLoading} error={errorSimtp} data={simtpData} displayStatus={simtpDisplayStatus} /> },
+      // ✅ TAMBAHKAN: 2 dummy cards untuk kegiatan lainnya
+      { id: 'kegiatan1', percentage: Infinity, component: <KegiatanLainnyaCard title="Kegiatan Lainnya 1" /> },
+      { id: 'kegiatan2', percentage: Infinity, component: <KegiatanLainnyaCard title="Kegiatan Lainnya 2" /> }
     ];
     return kpiCards.sort((a, b) => a.percentage - b.percentage);
   }, [padiTotals, palawijaTotals, ksaTotals, simtpData, isAnythingLoading]); // dependensi disederhanakan

@@ -1,6 +1,13 @@
 export interface Annotation {
-  id: number; created_at: string; user_id: string; komentar: string; id_indikator: number;
-  tahun: number; bulan: number | null; kode_wilayah: string | null; user_fullname: string | null;
+  id: string;
+  user_id: string;
+  komentar: string;
+  id_indikator: number;
+  tahun: number;
+  bulan: number | null;
+  kode_wilayah: string | null;
+  created_at: string;
+  user_fullname?: string; // ✅ Pastikan optional
 }
 
 export interface AugmentedAtapDataPoint {

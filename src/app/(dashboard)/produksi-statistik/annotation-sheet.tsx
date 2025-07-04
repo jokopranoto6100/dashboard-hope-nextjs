@@ -32,10 +32,37 @@ export function AnnotationSheet({ isOpen, onOpenChange, annotations, title, onSu
       toast.error("Komentar tidak boleh kosong.");
       return;
     }
+    
     setIsSubmitting(true);
-    await onSubmit(newComment);
-    setNewComment("");
-    setIsSubmitting(false);
+    
+    try {
+      await onSubmit(newComment);
+      setNewComment(""); // ✅ Reset form setelah sukses
+      toast.success("Komentar berhasil dikirim!"); // ✅ Konfirmasi visual
+      
+    } catch (error) {
+      console.error('Error submitting annotation:', error);
+      toast.error("Gagal mengirim komentar.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // ✅ Handle keyboard shortcut untuk submit
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      handleSubmit();
+    }
+  };
+
+  // ✅ Reset form ketika sheet ditutup
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      setNewComment("");
+      setIsSubmitting(false);
+    }
+    onOpenChange(open);
   };
 
   const formatDate = (dateString: string) => {
@@ -45,47 +72,85 @@ export function AnnotationSheet({ isOpen, onOpenChange, annotations, title, onSu
   }
 
   return (
-    <Sheet open={isOpen} onOpenChange={onOpenChange}>
-      <SheetContent className="flex w-full flex-col sm:max-w-md">
-        <SheetHeader>
+    <Sheet open={isOpen} onOpenChange={handleOpenChange}>
+      <SheetContent className="flex w-full flex-col sm:max-w-md h-full">
+        <SheetHeader className="flex-shrink-0">
           <SheetTitle>{title}</SheetTitle>
-          <SheetDescription>Diskusi dan fenomena yang tercatat untuk titik data ini. Tambahkan komentar Anda di bawah.</SheetDescription>
+          <SheetDescription>
+            Diskusi dan fenomena yang tercatat untuk titik data ini. Tambahkan komentar Anda di bawah.
+          </SheetDescription>
         </SheetHeader>
-        <Separator />
-        <ScrollArea className="flex-1 pr-6 -mr-6">
-          <div className="space-y-6">
-            {annotations && annotations.length > 0 ? (
-              annotations.map((anno) => (
-                <div key={anno.id} className="flex items-start gap-3">
-                  <Avatar className="h-9 w-9 border">
-                    <AvatarFallback>{anno.user_fullname?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
-                  </Avatar>
-                  <div className="text-sm flex-1">
-                    <p className="font-semibold">{anno.user_fullname || 'Pengguna Anonim'}</p>
-                    <p className="text-xs text-muted-foreground">{formatDate(anno.created_at)}</p>
-                    <p className="mt-1 whitespace-pre-wrap">{anno.komentar}</p>
+        
+        <Separator className="flex-shrink-0" />
+        
+        {/* ✅ PERBAIKI: Container scrollable dengan height yang tepat */}
+        <div className="flex-1 flex flex-col min-h-0">
+          <ScrollArea className="flex-1 pr-4">
+            <div className="space-y-4 py-4">
+              {annotations && annotations.length > 0 ? (
+                annotations
+                  .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                  .map((anno) => (
+                  <div key={anno.id} className="flex items-start gap-3">
+                    <Avatar className="h-8 w-8 border flex-shrink-0">
+                      <AvatarFallback className="text-xs">
+                        {anno.user_fullname?.charAt(0).toUpperCase() || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="text-sm flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="font-semibold text-sm truncate">
+                          {anno.user_fullname || 'Pengguna Anonim'}
+                        </p>
+                        <p className="text-xs text-muted-foreground flex-shrink-0">
+                          {formatDate(anno.created_at)}
+                        </p>
+                      </div>
+                      <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">
+                        {anno.komentar}
+                      </p>
+                      {/* ✅ Type-safe check untuk temporary annotations */}
+                      {typeof anno.id === 'string' && anno.id.startsWith('temp-') && (
+                        <span className="text-xs text-blue-500 italic mt-1 block">• Mengirim...</span>
+                      )}
+                    </div>
                   </div>
+                ))
+              ) : (
+                <div className="flex items-center justify-center h-32">
+                  <p className="text-sm text-center text-muted-foreground">
+                    Belum ada anotasi untuk titik data ini.
+                  </p>
                 </div>
-              ))
-            ) : (
-              <p className="text-sm text-center text-muted-foreground py-8">Belum ada anotasi.</p>
-            )}
-          </div>
-        </ScrollArea>
-        {user && (
-          <SheetFooter className="mt-auto pt-4 border-t">
-            <div className="w-full grid gap-2">
-              <Textarea
-                placeholder="Tambahkan komentar Anda..."
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-              />
-              <Button onClick={handleSubmit} disabled={isSubmitting}>
-                {isSubmitting ? 'Mengirim...' : 'Kirim Komentar'}
-              </Button>
+              )}
             </div>
-          </SheetFooter>
-        )}
+          </ScrollArea>
+          
+          {/* ✅ PERBAIKI: Form tetap di bawah, tidak terdorong */}
+          {user && (
+            <div className="flex-shrink-0 pt-4 border-t bg-background">
+              <div className="space-y-3">
+                <Textarea
+                  placeholder="Tambahkan komentar Anda... (Ctrl/Cmd + Enter untuk kirim)"
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  disabled={isSubmitting}
+                  rows={3}
+                  className="resize-none"
+                />
+                <Button 
+                  onClick={handleSubmit} 
+                  disabled={isSubmitting || !newComment.trim()}
+                  className="w-full"
+                  size="sm"
+                >
+                  {isSubmitting ? 'Mengirim...' : 'Kirim Komentar'}
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
       </SheetContent>
     </Sheet>
   );

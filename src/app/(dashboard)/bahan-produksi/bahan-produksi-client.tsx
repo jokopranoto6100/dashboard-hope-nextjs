@@ -117,7 +117,7 @@ const SektorCard = ({ sektor, flippedCardId, onFlip, onReset }: {
         className="relative h-80 w-full hardware-accelerated"
         style={{ transformStyle: "preserve-3d" }}
         animate={isFlipped ? "back" : "front"}
-        variants={cardVariants} // ✅ Sekarang sudah type-safe
+        variants={cardVariants}
         layout={false}
       >
         {/* --- SISI DEPAN KARTU --- */}
@@ -128,9 +128,6 @@ const SektorCard = ({ sektor, flippedCardId, onFlip, onReset }: {
           style={{ backfaceVisibility: "hidden" }}
           onClick={handleCardClick}
           onKeyDown={handleKeyDown}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          transition={{ type: "spring", stiffness: 300, damping: 20 }}
         >
           <SektorIcon className="mb-4 h-20 w-20 text-white/90" />
           <h2 className="text-2xl font-bold text-white">{sektor.nama}</h2>

@@ -111,12 +111,22 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
   );
 
   const annotationsSWRKey = `annotations_${selectedYear}_${debouncedFilters.idIndikator}`;
-  const { data: annotations, mutate: mutateAnnotations } = useSWR( debouncedFilters.idIndikator && supabase ? annotationsSWRKey : null, async () => {
-    const { data, error } = await supabase.rpc('get_annotations_with_user_details', { p_id_indikator: debouncedFilters.idIndikator, p_tahun: selectedYear });
-    if (error) { console.error("Gagal mengambil anotasi:", error); return []; }
-    return data as Annotation[];
-  });
+  const { data: annotations, mutate: mutateAnnotations } = useSWR( 
+    debouncedFilters.idIndikator && supabase ? annotationsSWRKey : null, 
+    async () => {
+      const { data, error } = await supabase.rpc('get_annotations_with_user_details', { 
+        p_id_indikator: debouncedFilters.idIndikator, 
+        p_tahun: selectedYear 
+      });
+      if (error) { 
+        console.error("Gagal mengambil anotasi:", error); 
+        return []; 
+      }
+      return data as Annotation[];
+    }
+  );
 
+  // ✅ PERBAIKI: Buat processedData reaktif terhadap perubahan annotations
   const processedData = useMemo(() => {
     const mainData = data || []; 
     const compareData = dataPembanding || []; 
@@ -143,6 +153,7 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
 
     const pieChartData = augmentedTableData.map(d => ({ name: d.nama_wilayah, value: d.nilai || 0 }));
     
+    // ✅ PERBAIKI: Gunakan annotations yang ter-update untuk barChart
     const barChartData = augmentedTableData.map((d: AugmentedAtapDataPoint) => { 
       const barAnnotations = annotations?.filter(
         (a: Annotation) => a.kode_wilayah === d.kode_wilayah && (filters.bulan === 'tahunan' ? a.bulan === null : a.bulan === parseInt(filters.bulan))
@@ -153,10 +164,11 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
         nilai: d.nilai ?? 0,
         [selectedYear.toString()]: d.nilai, 
         ...(d.nilaiTahunLalu && { [filters.tahunPembanding]: d.nilaiTahunLalu }), 
-        annotations: barAnnotations 
+        annotations: barAnnotations // ✅ Ini akan reactive terhadap perubahan annotations
       }; 
     });
     
+    // ✅ PERBAIKI: Gunakan annotations yang ter-update untuk lineChart
     const monthlyLineChartData = Array.from({ length: 12 }, (_, i) => i + 1).map(monthNum => { 
       const monthStr = monthNum.toString(); 
       const mainDataPoint = lineChartRawData?.mainData?.find(d => d.bulan?.toString() === monthStr); 
@@ -166,7 +178,7 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
         name: MONTH_NAMES[monthStr],
         [selectedYear.toString()]: (mainDataPoint?.nilai ?? null) as number | null,
         ...(filters.tahunPembanding !== 'tidak' && { [filters.tahunPembanding]: (compareDataPoint?.nilai ?? null) as number | null }),
-        annotations: monthAnnotations,
+        annotations: monthAnnotations, // ✅ Ini akan reactive terhadap perubahan annotations
         kode_wilayah: (selectedKabupaten || null) as string | null
       }; 
     });
@@ -269,8 +281,18 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
       tableData: augmentedTableData, 
       bulanRangeText 
     };
-  }, [data, dataPembanding, lineChartRawData, annotations, selectedYear, filters.bulan, filters.tahunPembanding, selectedKabupaten, timeDataView]);
-  
+  }, [
+    data, 
+    dataPembanding, 
+    lineChartRawData, 
+    annotations, // ✅ TAMBAHKAN: annotations sebagai dependency
+    selectedYear, 
+    filters.bulan, 
+    filters.tahunPembanding, 
+    selectedKabupaten, 
+    timeDataView
+  ]);
+
   const tableColumns = useMemo(
     () => getColumns(selectedYear, filters.tahunPembanding, processedData.kpi.total, processedData.kpi.totalPembanding), 
     [selectedYear, filters.tahunPembanding, processedData.kpi.total, processedData.kpi.totalPembanding]
@@ -280,7 +302,7 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
   
   const handleBarClick = (payload: { activePayload?: { payload: ChartDataPoint }[] }) => { if (!payload?.activePayload?.[0]?.payload) return; const clickedPayload = payload.activePayload[0].payload; if (filters.level === 'kabupaten' && clickedPayload.kode_wilayah !== undefined) { setSelectedKabupaten(prev => prev === clickedPayload.kode_wilayah ? null : clickedPayload.kode_wilayah || null); return; } handleChartClick(clickedPayload); };
 
-  // ✅ Perbaiki handleAnnotationSubmit dengan type yang lebih spesifik
+  // ✅ PERBAIKI: handleAnnotationSubmit dengan update yang lebih robust
   const handleAnnotationSubmit = async (comment: string): Promise<void> => { 
     if (!selectedAnnotationPoint || !filters.idIndikator) { 
       toast.error("Gagal menyimpan: Titik data tidak valid."); 
@@ -292,20 +314,58 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
     } 
     
     const bulanAngka = parseInt(Object.keys(MONTH_NAMES).find(key => MONTH_NAMES[key] === selectedAnnotationPoint.name) || '0'); 
-    const newAnnotation = { 
+    
+    const newAnnotation: Annotation = { 
+      id: `temp-${Date.now()}`, // Temporary ID untuk optimistic update
       user_id: authUser.id, 
       komentar: comment, 
       id_indikator: filters.idIndikator, 
       tahun: selectedYear, 
       bulan: bulanAngka > 0 ? bulanAngka : null, 
-      kode_wilayah: selectedAnnotationPoint.kode_wilayah || null 
-    };     
-    const { error } = await supabase.from('fenomena_anotasi').insert(newAnnotation); 
-    if (error) { 
-      toast.error("Gagal menyimpan anotasi.", { description: error.message }); 
-    } else { 
+      kode_wilayah: selectedAnnotationPoint.kode_wilayah || null,
+      created_at: new Date().toISOString(),
+      user_fullname: authUser.user_metadata?.full_name || authUser.email || 'Anonim'
+    };
+
+    // ✅ Optimistic update - langsung update state lokal
+    const currentAnnotations = annotations || [];
+    const updatedAnnotations = [...currentAnnotations, newAnnotation];
+    
+    // ✅ Update SWR cache dengan data baru
+    mutateAnnotations(updatedAnnotations, false); // false = jangan revalidate dulu
+
+    try {
+      const { data: insertedData, error } = await supabase
+        .from('fenomena_anotasi')
+        .insert({
+          user_id: authUser.id, 
+          komentar: comment, 
+          id_indikator: filters.idIndikator, 
+          tahun: selectedYear, 
+          bulan: bulanAngka > 0 ? bulanAngka : null, 
+          kode_wilayah: selectedAnnotationPoint.kode_wilayah || null 
+        })
+        .select('id')
+        .single();
+        
+      if (error) {
+        // ✅ Rollback optimistic update jika gagal
+        mutateAnnotations(currentAnnotations, false);
+        throw error;
+      }
+
+      // ✅ Update dengan ID yang sebenarnya dari database
+      const finalAnnotation = { ...newAnnotation, id: insertedData.id };
+      const finalAnnotations = [...currentAnnotations, finalAnnotation];
+      
+      // ✅ Update cache dengan data final
+      mutateAnnotations(finalAnnotations, false);
+      
       toast.success("Anotasi berhasil ditambahkan!"); 
-      mutateAnnotations(undefined, { revalidate: true }); 
+      
+    } catch (error: any) {
+      toast.error("Gagal menyimpan anotasi.", { description: error.message }); 
+      console.error('Error saving annotation:', error);
     }
   };
 
