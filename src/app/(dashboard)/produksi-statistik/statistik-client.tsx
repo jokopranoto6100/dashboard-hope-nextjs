@@ -140,7 +140,9 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
 
       return { ...d, nama_wilayah, kontribusi, nilaiTahunLalu, pertumbuhan }; 
     }).sort((a: AugmentedAtapDataPoint, b: AugmentedAtapDataPoint) => b.nilai - a.nilai);
+
     const pieChartData = augmentedTableData.map(d => ({ name: d.nama_wilayah, value: d.nilai || 0 }));
+    
     const barChartData = augmentedTableData.map((d: AugmentedAtapDataPoint) => { 
       const barAnnotations = annotations?.filter(
         (a: Annotation) => a.kode_wilayah === d.kode_wilayah && (filters.bulan === 'tahunan' ? a.bulan === null : a.bulan === parseInt(filters.bulan))
@@ -160,7 +162,8 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
       const mainDataPoint = lineChartRawData?.mainData?.find(d => d.bulan?.toString() === monthStr); 
       const compareDataPoint = lineChartRawData?.compareData?.find(d => d.bulan?.toString() === monthStr); 
       const monthAnnotations = annotations?.filter((a: Annotation) => a.bulan === monthNum && a.kode_wilayah === (selectedKabupaten ? selectedKabupaten : null)) || []; 
-      return { name: MONTH_NAMES[monthStr],
+      return { 
+        name: MONTH_NAMES[monthStr],
         [selectedYear.toString()]: (mainDataPoint?.nilai ?? null) as number | null,
         ...(filters.tahunPembanding !== 'tidak' && { [filters.tahunPembanding]: (compareDataPoint?.nilai ?? null) as number | null }),
         annotations: monthAnnotations,
@@ -168,12 +171,28 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
       }; 
     });
 
-    const subroundTemplate: { name: string; main: number; compare: number; annotations: Annotation[] }[] = [ { name: 'Subround 1', main: 0, compare: 0, annotations: [] }, { name: 'Subround 2', main: 0, compare: 0, annotations: [] }, { name: 'Subround 3', main: 0, compare: 0, annotations: [] }, ];
+    const subroundTemplate: { name: string; main: number; compare: number; annotations: Annotation[] }[] = [
+      { name: 'Subround 1', main: 0, compare: 0, annotations: [] },
+      { name: 'Subround 2', main: 0, compare: 0, annotations: [] },
+      { name: 'Subround 3', main: 0, compare: 0, annotations: [] },
+    ];
+    
     const subroundResult = JSON.parse(JSON.stringify(subroundTemplate));
-    const aggregateData = (sourceData: MonthlyDataPoint[], target: typeof subroundTemplate, key: 'main' | 'compare') => { sourceData.forEach(d => { if (!d.bulan) return; if (d.bulan <= 4) target[0][key] += d.nilai || 0; else if (d.bulan <= 8) target[1][key] += d.nilai || 0; else if (d.bulan <= 12) target[2][key] += d.nilai || 0; }); };
+    
+    const aggregateData = (sourceData: MonthlyDataPoint[], target: typeof subroundTemplate, key: 'main' | 'compare') => { 
+      sourceData.forEach((d: MonthlyDataPoint) => { 
+        if (!d.bulan) return; 
+        if (d.bulan <= 4) target[0][key] += d.nilai || 0; 
+        else if (d.bulan <= 8) target[1][key] += d.nilai || 0; 
+        else if (d.bulan <= 12) target[2][key] += d.nilai || 0; 
+      }); 
+    };
+    
     aggregateData(lineChartRawData?.mainData || [], subroundResult, 'main');
     aggregateData(lineChartRawData?.compareData || [], subroundResult, 'compare');
-    const subroundChartData = subroundResult.map((d: { name: string; main: number; compare: number; annotations: Annotation[] }) => ({ name: d.name,
+    
+    const subroundChartData = subroundResult.map((d: { name: string; main: number; compare: number; annotations: Annotation[] }) => ({ 
+      name: d.name,
       [selectedYear.toString()]: d.main as number | null,
       ...(filters.tahunPembanding !== 'tidak' && { [filters.tahunPembanding]: d.compare as number | null }),
       annotations: d.annotations,
@@ -182,7 +201,7 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
 
     const lineChartData = timeDataView === 'subround' ? subroundChartData : monthlyLineChartData;
 
-    
+    // ✅ Perbaiki spread operator dengan menambahkan koma
     const availableMonths = lineChartRawData?.mainData
       ?.filter((d: MonthlyDataPoint) => d.bulan !== null && d.nilai !== null)
       .map((d: MonthlyDataPoint) => d.bulan as number) || [];
@@ -210,7 +229,7 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
     };
 
     const processSubrounds = (data: MonthlyDataPoint[], type: 'main' | 'compare') => {
-      data.forEach(item => {
+      data.forEach((item: MonthlyDataPoint) => {
         if (item.bulan !== null) {
           const nilaiToAdd = item.nilai ?? 0;
           if (item.bulan >= 1 && item.bulan <= 4) subroundTotals.sr1[type] += nilaiToAdd;
@@ -223,7 +242,7 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
     processSubrounds(lineChartRawData?.mainData || [], 'main');
     if (filters.tahunPembanding !== 'tidak') {
       processSubrounds(lineChartRawData?.compareData || [], 'compare');
-      const calculateChange = (main: number, compare: number) => {
+      const calculateChange = (main: number, compare: number): number | null => {
         if (compare > 0) return ((main - compare) / compare) * 100;
         if (main > 0) return Infinity;
         return null;
@@ -233,7 +252,23 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
       subroundTotals.sr3.change = calculateChange(subroundTotals.sr3.main, subroundTotals.sr3.compare);
     }
     
-    return { kpi: { total: totalNilai, totalPembanding: totalNilaiPembanding, satuan: mainData[0]?.satuan || '', wilayahTertinggi, wilayahTerendah, jumlahWilayah: new Set(mainData.map((d: any) => d.kode_wilayah)).size, percentageChange, subroundTotals }, barChart: barChartData, lineChart: lineChartData, pieChart: pieChartData, tableData: augmentedTableData, bulanRangeText };
+    return { 
+      kpi: { 
+        total: totalNilai, 
+        totalPembanding: totalNilaiPembanding, 
+        satuan: mainData[0]?.satuan || '', 
+        wilayahTertinggi, 
+        wilayahTerendah, 
+        jumlahWilayah: new Set(mainData.map((d: MonthlyDataPoint) => d.kode_wilayah)).size, 
+        percentageChange, 
+        subroundTotals 
+      }, 
+      barChart: barChartData, 
+      lineChart: lineChartData, 
+      pieChart: pieChartData, 
+      tableData: augmentedTableData, 
+      bulanRangeText 
+    };
   }, [data, dataPembanding, lineChartRawData, annotations, selectedYear, filters.bulan, filters.tahunPembanding, selectedKabupaten, timeDataView]);
   
   const tableColumns = useMemo(
@@ -245,23 +280,44 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
   
   const handleBarClick = (payload: { activePayload?: { payload: ChartDataPoint }[] }) => { if (!payload?.activePayload?.[0]?.payload) return; const clickedPayload = payload.activePayload[0].payload; if (filters.level === 'kabupaten' && clickedPayload.kode_wilayah !== undefined) { setSelectedKabupaten(prev => prev === clickedPayload.kode_wilayah ? null : clickedPayload.kode_wilayah || null); return; } handleChartClick(clickedPayload); };
 
-  const handleAnnotationSubmit = async (comment: string) => { if (!selectedAnnotationPoint || !filters.idIndikator) { toast.error("Gagal menyimpan: Titik data tidak valid."); return; } if (!authUser) { toast.error("Anda harus login untuk menambahkan komentar."); return; } const bulanAngka = parseInt(Object.keys(MONTH_NAMES).find(key => MONTH_NAMES[key] === selectedAnnotationPoint.name) || '0'); const newAnnotation = { user_id: authUser.id, komentar: comment, id_indikator: filters.idIndikator, tahun: selectedYear, bulan: bulanAngka > 0 ? bulanAngka : null, kode_wilayah: selectedAnnotationPoint.kode_wilayah || null };     const { error } = await supabase.from('fenomena_anotasi').insert(newAnnotation); 
+  // ✅ Perbaiki handleAnnotationSubmit dengan type yang lebih spesifik
+  const handleAnnotationSubmit = async (comment: string): Promise<void> => { 
+    if (!selectedAnnotationPoint || !filters.idIndikator) { 
+      toast.error("Gagal menyimpan: Titik data tidak valid."); 
+      return; 
+    } 
+    if (!authUser) { 
+      toast.error("Anda harus login untuk menambahkan komentar."); 
+      return; 
+    } 
+    
+    const bulanAngka = parseInt(Object.keys(MONTH_NAMES).find(key => MONTH_NAMES[key] === selectedAnnotationPoint.name) || '0'); 
+    const newAnnotation = { 
+      user_id: authUser.id, 
+      komentar: comment, 
+      id_indikator: filters.idIndikator, 
+      tahun: selectedYear, 
+      bulan: bulanAngka > 0 ? bulanAngka : null, 
+      kode_wilayah: selectedAnnotationPoint.kode_wilayah || null 
+    };     
+    const { error } = await supabase.from('fenomena_anotasi').insert(newAnnotation); 
     if (error) { 
       toast.error("Gagal menyimpan anotasi.", { description: error.message }); 
     } else { 
       toast.success("Anotasi berhasil ditambahkan!"); 
-      
       mutateAnnotations(undefined, { revalidate: true }); 
     }
   };
-  
+
   const handleExportChart = async (ref: React.RefObject<HTMLDivElement>, chartName: string) => { if (!ref.current) { toast.error("Grafik tidak dapat ditemukan."); return; } toast.info("Membuat gambar grafik..."); try { const dataUrl = await toPng(ref.current, { cacheBust: true, backgroundColor: 'white', pixelRatio: 2 }); saveAs(dataUrl, `grafik_${chartName}_${filters.indikatorNama}_${selectedYear}.png`); toast.success("Grafik berhasil diunduh!"); } catch (err) { toast.error("Gagal mengekspor grafik.", { description: (err as Error).message }); } };
 
-  const handleExport = () => {
+  // ✅ Perbaiki handleExport dengan type yang lebih spesifik
+  const handleExport = (): void => {
     if (!processedData.tableData || processedData.tableData.length === 0) {
       toast.error("Tidak ada data untuk diekspor.");
       return;
     }
+    
     type ExportRow = {
       "Nama Wilayah": string;
       "Nilai (Thn Ini)": number;
@@ -273,7 +329,8 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
       Bulan: string;
       Satuan: string | null;
     };
-    const dataToExport: ExportRow[] = processedData.tableData.map(d => ({
+    
+    const dataToExport: ExportRow[] = processedData.tableData.map((d: AugmentedAtapDataPoint) => ({
       "Nama Wilayah": d.nama_wilayah,
       "Nilai (Thn Ini)": d.nilai,
       "Kontribusi (%)": d.kontribusi?.toFixed(2),
@@ -284,6 +341,7 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
       Bulan: d.bulan ? FULL_MONTH_NAMES[d.bulan.toString()][1] : 'Tahunan',
       Satuan: d.satuan,
     }));
+    
     const columns = [
       "Nama Wilayah",
       "Nilai (Thn Ini)",
@@ -294,11 +352,19 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
       "Bulan",
       "Satuan"
     ] as const;
+    
     const csv = unparse(dataToExport, { columns: Array.from(columns) as string[] });
     saveAs(new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' }), `data_rinci_${filters.indikatorNama}_${selectedYear}.csv`);
   };
 
-  const generateYears = () => { const years = []; for (let i = new Date().getFullYear() + 1; i >= 2020; i--) years.push(i.toString()); return years; };
+  // ✅ Perbaiki generateYears dengan return type yang eksplisit
+  const generateYears = (): string[] => { 
+    const years: string[] = []; 
+    for (let i = new Date().getFullYear() + 1; i >= 2020; i--) {
+      years.push(i.toString()); 
+    }
+    return years; 
+  };
 
   return (
     <div className="space-y-6">

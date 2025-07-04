@@ -11,6 +11,7 @@ export interface LinkItem {
   icon_name: string | null;
   description: string | null;
   urutan: number;
+  sektor_id?: string; // ✅ TAMBAHKAN: Optional untuk compatibility
 }
 export interface SektorItem {
   id: string;

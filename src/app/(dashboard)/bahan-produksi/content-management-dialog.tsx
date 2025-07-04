@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // src/app/(dashboard)/bahan-produksi/content-management-dialog.tsx
 'use client';
 
@@ -38,6 +39,7 @@ import { cn } from '@/lib/utils';
 
 interface ContentManagementDialogProps {
   initialData: SektorItem[];
+  onDataChange?: () => void; // ✅ TAMBAHKAN: Callback untuk notify parent
 }
 
 type SektorFormValues = z.infer<typeof sektorFormSchema>;
@@ -74,7 +76,7 @@ function SortableSektorItem({ sektor, onSelect, onEdit, onDelete, isSelected }: 
 }
 
 
-export function ContentManagementDialog({ initialData }: ContentManagementDialogProps) {
+export function ContentManagementDialog({ initialData, onDataChange }: ContentManagementDialogProps) {
   const [isPending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
   const [sektors, setSektors] = useState<SektorItem[]>(initialData);
@@ -117,14 +119,29 @@ export function ContentManagementDialog({ initialData }: ContentManagementDialog
     toast.error(formError || defaultMessage);
   }
 
+  // ✅ TAMBAHKAN: Extended type untuk optimistic update
+  interface NewLinkItem extends LinkItem {
+    sektor_id: string; // Pastikan ada property ini
+  }
+
   const handleSektorSubmit = async (values: SektorFormValues) => {
     const formData = new FormData();
     Object.entries(values).forEach(([key, value]) => formData.append(key, String(value)));
+    
     startTransition(async () => {
       const result = await (editingSektor ? updateSektor(editingSektor.id, formData) : createSektor(formData));
       if (result?.success) {
         toast.success(editingSektor ? 'Sektor berhasil diperbarui.' : 'Sektor berhasil dibuat.');
         setShowSektorForm(false);
+        setEditingSektor(null);
+        sektorForm.reset();
+        
+        // ✅ TAMBAHKAN: Trigger refresh
+        if (onDataChange) {
+          setTimeout(() => {
+            onDataChange();
+          }, 500);
+        }
       } else {
         handleErrorToast(result?.error, 'Gagal menyimpan sektor.');
       }
@@ -133,31 +150,89 @@ export function ContentManagementDialog({ initialData }: ContentManagementDialog
 
   const handleLinkSubmit = async (values: LinkFormValues) => {
     if (!selectedSektor) return;
+    
     const formData = new FormData();
-    Object.entries(values).forEach(([key, value]) => formData.append(key, String(value || '')));
+    Object.entries(values).forEach(([key, value]) => {
+      formData.append(key, String(value || ''));
+    });
     formData.append('sektor_id', selectedSektor.id);
+    
     startTransition(async () => {
       const result = await (editingLink ? updateLink(editingLink.id, formData) : createLink(formData));
       if (result?.success) {
         toast.success(editingLink ? 'Link berhasil diperbarui.' : 'Link berhasil dibuat.');
         setShowLinkForm(false);
+        setEditingLink(null);
+        linkForm.reset();
+        
+        // ✅ TAMBAHKAN: Trigger refresh
+        if (onDataChange) {
+          setTimeout(() => {
+            onDataChange();
+          }, 500);
+        }
+        
+        // Optimistic update tetap ada untuk dialog responsiveness
+        if (!editingLink) {
+          const newLink: LinkItem = {
+            id: `temp-${Date.now()}`,
+            label: values.label,
+            href: values.href || '',
+            icon_name: values.icon_name,
+            description: values.description || '',
+            urutan: values.urutan,
+            sektor_id: selectedSektor.id
+          };
+          
+          setSektors(prev => prev.map(sektor => 
+            sektor.id === selectedSektor.id 
+              ? { ...sektor, links: [...sektor.links, newLink] }
+              : sektor
+          ));
+          
+          setSelectedSektor(prev => prev ? {
+            ...prev,
+            links: [...prev.links, newLink]
+          } : null);
+        }
       } else {
         handleErrorToast(result?.error, 'Gagal menyimpan link.');
       }
     });
   };
 
-  // --- PERUBAHAN: Logika penghapusan dengan UX yang lebih baik ---
   const handleDelete = () => {
     if (!itemToDelete) return;
+    
     startTransition(async () => {
       const result = await (itemToDelete.type === 'sektor' ? deleteSektor(itemToDelete.id) : deleteLink(itemToDelete.id));
       if (result?.success) {
         toast.success(`${itemToDelete.type === 'sektor' ? 'Sektor' : 'Link'} berhasil dihapus.`);
-        if (itemToDelete.type === 'sektor' && selectedSektor?.id === itemToDelete.id) {
-          const currentSektors = sektors.filter(s => s.id !== itemToDelete.id);
-          // Pilih item pertama sebagai fallback, atau null jika tidak ada data sama sekali
-          setSelectedSektor(currentSektors[0] || null);
+        
+        // ✅ TAMBAHKAN: Trigger refresh
+        if (onDataChange) {
+          setTimeout(() => {
+            onDataChange();
+          }, 500);
+        }
+        
+        // Optimistic update untuk dialog
+        if (itemToDelete.type === 'sektor') {
+          setSektors(prev => prev.filter(s => s.id !== itemToDelete.id));
+          if (selectedSektor?.id === itemToDelete.id) {
+            const remainingSektors = sektors.filter(s => s.id !== itemToDelete.id);
+            setSelectedSektor(remainingSektors[0] || null);
+          }
+        } else {
+          setSektors(prev => prev.map(sektor => ({
+            ...sektor,
+            links: sektor.links.filter(link => link.id !== itemToDelete.id)
+          })));
+          
+          setSelectedSektor(prev => prev ? {
+            ...prev,
+            links: prev.links.filter(link => link.id !== itemToDelete.id)
+          } : null);
         }
       } else {
         handleErrorToast(result?.error, 'Gagal menghapus item.');
@@ -166,19 +241,7 @@ export function ContentManagementDialog({ initialData }: ContentManagementDialog
     });
   };
 
-  useEffect(() => {
-    // Sinkronkan state dengan data baru dari server setelah revalidasi
-    setSektors(initialData);
-    const currentSelected = initialData.find(s => s.id === selectedSektor?.id);
-    if (!currentSelected) {
-      setSelectedSektor(initialData[0] || null);
-    } else {
-      const updated = initialData.find(s => s.id === selectedSektor?.id);
-      if (updated) setSelectedSektor(updated);
-    }
-  }, [initialData, selectedSektor?.id]);
-
-  // --- PERUBAHAN: Fungsi dan sensor untuk menangani event drag end ---
+  // --- PERUBAHAN: Logika penghapusan dengan UX yang lebih baik ---
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   
   function handleDragEnd(event: DragEndEvent) {
@@ -188,21 +251,24 @@ export function ContentManagementDialog({ initialData }: ContentManagementDialog
       const newIndex = sektors.findIndex((s) => s.id === over.id);
       
       const newSektors = arrayMove(sektors, oldIndex, newIndex);
-      
-      // Update state secara optimis untuk UI yang responsif
       setSektors(newSektors); 
 
-      // Buat data baru dengan urutan yang sudah diperbarui
       const reorderedData = newSektors.map((s, index) => ({ id: s.id, urutan: index + 1 }));
 
       startTransition(async () => {
         const result = await updateSektorOrder(reorderedData);
         if (result?.success) {
           toast.success('Urutan sektor berhasil diperbarui.');
+          
+          // ✅ TAMBAHKAN: Trigger refresh
+          if (onDataChange) {
+            setTimeout(() => {
+              onDataChange();
+            }, 500);
+          }
         } else {
           toast.error(result?.error?._form?.[0] || 'Gagal memperbarui urutan.');
-          // Kembalikan ke state semula (sebelum optimis) jika gagal
-          setSektors(sektors);
+          setSektors(sektors); // Rollback
         }
       });
     }
