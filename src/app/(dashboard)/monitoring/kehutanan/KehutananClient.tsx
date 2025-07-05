@@ -3,7 +3,6 @@
 import * as React from "react";
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
-import { getKehutananData } from "./_actions";
 import { PerusahaanKehutanan } from "./kehutanan.types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -22,15 +21,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ArrowUpDown, Edit, RotateCw, Search, Download } from "lucide-react";
+import { ArrowUpDown, Edit, RotateCw, Search, Download, ChevronDown, ChevronUp } from "lucide-react";
 import { KehutananSummaryTable } from "./KehutananSummaryTable";
-// == PERBAIKAN: Impor KehutananForm yang hilang ada di sini ==
 import { KehutananForm } from "./KehutananForm";
+import { useKehutananData } from "@/hooks/useKehutananData";
+import { KehutananStatsCards } from "./components/KehutananStatsCards";
+import { KehutananTableSkeleton } from "./components/KehutananTableSkeleton";
 import { toast } from "sonner";
+import { ALL_STATUSES } from "./kehutanan.types";
 
 
 interface KehutananClientProps {
-  initialData: PerusahaanKehutanan[];
   userRole: string | null;
   userSatkerId: string | null;
 }
@@ -54,15 +55,41 @@ const getStatusBadgeVariant = (status: string | null): "default" | "destructive"
     }
 }
 
+export function KehutananClient({ userRole, userSatkerId }: KehutananClientProps) {
+  // Use the existing custom hook for data management
+  const { data, isLoading, refreshData } = useKehutananData();
+  
+  // Memoized statistics calculation
+  const statistics = React.useMemo(() => {
+    const totalCompanies = data.length;
+    const statusCounts = data.reduce((acc, company) => {
+      const status = company.status_perusahaan || 'Unknown';
+      acc[status] = (acc[status] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
 
-export function KehutananClient({ initialData, userRole, userSatkerId }: KehutananClientProps) {
-  const [data, setData] = React.useState(initialData);
-  const [isLoading, setIsLoading] = React.useState(false);
+    const kabupatenCounts = data.reduce((acc, company) => {
+      const kab = company.kabupaten || 'Unknown';
+      acc[kab] = (acc[kab] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return {
+      totalCompanies,
+      statusCounts,
+      kabupatenCounts,
+      activeCompanies: statusCounts['Aktif Berproduksi'] || 0,
+      inactiveCompanies: totalCompanies - (statusCounts['Aktif Berproduksi'] || 0)
+    };
+  }, [data]);
+  
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [selectedPerusahaan, setSelectedPerusahaan] = React.useState<PerusahaanKehutanan | null>(null);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = React.useState('');
+  const [showAdvancedFilters, setShowAdvancedFilters] = React.useState(false);
+  const [statusFilter, setStatusFilter] = React.useState<string>('all');
 
   const kabupatenOptions = React.useMemo(() => {
     const uniqueKabupatens = new Map<string, string>();
@@ -77,19 +104,6 @@ export function KehutananClient({ initialData, userRole, userSatkerId }: Kehutan
 
     return sortedKabupatens.map(entry => entry[1]);
   }, [data]);
-
-  const refreshData = async () => {
-    setIsLoading(true);
-    try {
-      const newData = await getKehutananData();
-      setData(newData);
-      toast.success("Data berhasil diperbarui.");
-    } catch (e) {
-      toast.error("Gagal me-refresh data", { description: (e as Error).message });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleEdit = (perusahaan: PerusahaanKehutanan) => {
     setSelectedPerusahaan(perusahaan);
@@ -178,6 +192,9 @@ export function KehutananClient({ initialData, userRole, userSatkerId }: Kehutan
 
   return (
     <div className="space-y-4">
+      {/* Statistics Cards */}
+      <KehutananStatsCards statistics={statistics} />
+      
       <Card>
         <CardHeader>
           <div className='flex flex-col sm:flex-row justify-between items-start gap-2'>
@@ -188,11 +205,11 @@ export function KehutananClient({ initialData, userRole, userSatkerId }: Kehutan
             <div className="flex gap-2 flex-shrink-0">
               <Button variant="outline" size="sm" onClick={handleExport}>
                 <Download className="mr-2 h-4 w-4" />
-                Ekspor
+                <span className="hidden sm:inline">Ekspor</span>
               </Button>
               <Button variant="outline" size="sm" onClick={refreshData} disabled={isLoading}>
                 <RotateCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                Refresh
+                <span className="hidden sm:inline">Refresh</span>
               </Button>
             </div>
           </div>
@@ -224,33 +241,165 @@ export function KehutananClient({ initialData, userRole, userSatkerId }: Kehutan
                 ))}
               </SelectContent>
             </Select>
+            <Select
+              value={statusFilter}
+              onValueChange={value => {
+                setStatusFilter(value);
+                table.getColumn('status_perusahaan')?.setFilterValue(value === 'all' ? '' : value);
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-auto sm:min-w-[200px]">
+                <SelectValue placeholder="Filter Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Status</SelectItem>
+                {ALL_STATUSES.map(status => (
+                  <SelectItem key={status} value={status}>{status}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                {table.getHeaderGroups().map(hg => (
-                  <TableRow key={hg.id}>
-                    {hg.headers.map(h => <TableHead key={h.id} style={{ width: h.getSize() }}>{h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}</TableHead>)}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody>
-                {table.getRowModel().rows?.length ? (
-                  table.getRowModel().rows.map(row => (
-                    <TableRow key={row.id}>
-                      {row.getVisibleCells().map(cell => <TableCell key={cell.id} style={{ width: cell.column.getSize() }}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>)}
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow><TableCell colSpan={columns.length} className="h-24 text-center">{isLoading ? 'Memuat data...' : 'Tidak ada data.'}</TableCell></TableRow>
-                )}
-              </TableBody>
-            </Table>
+          {/* Advanced Filters */}
+          {showAdvancedFilters && (
+            <Card className="mb-4">
+              <CardHeader>
+                <CardTitle className="text-sm">Filter Lanjutan</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Tanggal Mulai</label>
+                    <Input type="date" className="mt-1" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Tanggal Akhir</label>
+                    <Input type="date" className="mt-1" />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setShowAdvancedFilters(false)}>
+                    Tutup
+                  </Button>
+                  <Button variant="outline" size="sm">
+                    Reset Filter
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="flex justify-between items-center mb-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            >
+              {showAdvancedFilters ? <ChevronUp className="mr-2 h-4 w-4" /> : <ChevronDown className="mr-2 h-4 w-4" />}
+              Filter Lanjutan
+            </Button>
+            <div className="text-sm text-muted-foreground">
+              {table.getFilteredRowModel().rows.length} dari {data.length} data
+            </div>
           </div>
-          <div className="flex items-center justify-end space-x-2 py-4">
-            <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>Sebelumnya</Button>
-            <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Berikutnya</Button>
+
+          {/* Table with responsive design and loading skeleton */}
+          <div className="rounded-md border">
+            {isLoading ? (
+              <KehutananTableSkeleton />
+            ) : (
+              <>
+                {/* Desktop Table */}
+                <div className="hidden md:block">
+                  <Table>
+                    <TableHeader>
+                      {table.getHeaderGroups().map(hg => (
+                        <TableRow key={hg.id}>
+                          {hg.headers.map(h => <TableHead key={h.id} style={{ width: h.getSize() }}>{h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}</TableHead>)}
+                        </TableRow>
+                      ))}
+                    </TableHeader>
+                    <TableBody>
+                      {table.getRowModel().rows?.length ? (
+                        table.getRowModel().rows.map(row => (
+                          <TableRow key={row.id}>
+                            {row.getVisibleCells().map(cell => <TableCell key={cell.id} style={{ width: cell.column.getSize() }}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>)}
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow><TableCell colSpan={columns.length} className="h-24 text-center">Tidak ada data.</TableCell></TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Mobile Cards */}
+                <div className="md:hidden space-y-4 p-4">
+                  {table.getRowModel().rows?.length ? (
+                    table.getRowModel().rows.map(row => {
+                      const perusahaan = row.original;
+                      const canEdit = userRole === 'super_admin' || (userSatkerId && userSatkerId === perusahaan.kode_kab);
+                      return (
+                        <Card key={row.id} className="p-4">
+                          <div className="flex justify-between items-start mb-2">
+                            <h3 className="font-semibold text-sm">{perusahaan.nama_perusahaan}</h3>
+                            {canEdit && (
+                              <Button variant="ghost" size="sm" onClick={() => handleEdit(perusahaan)}>
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                          <div className="space-y-1 text-sm">
+                            <p className="text-muted-foreground truncate">{perusahaan.alamat_lengkap}</p>
+                            <div className="flex justify-between items-center">
+                              <span className="text-muted-foreground">Kabupaten:</span>
+                              <span>{perusahaan.kabupaten}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-muted-foreground">Status:</span>
+                              {perusahaan.status_perusahaan ? (
+                                <Badge 
+                                  variant={getStatusBadgeVariant(perusahaan.status_perusahaan)}
+                                  style={perusahaan.status_perusahaan === 'Aktif Berproduksi' ? { backgroundColor: '#22c55e', color: 'white' } : {}}
+                                  className="text-xs"
+                                >
+                                  {perusahaan.status_perusahaan}
+                                </Badge>
+                              ) : (
+                                <span>-</span>
+                              )}
+                            </div>
+                            {perusahaan.date_modified && (
+                              <div className="flex justify-between items-center">
+                                <span className="text-muted-foreground">Terakhir diubah:</span>
+                                <span className="text-xs">{new Date(perusahaan.date_modified).toLocaleDateString('id-ID', {day: 'numeric', month: 'short', year: 'numeric'})}</span>
+                              </div>
+                            )}
+                          </div>
+                        </Card>
+                      );
+                    })
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">Tidak ada data.</div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+          
+          {/* Pagination */}
+          <div className="flex items-center justify-between space-x-2 py-4">
+            <div className="text-sm text-muted-foreground">
+              Halaman {table.getState().pagination.pageIndex + 1} dari {table.getPageCount()}
+            </div>
+            <div className="flex space-x-2">
+              <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
+                Sebelumnya
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
+                Berikutnya
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
