@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from 'react';
-import { Clock, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Clock, CheckCircle } from 'lucide-react';
 import { type Kegiatan } from '@/app/(dashboard)/jadwal/jadwal.config';
 
 // Helper function untuk menghitung selisih hari

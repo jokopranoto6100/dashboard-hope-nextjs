@@ -168,7 +168,7 @@ export default function HomePage() {
         </div>
       )}
       <p className="mt-6 text-gray-500 text-center text-xs">
-        Selamat datang di dashboard pemantauan Anda.
+        Welcome to your Hope.
       </p>
     </>
   );

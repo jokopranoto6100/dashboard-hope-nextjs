@@ -27,7 +27,7 @@ export const getKehutananData = async (): Promise<PerusahaanKehutanan[]> => {
     }
     if (!data) return [];
     
-    // @ts-ignore - Kita biarkan ignore ini untuk sementara agar tidak kompleks
+    // @ts-expect-error - Kita biarkan expect-error ini untuk sementara agar tidak kompleks
     return data.map(item => ({ ...item, user_modified: item.user_modified?.full_name || 'Tidak diketahui' }));
 };
 

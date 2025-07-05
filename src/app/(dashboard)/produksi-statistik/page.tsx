@@ -11,7 +11,7 @@ async function getAvailableIndicators() {
 
   const { data, error } = await supabase
     .from('master_indikator_atap')
-    .select('id, nama_resmi')
+    .select('id, nama_resmi, satuan_default')
     .order('id', { ascending: true }); 
 
   if (error) {
