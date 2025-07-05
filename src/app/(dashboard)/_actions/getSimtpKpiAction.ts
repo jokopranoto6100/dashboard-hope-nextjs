@@ -57,8 +57,8 @@ export async function getSimtpKpiData(): Promise<SimtpKpiData> {
   const benihCount = new Set(annualData.filter(d => d.file_type === 'BENIH_TAHUNAN').map(d => d.kabupaten_kode)).size;
 
   const lastUpdate = lastUpdateResult.data ? new Date(lastUpdateResult.data.uploaded_at).toLocaleString('id-ID', {
-      day: '2-digit', month: 'long', year: 'numeric', hour:'2-digit', minute: '2-digit'
-  }) : null;
+      day: 'numeric', month: 'long', year: 'numeric', hour:'2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta'
+  }) + ' WIB' : null;
 
   const kegiatanId = kegiatanResult.data?.id || null;
 

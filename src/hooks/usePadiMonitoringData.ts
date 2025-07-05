@@ -236,9 +236,9 @@ export const usePadiMonitoringData = (selectedYear: number, selectedSubround: st
 
       if (maxTimestamp) {
         setLastUpdate((maxTimestamp as Date).toLocaleString('id-ID', {
-            year: 'numeric', month: 'long', day: 'numeric',
-            hour: '2-digit', minute: '2-digit', second: '2-digit'
-        }));
+            day: 'numeric', month: 'long', year: 'numeric',
+            hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta'
+        }) + ' WIB');
       } else {
         setLastUpdate('N/A');
       }

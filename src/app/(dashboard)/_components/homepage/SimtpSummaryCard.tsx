@@ -5,6 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ElementType } from 'react';
+import { AlertTriangle } from "lucide-react";
 
 interface SimtpSummaryCardProps {
   isLoading: boolean;
@@ -18,11 +19,21 @@ interface SimtpSummaryCardProps {
     line1?: { text: string; color: string; icon: ElementType };
     line2?: { text: string; color: string; icon: ElementType };
   } | null;
+  isHighlighted?: boolean;
 }
 
-export function SimtpSummaryCard({ isLoading, error, data, displayStatus }: SimtpSummaryCardProps) {
+export function SimtpSummaryCard({ isLoading, error, data, displayStatus, isHighlighted }: SimtpSummaryCardProps) {
   return (
-    <Card className="h-full">
+    <Card className={`
+      h-full transition-all duration-300 hover:shadow-xl hover:-translate-y-1 relative
+      ${isHighlighted ? 'border-2 border-amber-500 shadow-lg' : 'border'}
+    `}>
+      {isHighlighted && (
+        <Badge variant="default" className="absolute -top-3 -right-3 flex items-center gap-1 bg-amber-500 text-white hover:bg-amber-600">
+          <AlertTriangle className="h-3 w-3" />
+          Perlu Perhatian
+        </Badge>
+      )}
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">SIMTP - {data ? data.monthly.reportForMonthName : "Data tidak tersedia"}</CardTitle>
         <Button asChild variant="outline" size="sm"><Link href="/monitoring/simtp">Lihat Detail</Link></Button>

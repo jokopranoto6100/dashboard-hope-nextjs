@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { ElementType } from 'react';
+import { AlertTriangle } from "lucide-react";
+import { getStatusVisuals } from '@/lib/status-visuals';
 
 interface PalawijaSummaryCardProps {
   isLoading: boolean;
@@ -12,11 +14,21 @@ interface PalawijaSummaryCardProps {
   countdownStatus: { text: string; color: string; icon: ElementType } | null;
   lastUpdate: string | null;
   selectedYear: number;
+  isHighlighted?: boolean;
 }
 
-export function PalawijaSummaryCard({ isLoading, error, totals, countdownStatus, lastUpdate, selectedYear }: PalawijaSummaryCardProps) {
+export function PalawijaSummaryCard({ isLoading, error, totals, countdownStatus, lastUpdate, selectedYear, isHighlighted }: PalawijaSummaryCardProps) {
   return (
-    <Card className="h-full">
+    <Card className={`
+      h-full transition-all duration-300 hover:shadow-xl hover:-translate-y-1 relative
+      ${isHighlighted ? 'border-2 border-amber-500 shadow-lg' : 'border'}
+    `}>
+      {isHighlighted && (
+        <Badge variant="default" className="absolute -top-3 -right-3 flex items-center gap-1 bg-amber-500 text-white hover:bg-amber-600">
+          <AlertTriangle className="h-3 w-3" />
+          Perlu Perhatian
+        </Badge>
+      )}
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">Ubinan Palawija ({selectedYear})</CardTitle>
         <Button asChild variant="outline" size="sm"><Link href="/monitoring/ubinan">Lihat Detail</Link></Button>
@@ -32,8 +44,39 @@ export function PalawijaSummaryCard({ isLoading, error, totals, countdownStatus,
                 <p className="text-xs text-muted-foreground">Realisasi: {totals.realisasi} dari {totals.target} Target</p>
             </div>
             <div className="text-xs text-muted-foreground mt-3 pt-2 border-t">
-              <h4 className="font-semibold mb-1 text-foreground">Detail Status Validasi:</h4>
-              <div className="flex flex-wrap items-center gap-1"><Badge variant="secondary">Clean: {totals.clean}</Badge><Badge variant="secondary">Warning: {totals.warning}</Badge><Badge variant="secondary">Error: {totals.error}</Badge></div>
+              <h4 className="font-semibold mb-2 text-foreground">Detail Status Validasi:</h4>
+              <div className="flex flex-wrap items-center gap-2">
+                  {(() => {
+                    const cleanVisuals = getStatusVisuals('clean');
+                    const CleanIcon = cleanVisuals.Icon;
+                    return (
+                      <Badge variant={cleanVisuals.variant} className="flex items-center gap-1.5">
+                        <CleanIcon className="h-3.5 w-3.5" />
+                        <span>Clean: {totals.clean}</span>
+                      </Badge>
+                    );
+                  })()}
+                  {(() => {
+                    const warningVisuals = getStatusVisuals('warning');
+                    const WarningIcon = warningVisuals.Icon;
+                    return (
+                      <Badge variant={warningVisuals.variant} className="flex items-center gap-1.5">
+                        <WarningIcon className="h-3.5 w-3.5" />
+                        <span>Warning: {totals.warning}</span>
+                      </Badge>
+                    );
+                  })()}
+                  {(() => {
+                    const errorVisuals = getStatusVisuals('error');
+                    const ErrorIcon = errorVisuals.Icon;
+                    return (
+                      <Badge variant={errorVisuals.variant} className="flex items-center gap-1.5">
+                        <ErrorIcon className="h-3.5 w-3.5" />
+                        <span>Error: {totals.error}</span>
+                      </Badge>
+                    );
+                  })()}
+              </div>
             </div>
             {lastUpdate && <p className="text-xs text-muted-foreground mt-1">Data per: {lastUpdate}</p>}
           </>

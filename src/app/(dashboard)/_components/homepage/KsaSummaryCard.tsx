@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { ElementType } from 'react';
+import { AlertTriangle } from "lucide-react";
+import { getStatusVisuals } from '@/lib/status-visuals';
 
 interface KsaSummaryCardProps {
   isLoading: boolean;
@@ -14,6 +16,7 @@ interface KsaSummaryCardProps {
   uniqueStatusNames: string[];
   lastUpdate: string | null;
   selectedYear: number;
+  isHighlighted?: boolean;
 }
 
 const getMonthName = (monthNumberStr: string): string => {
@@ -24,9 +27,18 @@ const getMonthName = (monthNumberStr: string): string => {
   return (monthIndex >= 0 && monthIndex < 12) ? monthNames[monthIndex] : monthNumberStr;
 };
 
-export function KsaSummaryCard({ isLoading, error, totals, displayStatus, displayMonth, uniqueStatusNames, lastUpdate, selectedYear }: KsaSummaryCardProps) {
+export function KsaSummaryCard({ isLoading, error, totals, displayStatus, displayMonth, uniqueStatusNames, lastUpdate, selectedYear, isHighlighted }: KsaSummaryCardProps) {
   return (
-    <Card className="h-full">
+    <Card className={`
+      h-full transition-all duration-300 hover:shadow-xl hover:-translate-y-1 relative
+      ${isHighlighted ? 'border-2 border-amber-500 shadow-lg' : 'border'}
+    `}>
+      {isHighlighted && (
+        <Badge variant="default" className="absolute -top-3 -right-3 flex items-center gap-1 bg-amber-500 text-white hover:bg-amber-600">
+          <AlertTriangle className="h-3 w-3" />
+          Perlu Perhatian
+        </Badge>
+      )}
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">KSA Padi ({selectedYear}) - {getMonthName(displayMonth)}</CardTitle>
         <Button asChild variant="outline" size="sm"><Link href="/monitoring/ksa">Lihat Detail</Link></Button>
@@ -52,15 +64,18 @@ export function KsaSummaryCard({ isLoading, error, totals, displayStatus, displa
             </div>
             {totals.statuses && uniqueStatusNames && uniqueStatusNames.length > 0 && (
               <div className="text-xs text-muted-foreground mt-3 pt-2 border-t">
-                <h4 className="font-semibold mb-1 text-foreground">Detail Status KSA:</h4>
-                <div className="flex flex-wrap gap-1">
+                <h4 className="font-semibold mb-2 text-foreground">Detail Status KSA:</h4>
+                <div className="flex flex-wrap gap-2">
                   {uniqueStatusNames.map(statusName => {
                       const statusData = totals.statuses?.[statusName];
                       if (statusData) {
-                          let statusVariant: "default" | "secondary" | "destructive" | "success" | "warning" = "secondary";
-                          if (statusName.toLowerCase().includes("selesai") || statusName.toLowerCase().includes("panen")) statusVariant = "success";
-                          if (statusName.toLowerCase().includes("belum") || statusName.toLowerCase().includes("kosong")) statusVariant = "default";
-                          return ( <Badge key={statusName} variant={statusVariant}>{statusName}: {statusData.count}</Badge> );
+                          const { Icon, variant } = getStatusVisuals(statusName);
+                          return (
+                            <Badge key={statusName} variant={variant} className="flex items-center gap-1.5">
+                              <Icon className="h-3.5 w-3.5" />
+                              <span>{statusName}: {statusData.count}</span>
+                            </Badge>
+                          );
                       }
                       return null;
                     })}

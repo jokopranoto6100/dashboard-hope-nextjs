@@ -85,7 +85,7 @@ export const useKsaMonitoringData = (): KsaMonitoringHookResult => {
           if (item.tanggal) { const currentTs = new Date(item.tanggal); if (!maxTs || currentTs > maxTs) maxTs = currentTs; }
           if (item.status && item.status.trim() !== '') { discoveredStatuses.add(item.status.trim()); }
       });
-      setLastUpdated(maxTs ? (maxTs as Date).toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'long'}) : null);
+      setLastUpdated(maxTs ? (maxTs as Date).toLocaleString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }) + ' WIB' : null);
       const sortedUniqueStatuses = Array.from(discoveredStatuses).sort();
       setUniqueStatusNames(sortedUniqueStatuses);
       return sortedUniqueStatuses;

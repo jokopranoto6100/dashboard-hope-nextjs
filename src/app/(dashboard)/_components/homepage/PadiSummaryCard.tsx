@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Clock } from "lucide-react";
+import { Clock, AlertTriangle } from "lucide-react";
+import { getStatusVisuals } from '@/lib/status-visuals';
 
 // Definisikan tipe data untuk props
 interface PadiSummaryCardProps {
@@ -14,11 +15,21 @@ interface PadiSummaryCardProps {
   uniqueStatusNames: string[];
   lastUpdate: string | null;
   selectedYear: number;
+  isHighlighted?: boolean;
 }
 
-export function PadiSummaryCard({ isLoading, error, totals, countdownStatus, uniqueStatusNames, lastUpdate, selectedYear }: PadiSummaryCardProps) {
+export function PadiSummaryCard({ isLoading, error, totals, countdownStatus, uniqueStatusNames, lastUpdate, selectedYear, isHighlighted }: PadiSummaryCardProps) {
   return (
-    <Card className="h-full">
+    <Card className={`
+      h-full transition-all duration-300 hover:shadow-xl hover:-translate-y-1 relative
+      ${isHighlighted ? 'border-2 border-amber-500 shadow-lg' : 'border'}
+    `}>
+      {isHighlighted && (
+        <Badge variant="default" className="absolute -top-3 -right-3 flex items-center gap-1 bg-amber-500 text-white hover:bg-amber-600">
+          <AlertTriangle className="h-3 w-3" />
+          Perlu Perhatian
+        </Badge>
+      )}
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">Ubinan Padi ({selectedYear})</CardTitle>
         <Button asChild variant="outline" size="sm"><Link href="/monitoring/ubinan">Lihat Detail</Link></Button>
@@ -41,11 +52,19 @@ export function PadiSummaryCard({ isLoading, error, totals, countdownStatus, uni
             </div>
             {totals.statuses && uniqueStatusNames && uniqueStatusNames.length > 0 && (
               <div className="text-xs text-muted-foreground mt-3 pt-2 border-t">
-                <h4 className="font-semibold mb-1 text-foreground">Detail Status Ubinan:</h4>
-                <div className="flex flex-wrap gap-1">
+                <h4 className="font-semibold mb-2 text-foreground">Detail Status Ubinan:</h4>
+                <div className="flex flex-wrap gap-2">
                   {uniqueStatusNames.map(statusName => {
                     const count = totals.statuses?.[statusName];
-                    if (count !== undefined) { return ( <Badge key={statusName} variant="secondary">{statusName}: {count}</Badge> ); }
+                    if (count !== undefined) {
+                      const { Icon, variant } = getStatusVisuals(statusName);
+                      return (
+                        <Badge key={statusName} variant={variant} className="flex items-center gap-1.5">
+                          <Icon className="h-3.5 w-3.5" />
+                          <span>{statusName}: {count}</span>
+                        </Badge>
+                      );
+                    }
                     return null;
                   })}
                 </div>

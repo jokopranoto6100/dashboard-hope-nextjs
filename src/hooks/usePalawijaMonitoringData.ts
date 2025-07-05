@@ -161,7 +161,7 @@ export const usePalawijaMonitoringData = (selectedYear: number, selectedSubround
       setLoadingPalawija(false);
 
       if (maxTimestamp) {
-        setLastUpdatePalawija((maxTimestamp as Date).toLocaleString('id-ID', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+        setLastUpdatePalawija((maxTimestamp as Date).toLocaleString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }) + ' WIB');
       } else {
         const anyTimestamp = allRawPalawijaData.find(d => d.uploaded_at)?.uploaded_at;
         if (anyTimestamp) { setLastUpdatePalawija(new Date(anyTimestamp).toLocaleString('id-ID', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' })); }
