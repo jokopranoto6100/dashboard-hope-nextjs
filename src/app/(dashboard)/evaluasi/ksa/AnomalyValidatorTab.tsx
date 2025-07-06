@@ -34,33 +34,36 @@ const ANOMALY_TYPE_MAP: Record<string, string> = {
   'T-5': 'Alih Fungsi ke Pertanian',
 };
 
+// Nama bulan lengkap untuk filter
+const NAMA_BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+
 // Removed the unused NoDataDisplay function to resolve the error.
 
 const columns: ColumnDef<AnomalyData>[] = [
   { 
     accessorKey: "id_subsegmen", 
-    header: ({ column }) => (<Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>ID Subsegmen<ArrowUpDown className="ml-2 h-4 w-4" /></Button>), 
-    cell: ({ row }) => <div className="font-mono pl-4">{row.getValue("id_subsegmen")}</div>,
+    header: ({ column }) => (<Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="text-xs md:text-sm">ID Subsegmen<ArrowUpDown className="ml-2 h-3 w-3 md:h-4 md:w-4" /></Button>), 
+    cell: ({ row }) => <div className="font-mono pl-2 md:pl-4 text-xs md:text-sm">{row.getValue("id_subsegmen")}</div>,
   },
   { 
     accessorKey: "kabupaten", 
-    header: ({ column }) => (<div className="text-center w-full"><Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>Kabupaten<ArrowUpDown className="ml-2 h-4 w-4" /></Button></div>),
-    cell: ({ row }) => <div className="text-center">{row.getValue("kabupaten")}</div>, 
+    header: ({ column }) => (<div className="text-center w-full"><Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="text-xs md:text-sm">Kabupaten<ArrowUpDown className="ml-2 h-3 w-3 md:h-4 md:w-4" /></Button></div>),
+    cell: ({ row }) => <div className="text-center text-xs md:text-sm">{row.getValue("kabupaten")}</div>, 
   },
   { 
     accessorKey: "bulan_anomali", 
-    header: ({ column }) => (<div className="text-center w-full"><Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>Bulan<ArrowUpDown className="ml-2 h-4 w-4" /></Button></div>),
-    cell: ({ row }) => <div className="text-center">{row.getValue("bulan_anomali")}</div>,
+    header: ({ column }) => (<div className="text-center w-full"><Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="text-xs md:text-sm">Bulan<ArrowUpDown className="ml-2 h-3 w-3 md:h-4 md:w-4" /></Button></div>),
+    cell: ({ row }) => <div className="text-center text-xs md:text-sm">{NAMA_BULAN[(row.getValue("bulan_anomali") as number) - 1]}</div>,
   },
   { 
     accessorKey: "kode_anomali", 
-    header: () => <div className="text-center">Kode</div>,
-    cell: ({ row }) => (<div className="text-center"><TooltipProvider><Tooltip><TooltipTrigger><Badge variant="destructive">{row.getValue("kode_anomali")}</Badge></TooltipTrigger><TooltipContent><p>{row.original.deskripsi}</p></TooltipContent></Tooltip></TooltipProvider></div>),
+    header: () => <div className="text-center text-xs md:text-sm">Kode</div>,
+    cell: ({ row }) => (<div className="text-center"><TooltipProvider><Tooltip><TooltipTrigger><Badge variant="destructive" className="text-xs">{row.getValue("kode_anomali")}</Badge></TooltipTrigger><TooltipContent><p className="text-sm">{row.original.deskripsi}</p></TooltipContent></Tooltip></TooltipProvider></div>),
     enableSorting: false,
   },
   { 
     accessorKey: "urutan_fase", 
-    header: () => <div className="text-center">Konteks Fase</div>,
+    header: () => <div className="text-center text-xs md:text-sm">Konteks Fase</div>,
     cell: ({ row }) => <PhaseTimelineVisual urutan_fase={row.getValue("urutan_fase")} />,
     enableSorting: false,
   },
@@ -164,7 +167,7 @@ export function AnomalyValidatorTab() {
 
   return (
     <div className="pt-4 space-y-4">
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader>
               <CardTitle className="text-sm font-medium">Total Anomali</CardTitle>
@@ -174,7 +177,7 @@ export function AnomalyValidatorTab() {
                   <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
               </div>
               <div>
-                  <div className="text-3xl font-bold">{kpiData.total}</div>
+                  <div className="text-2xl md:text-3xl font-bold">{kpiData.total}</div>
                   <p className="text-xs text-muted-foreground">kasus ditemukan sesuai filter</p>
               </div>
           </CardContent>
@@ -186,17 +189,17 @@ export function AnomalyValidatorTab() {
             </CardHeader>
             <CardContent className="flex items-end justify-between">
                 <div className="space-y-1">
-                    <Badge variant="destructive">{kpiData.topAnomaly.type}</Badge>
-                    <div className="text-2xl font-bold">{kpiData.topAnomaly.count} kasus</div>
+                    <Badge variant="destructive" className="text-xs">{kpiData.topAnomaly.type}</Badge>
+                    <div className="text-xl md:text-2xl font-bold">{kpiData.topAnomaly.count} kasus</div>
                 </div>
                 <div className="text-xs text-muted-foreground text-right space-y-1">
-                    <p>{kpiData.topAnomaly.type ? ANOMALY_TYPE_MAP[kpiData.topAnomaly.type] || 'Tidak ada' : 'Tidak ada'}</p>
-                    <p className="flex items-center justify-end gap-1"><MapPin className="h-3 w-3" /> Terbanyak di {kpiData.topAnomaly.topDistrict}</p>
+                    <p className="text-[10px] md:text-xs">{kpiData.topAnomaly.type ? ANOMALY_TYPE_MAP[kpiData.topAnomaly.type] || 'Tidak ada' : 'Tidak ada'}</p>
+                    <p className="flex items-center justify-end gap-1 text-[10px] md:text-xs"><MapPin className="h-3 w-3" /> Terbanyak di {kpiData.topAnomaly.topDistrict}</p>
                 </div>
             </CardContent>
         </Card>
 
-        <Card>
+        <Card className="md:col-span-2 lg:col-span-1">
             <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium flex items-center gap-2">
                     <MapPin className="h-4 w-4 text-muted-foreground" />
@@ -206,61 +209,81 @@ export function AnomalyValidatorTab() {
             <CardContent className="grid grid-cols-2 gap-4 text-center">
                 <div>
                     <p className="text-xs text-muted-foreground flex items-center justify-center gap-1"><ArrowUpCircle className="h-4 w-4 text-green-500"/> Terbanyak</p>
-                    <p className="text-lg font-bold">{kpiData.topRegion.name}</p>
+                    <p className="text-base md:text-lg font-bold truncate" title={kpiData.topRegion.name}>{kpiData.topRegion.name}</p>
                     <p className="text-xs font-semibold">{kpiData.topRegion.count} anomali</p>
                 </div>
                 <div className="border-l pl-4">
                     <p className="text-xs text-muted-foreground flex items-center justify-center gap-1"><ArrowDownCircle className="h-4 w-4 text-orange-500"/> Terendah</p>
-                    <p className="text-lg font-bold">{kpiData.bottomRegion.name}</p>
+                    <p className="text-base md:text-lg font-bold truncate" title={kpiData.bottomRegion.name}>{kpiData.bottomRegion.name}</p>
                     <p className="text-xs font-semibold">{kpiData.bottomRegion.count} anomali</p>
                 </div>
             </CardContent>
         </Card>
       </div>
         
-      <div className="flex justify-between items-center pt-4">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center pt-4 gap-4">
         <div className="flex items-center gap-2">
-            <label htmlFor="month-filter" className="text-sm font-medium">Filter Bulan:</label>
+            <label htmlFor="month-filter" className="text-sm font-medium whitespace-nowrap">Filter Bulan:</label>
             <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                <SelectTrigger id="month-filter" className="w-[180px]"><SelectValue placeholder="Pilih bulan..." /></SelectTrigger>
+                <SelectTrigger id="month-filter" className="w-[160px] md:w-[180px]">
+                    <SelectValue placeholder="Pilih bulan..." />
+                </SelectTrigger>
                 <SelectContent>
                     <SelectItem value="semua">Semua Bulan</SelectItem>
-                    {availableMonths.map(month => (<SelectItem key={month} value={String(month)}>{month}</SelectItem>))}
+                    {availableMonths.map(month => (
+                        <SelectItem key={month} value={String(month)}>
+                            {NAMA_BULAN[month - 1]}
+                        </SelectItem>
+                    ))}
                 </SelectContent>
             </Select>
         </div>
-        <Button onClick={handleExport} disabled={table.getRowModel().rows.length === 0}><Download className="mr-2 h-4 w-4" />Ekspor ke Excel</Button>
+        <Button onClick={handleExport} disabled={table.getRowModel().rows.length === 0} className="text-sm">
+            <Download className="mr-2 h-4 w-4" />
+            <span className="hidden sm:inline">Ekspor ke Excel</span>
+            <span className="sm:hidden">Ekspor</span>
+        </Button>
       </div>
 
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map(headerGroup => (<TableRow key={headerGroup.id}>{headerGroup.headers.map(header => (<TableHead key={header.id}>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead>))}</TableRow>))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows.length ? (
-                table.getRowModel().rows.map(row => (
-                    <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
-                      {row.getVisibleCells().map(cell => (<TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>))}
-                    </TableRow>
-                ))
-            ) : (
-                <TableRow>
-                    <TableCell colSpan={columns.length} className="h-24 text-center">
-                        Tidak ada data anomali yang sesuai dengan filter.
-                    </TableCell>
-                </TableRow>
-            )}
-          </TableBody>
-        </Table>
+      <div className="rounded-md border overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              {table.getHeaderGroups().map(headerGroup => (<TableRow key={headerGroup.id}>{headerGroup.headers.map(header => (<TableHead key={header.id} className="whitespace-nowrap">{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead>))}</TableRow>))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows.length ? (
+                  table.getRowModel().rows.map(row => (
+                      <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+                        {row.getVisibleCells().map(cell => (<TableCell key={cell.id} className="whitespace-nowrap">{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>))}
+                      </TableRow>
+                  ))
+              ) : (
+                  <TableRow>
+                      <TableCell colSpan={columns.length} className="h-24 text-center text-sm">
+                          Tidak ada data anomali yang sesuai dengan filter.
+                      </TableCell>
+                  </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
       
       {table.getPageCount() > 1 && (
-        <div className="flex items-center justify-end space-x-2 py-4">
-            <div className="flex-1 text-sm text-muted-foreground">Total {table.getFilteredRowModel().rows.length} baris anomali.</div>
-            <span className="text-sm">Halaman {table.getState().pagination.pageIndex + 1} dari {table.getPageCount()}</span>
-            <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>Sebelumnya</Button>
-            <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Berikutnya</Button>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 sm:space-x-2 py-4">
+            <div className="text-sm text-muted-foreground">Total {table.getFilteredRowModel().rows.length} baris anomali.</div>
+            <div className="flex items-center space-x-2">
+              <span className="text-sm">Halaman {table.getState().pagination.pageIndex + 1} dari {table.getPageCount()}</span>
+              <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()} className="text-xs">
+                <span className="hidden sm:inline">Sebelumnya</span>
+                <span className="sm:hidden">‹</span>
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()} className="text-xs">
+                <span className="hidden sm:inline">Berikutnya</span>
+                <span className="sm:hidden">›</span>
+              </Button>
+            </div>
         </div>
       )}
     </div>

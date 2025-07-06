@@ -21,14 +21,16 @@ export function DetailKsaModal({ isOpen, onClose, kabupaten }: ModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[40vw]">
-        <DialogHeader>
-          <DialogTitle>Rincian Panen Subsegmen: {kabupaten}</DialogTitle>
-          <DialogDescription>
+      <DialogContent className="max-w-[95vw] md:max-w-[70vw] lg:max-w-[60vw] xl:max-w-[50vw] max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogHeader className="flex-shrink-0">
+          <DialogTitle className="text-lg md:text-xl">Rincian Panen Subsegmen: {kabupaten}</DialogTitle>
+          <DialogDescription className="text-sm">
             Daftar subsegmen beserta jadwal panen bulanan di kabupaten yang dipilih. Gunakan kolom pencarian untuk memfilter ID subsegmen.
           </DialogDescription>
         </DialogHeader>
-        <DetailKsaModalContent kabupaten={kabupaten} />
+        <div className="flex-1 overflow-hidden">
+          <DetailKsaModalContent kabupaten={kabupaten} />
+        </div>
       </DialogContent>
     </Dialog>
   );

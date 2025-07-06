@@ -109,11 +109,17 @@ export function OfficerPerformanceTab() {
     fetchAvailableMonths();
   }, [selectedYear, selectedKabupaten, supabase]);
 
-  const { performanceData, isLoading:error } = useOfficerPerformanceData(selectedMonth);
+  const { performanceData, error } = useOfficerPerformanceData(selectedMonth);
   const { dailyData, isLoading: isChartLoading, error: chartError } = useDailySubmissions(selectedMonth);
 
+  // Filter data berdasarkan bulan yang dipilih untuk KPI dan tabel
+  const filteredPerformanceData = useMemo(() => {
+    if (selectedMonth === '0') return performanceData;
+    return performanceData.filter(p => p.bulan === Number(selectedMonth));
+  }, [performanceData, selectedMonth]);
+
   const kpiData = useMemo(() => {
-    const dataForKpi = selectedMonth === '0' ? performanceData : performanceData.filter(p => p.bulan === Number(selectedMonth));
+    const dataForKpi = filteredPerformanceData;
     if (!dataForKpi || dataForKpi.length === 0) {
       return { totalPetugas: 0, petugasTerlama: { name: '-', durasi: 0 }, petugasTercepat: { name: '-' }, petugasTeratas: { name: '-', tingkat: 0 } };
     }
@@ -127,10 +133,10 @@ export function OfficerPerformanceTab() {
       petugasTercepat: petugasTercepat ? { name: petugasTercepat.nama_petugas } : { name: '-' },
       petugasTeratas: { name: petugasTeratas.nama_petugas, tingkat: petugasTeratas.tingkat_anomali || 0 },
     };
-  }, [performanceData, selectedMonth]);
+  }, [filteredPerformanceData]);
 
   const table = useReactTable({
-    data: performanceData,
+    data: filteredPerformanceData, // Gunakan data yang sudah difilter
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -144,24 +150,37 @@ export function OfficerPerformanceTab() {
 
   return (
     <div className="pt-4 space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         {/* --- GANTI BLOK KODE KPI ANDA DENGAN INI --- */}
-        <div className="lg:col-span-1 flex flex-col justify-between">
+        <div className="lg:col-span-1 flex flex-col justify-between space-y-4">
         <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Total Petugas Aktif</CardTitle><User className="h-4 w-4 text-muted-foreground" /></CardHeader>
-            <CardContent><div className="text-2xl font-bold">{kpiData.totalPetugas}</div><p className="text-xs text-muted-foreground">petugas pada periode ini</p></CardContent>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Total Petugas Aktif</CardTitle>
+              <User className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{kpiData.totalPetugas}</div>
+              <p className="text-xs text-muted-foreground">petugas pada periode ini</p>
+            </CardContent>
         </Card>
 
         <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium flex items-center gap-2"><Clock className="h-4 w-4 text-muted-foreground" />Kinerja Waktu Pengerjaan</CardTitle></CardHeader>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                Kinerja Waktu Pengerjaan
+              </CardTitle>
+            </CardHeader>
             <CardContent className="grid grid-cols-2 gap-4 text-center">
                 <div>
-                    <p className="text-xs text-muted-foreground flex items-center justify-center gap-1"><TrendingDown className="h-4 w-4 text-orange-500"/> Terlama</p>
+                    <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+                      <TrendingDown className="h-4 w-4 text-orange-500"/> Terlama
+                    </p>
                     {/* --- PERUBAHAN DI SINI: Tooltip & Truncate --- */}
                     <TooltipProvider>
                         <Tooltip>
                         <TooltipTrigger asChild>
-                            <p className="text-lg font-bold truncate" title={toProperCase(kpiData.petugasTerlama.name)}>
+                            <p className="text-sm md:text-lg font-bold truncate" title={toProperCase(kpiData.petugasTerlama.name)}>
                             {toProperCase(kpiData.petugasTerlama.name)}
                             </p>
                         </TooltipTrigger>
@@ -170,14 +189,17 @@ export function OfficerPerformanceTab() {
                         </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
+                    <p className="text-xs text-muted-foreground">{kpiData.petugasTerlama.durasi} hari</p>
                 </div>
                 <div className="border-l pl-4">
-                    <p className="text-xs text-muted-foreground flex items-center justify-center gap-1"><CheckCircle2 className="h-4 w-4 text-green-500"/> Tercepat</p>
+                    <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+                      <CheckCircle2 className="h-4 w-4 text-green-500"/> Tercepat
+                    </p>
                     {/* --- PERUBAHAN DI SINI: Tooltip & Truncate --- */}
                     <TooltipProvider>
                         <Tooltip>
                         <TooltipTrigger asChild>
-                            <p className="text-lg font-bold truncate" title={toProperCase(kpiData.petugasTercepat.name)}>
+                            <p className="text-sm md:text-lg font-bold truncate" title={toProperCase(kpiData.petugasTercepat.name)}>
                             {toProperCase(kpiData.petugasTercepat.name)}
                             </p>
                         </TooltipTrigger>
@@ -191,7 +213,10 @@ export function OfficerPerformanceTab() {
         </Card>
 
         <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Tingkat Anomali Tertinggi</CardTitle><AlertCircle className="h-4 w-4 text-muted-foreground" /></CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Tingkat Anomali Tertinggi</CardTitle>
+              <AlertCircle className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
             <CardContent>
                 <div className="text-2xl font-bold">{kpiData.petugasTeratas.tingkat}%</div>
                 {/* --- PERUBAHAN DI SINI: Tooltip & Truncate --- */}
@@ -214,15 +239,15 @@ export function OfficerPerformanceTab() {
 
         <div className="lg:col-span-2">
           <Card>
-              <CardHeader className="flex flex-col sm:flex-row sm:justify-between sm:items-start">
-                  <div className="mb-4 sm:mb-0">
-                    <CardTitle>Jumlah Submit Harian</CardTitle>
-                    <CardDescription>Grafik jumlah amatan subsegmen yang dikirim per tanggal.</CardDescription>
+              <CardHeader className="flex flex-col space-y-3 md:flex-row md:justify-between md:items-start md:space-y-0">
+                  <div>
+                    <CardTitle className="text-lg">Jumlah Submit Harian</CardTitle>
+                    <CardDescription className="text-sm">Grafik jumlah amatan subsegmen yang dikirim per tanggal.</CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
                     <Label htmlFor="month-filter-kinerja" className="text-sm flex-shrink-0">Bulan:</Label>
                     <Select value={selectedMonth} onValueChange={setSelectedMonth} disabled={availableMonths.length === 0}>
-                        <SelectTrigger id="month-filter-kinerja" className="w-[180px]">
+                        <SelectTrigger id="month-filter-kinerja" className="w-[140px] md:w-[180px]">
                             <SelectValue placeholder="Pilih bulan..." />
                         </SelectTrigger>
                         <SelectContent>
@@ -238,20 +263,24 @@ export function OfficerPerformanceTab() {
               </CardHeader>
               <CardContent className="pl-2">
                   {isChartLoading ? (
-                      <Skeleton className="h-[350px] w-full" />
+                      <Skeleton className="h-[300px] md:h-[350px] w-full" />
                   ) : chartError ? (
-                      <p className="text-red-500">{chartError}</p>
+                      <p className="text-red-500 text-center py-8">{chartError}</p>
                   ) : (
-                      <ResponsiveContainer width="100%" height={350}>
+                      <ResponsiveContainer width="100%" height={300}>
                           <BarChart data={dailyData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
                               <CartesianGrid strokeDasharray="3 3" />
-                              <XAxis dataKey="tanggal_amatan" tickFormatter={(dateStr) => new Date(dateStr).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} />
-                              <YAxis />
+                              <XAxis 
+                                dataKey="tanggal_amatan" 
+                                tickFormatter={(dateStr) => new Date(dateStr).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} 
+                                fontSize={12}
+                              />
+                              <YAxis fontSize={12} />
                               <RechartsTooltip 
                                   labelFormatter={(label) => new Date(label).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' })} 
                                   formatter={(value) => [`${value} entri`, "Jumlah"]}
                               />
-                              <Legend verticalAlign="top" wrapperStyle={{ paddingBottom: '10px' }}/>
+                              <Legend verticalAlign="top" wrapperStyle={{ paddingBottom: '10px' }} />
                               <Bar dataKey="jumlah_entri" name="Jumlah Submit" fill="#8884d8" radius={[4, 4, 0, 0]} />
                           </BarChart>
                       </ResponsiveContainer>
@@ -261,25 +290,53 @@ export function OfficerPerformanceTab() {
         </div>
       </div>
       
-      <div className="rounded-md border mt-6">
-        <Table>
-          <TableHeader>{table.getHeaderGroups().map(headerGroup => (<TableRow key={headerGroup.id}>{headerGroup.headers.map(header => (<TableHead key={header.id}>{flexRender(header.column.columnDef.header, header.getContext())}</TableHead>))}</TableRow>))}</TableHeader>
-          <TableBody>
-            {table.getRowModel().rows.length ? (
-              table.getRowModel().rows.map(row => (<TableRow key={row.id}>{row.getVisibleCells().map(cell => (<TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>))}</TableRow>))
-            ) : (
-              <NoDataDisplay message="Tidak ada data kinerja petugas untuk filter ini." />
-            )}
-          </TableBody>
-        </Table>
+      <div className="rounded-md border mt-6 overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              {table.getHeaderGroups().map(headerGroup => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map(header => (
+                    <TableHead key={header.id} className="whitespace-nowrap">
+                      {flexRender(header.column.columnDef.header, header.getContext())}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows.length ? (
+                table.getRowModel().rows.map(row => (
+                  <TableRow key={row.id}>
+                    {row.getVisibleCells().map(cell => (
+                      <TableCell key={cell.id} className="whitespace-nowrap text-xs md:text-sm">
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <NoDataDisplay message="Tidak ada data kinerja petugas untuk filter ini." />
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
       
       {table.getPageCount() > 1 && (
-        <div className="flex items-center justify-end space-x-2 py-4">
-            <div className="flex-1 text-sm text-muted-foreground">Total {table.getFilteredRowModel().rows.length} baris data ditemukan.</div>
-            <span className="text-sm">Halaman {table.getState().pagination.pageIndex + 1} dari {table.getPageCount()}</span>
-            <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>Sebelumnya</Button>
-            <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Berikutnya</Button>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 sm:space-x-2 py-4">
+            <div className="text-sm text-muted-foreground">Total {table.getFilteredRowModel().rows.length} baris data ditemukan.</div>
+            <div className="flex items-center space-x-2">
+              <span className="text-sm">Halaman {table.getState().pagination.pageIndex + 1} dari {table.getPageCount()}</span>
+              <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()} className="text-xs">
+                <span className="hidden sm:inline">Sebelumnya</span>
+                <span className="sm:hidden">‹</span>
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()} className="text-xs">
+                <span className="hidden sm:inline">Berikutnya</span>
+                <span className="sm:hidden">›</span>
+              </Button>
+            </div>
         </div>
       )}
     </div>

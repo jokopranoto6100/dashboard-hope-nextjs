@@ -11,7 +11,7 @@ const MONTHS = ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"];
 
 export function MonthlyHarvestDisplay({ harvestMonths }: MonthlyHarvestDisplayProps) {
   return (
-    <div className="flex flex-nowrap gap-1">
+    <div className="flex flex-nowrap gap-0.5 md:gap-1 overflow-x-auto">
       {MONTHS.map((month, index) => {
         const monthNumber = index + 1;
         const hasHarvest = harvestMonths.includes(monthNumber);
@@ -21,7 +21,7 @@ export function MonthlyHarvestDisplay({ harvestMonths }: MonthlyHarvestDisplayPr
             key={monthNumber}
             title={`${hasHarvest ? 'Panen' : 'Tidak Panen'} pada bulan ke-${monthNumber}`}
             className={cn(
-              "flex h-6 w-6 items-center justify-center rounded-sm border text-xs font-mono",
+              "flex h-5 w-5 md:h-6 md:w-6 items-center justify-center rounded-sm border text-[10px] md:text-xs font-mono flex-shrink-0",
               hasHarvest
                 ? "bg-emerald-500 text-white border-emerald-600"
                 : "bg-muted text-muted-foreground"

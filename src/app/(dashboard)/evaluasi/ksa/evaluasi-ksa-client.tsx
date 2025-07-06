@@ -2,23 +2,27 @@
 
 "use client";
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef, useEffect, lazy, Suspense } from 'react';
 import { useKsaEvaluasiFilter } from "@/context/KsaEvaluasiFilterContext";
 import { useYear } from "@/context/YearContext";
 import { useKsaEvaluationData } from "@/hooks/useKsaEvaluationData";
 import { useKsaCompletionData } from '@/hooks/useKsaCompletionData';
+import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Calendar, Tractor, Scissors, Info, Table as TableIcon } from "lucide-react";
-import { Area, AreaChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { ColumnDef, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { DetailKsaModal } from './DetailKsaModal';
-import { OfficerPerformanceTab } from './OfficerPerformanceTab';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AnomalyValidatorTab } from './AnomalyValidatorTab';
+import { MemoizedAreaChart, MemoizedLineChart } from './MemoizedCharts';
+import { SwipeIndicator } from '@/components/ui/swipe-indicator';
+
+// Lazy load heavy components
+const AnomalyValidatorTab = lazy(() => import('./AnomalyValidatorTab').then(module => ({ default: module.AnomalyValidatorTab })));
+const OfficerPerformanceTab = lazy(() => import('./OfficerPerformanceTab').then(module => ({ default: module.OfficerPerformanceTab })));
 
 // Tipe data untuk tabel pivot
 type PivotTableData = {
@@ -57,6 +61,42 @@ export function EvaluasiKsaClient() {
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedKabForModal, setSelectedKabForModal] = useState<string | null>(null);
+    const [activeTab, setActiveTab] = useState("visualisasi");
+    const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
+    const tabsRef = useRef<HTMLDivElement>(null);
+
+    // Tab navigation dengan swipe gesture
+    const tabs = ["visualisasi", "validator", "kinerja"];
+    const currentTabIndex = tabs.indexOf(activeTab);
+
+    const handleSwipeLeft = () => {
+        const nextIndex = Math.min(currentTabIndex + 1, tabs.length - 1);
+        if (nextIndex !== currentTabIndex) {
+            setSwipeDirection('left');
+            setActiveTab(tabs[nextIndex]);
+            setTimeout(() => setSwipeDirection(null), 500);
+        }
+    };
+
+    const handleSwipeRight = () => {
+        const prevIndex = Math.max(currentTabIndex - 1, 0);
+        if (prevIndex !== currentTabIndex) {
+            setSwipeDirection('right');
+            setActiveTab(tabs[prevIndex]);
+            setTimeout(() => setSwipeDirection(null), 500);
+        }
+    };
+
+    const { bindToElement } = useSwipeGesture({
+        onSwipeLeft: handleSwipeLeft,
+        onSwipeRight: handleSwipeRight,
+        threshold: 50
+    });
+
+    useEffect(() => {
+        const cleanup = bindToElement(tabsRef.current);
+        return cleanup;
+    }, [bindToElement]);
 
     const handleRowClick = (kabupaten: string) => {
         setSelectedKabForModal(kabupaten);
@@ -132,10 +172,10 @@ export function EvaluasiKsaClient() {
         }));
     }, [completionData]);
 
-    const completionTableColumns = useMemo<ColumnDef<any>[]>(() => {
+    const completionTableColumns = useMemo<ColumnDef<PivotTableData>[]>(() => {
         if (completionMonths.length === 0) return [];
         
-        const dynamicColumns: ColumnDef<any>[] = completionMonths.map(month => ({
+        const dynamicColumns: ColumnDef<PivotTableData>[] = completionMonths.map(month => ({
             accessorKey: String(month),
             header: () => <div className="text-center">{MONTH_NAMES[month - 1]}</div>,
             cell: ({ row }) => <div className="text-center font-mono">{row.getValue(String(month)) || 0}</div>
@@ -161,7 +201,7 @@ export function EvaluasiKsaClient() {
 
     const completionTable = useReactTable({
         data: completionTableData,
-        columns: completionTableColumns,
+        columns: completionTableColumns as ColumnDef<typeof completionTableData[0]>[],
         getCoreRowModel: getCoreRowModel(),
     });
     
@@ -214,12 +254,22 @@ export function EvaluasiKsaClient() {
                 </div>
             </div>
 
-            <Tabs defaultValue="visualisasi" className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="visualisasi">Gambaran Umum</TabsTrigger>
-                    <TabsTrigger value="validator">Anomali Amatan</TabsTrigger>
-                    <TabsTrigger value="kinerja">Kinerja Petugas</TabsTrigger>
-                </TabsList>
+            <div ref={tabsRef} className="w-full">
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                    <TabsList className="grid w-full grid-cols-3">
+                        <TabsTrigger value="visualisasi">
+                            <span className="hidden sm:inline">Gambaran Umum</span>
+                            <span className="sm:hidden">Umum</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="validator">
+                            <span className="hidden sm:inline">Anomali Amatan</span>
+                            <span className="sm:hidden">Anomali</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="kinerja">
+                            <span className="hidden sm:inline">Kinerja Petugas</span>
+                            <span className="sm:hidden">Kinerja</span>
+                        </TabsTrigger>
+                    </TabsList>
 
               <TabsContent value="visualisasi">
                 {isLoading ? (
@@ -239,11 +289,28 @@ export function EvaluasiKsaClient() {
                     </div>
                     <Card>
                         <CardHeader><CardTitle>Proporsi Fase Amatan per Bulan</CardTitle><CardDescription>Komposisi fase tanam padi (disederhanakan) sepanjang tahun {selectedYear}.</CardDescription></CardHeader>
-                        <CardContent>{areaChartData.length === 0 ? <NoDataDisplay /> : (<ResponsiveContainer width="100%" height={300}><AreaChart data={areaChartData} stackOffset="expand"><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="bulan" tickFormatter={(tick) => MONTH_NAMES[tick-1]} fontSize={12} /><YAxis tickFormatter={(tick) => `${(tick * 100).toFixed(0)}%`} fontSize={12} /><Tooltip formatter={(value: number, name: string, props) => { const payload = props.payload || {}; const total = Object.keys(payload).filter(key => key !== 'bulan').reduce((sum, key) => sum + (payload[key] || 0), 0); const percentage = total > 0 ? (value / total) * 100 : 0; return [`${percentage.toFixed(2)}%`, name];}} /><Legend wrapperStyle={{fontSize: '12px'}}/>{areaChartKeys.map((key, index) => (<Area key={key} type="monotone" dataKey={key} name={key} stackId="1" stroke={COLORS[index % COLORS.length]} fill={COLORS[index % COLORS.length]} />))}</AreaChart></ResponsiveContainer>)}</CardContent>
+                        <CardContent>
+                            {areaChartData.length === 0 ? (
+                                <NoDataDisplay />
+                            ) : (
+                                <MemoizedAreaChart 
+                                    data={areaChartData}
+                                    keys={areaChartKeys}
+                                    colors={COLORS}
+                                    monthNames={MONTH_NAMES}
+                                />
+                            )}
+                        </CardContent>
                     </Card>
                     <Card>
                         <CardHeader><CardTitle>Aktivitas Tanam vs. Panen</CardTitle><CardDescription>Perbandingan jumlah subsegmen yang tanam dan panen setiap bulan selama tahun {selectedYear}.</CardDescription></CardHeader>
-                        <CardContent>{lineChartData.length === 0 ? <NoDataDisplay /> : (<ResponsiveContainer width="100%" height={300}><LineChart data={lineChartData}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="name" fontSize={12} /><YAxis fontSize={12} /><Tooltip /><Legend wrapperStyle={{fontSize: '12px'}}/><Line type="monotone" name="Tanam" dataKey="Tanam" stroke="#3b82f6" strokeWidth={2} /><Line type="monotone" name="Panen" dataKey="Panen" stroke="#22c55e" strokeWidth={2} /></LineChart></ResponsiveContainer>)}</CardContent>
+                        <CardContent>
+                            {lineChartData.length === 0 ? (
+                                <NoDataDisplay />
+                            ) : (
+                                <MemoizedLineChart data={lineChartData} />
+                            )}
+                        </CardContent>
                     </Card>
                     
                     <Card>
@@ -343,13 +410,18 @@ export function EvaluasiKsaClient() {
               </TabsContent>
 
               <TabsContent value="validator">
-                <AnomalyValidatorTab />
+                <Suspense fallback={<Skeleton className="h-96 w-full mt-4" />}>
+                  <AnomalyValidatorTab />
+                </Suspense>
               </TabsContent>
 
               <TabsContent value="kinerja">
-                <OfficerPerformanceTab />
+                <Suspense fallback={<Skeleton className="h-96 w-full mt-4" />}>
+                  <OfficerPerformanceTab />
+                </Suspense>
               </TabsContent>
-            </Tabs>
+                </Tabs>
+            </div>
             
             {isModalOpen && (
                 <DetailKsaModal
@@ -358,6 +430,16 @@ export function EvaluasiKsaClient() {
                     kabupaten={selectedKabForModal}
                 />
             )}
+            
+            {/* Swipe Indicators */}
+            <SwipeIndicator 
+                direction="left" 
+                isVisible={swipeDirection === 'left'} 
+            />
+            <SwipeIndicator 
+                direction="right" 
+                isVisible={swipeDirection === 'right'} 
+            />
         </div>
     );
 }

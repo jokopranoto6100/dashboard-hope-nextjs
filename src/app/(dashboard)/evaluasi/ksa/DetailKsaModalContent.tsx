@@ -74,7 +74,7 @@ export function DetailKsaModalContent({ kabupaten }: DetailProps) {
   }
   
   return (
-    <div className="grid grid-rows-[auto_1fr] gap-4 h-[65vh]">
+    <div className="grid grid-rows-[auto_1fr] gap-4 h-[60vh] md:h-[65vh]">
         <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input 
@@ -82,34 +82,36 @@ export function DetailKsaModalContent({ kabupaten }: DetailProps) {
                 placeholder="Cari berdasarkan ID Subsegmen..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
+                className="pl-10 text-sm"
             />
         </div>
 
-        <div className="overflow-y-auto pr-2">
+        <div className="overflow-y-auto pr-1 md:pr-2">
             {filteredData.length === 0 ? (
                 <NoDataDisplay message={searchTerm ? "Subsegmen tidak ditemukan." : "Tidak ada data panen untuk kabupaten ini."}/>
             ) : (
-                <Table>
-                    <TableHeader className="sticky top-0 bg-background/95 backdrop-blur-sm">
-                        <TableRow>
-                            <TableHead className="w-[200px]">ID Subsegmen</TableHead>
-                            <TableHead className="text-center">Jumlah Panen</TableHead>
-                            <TableHead>Jadwal Panen Bulanan</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {filteredData.map((item) => (
-                            <TableRow key={item.id_subsegmen}>
-                                <TableCell className="font-mono">{item.id_subsegmen}</TableCell>
-                                <TableCell className="text-center font-bold">{item.jumlah_panen}x</TableCell>
-                                <TableCell>
-                                    <MonthlyHarvestDisplay harvestMonths={item.bulan_panen} />
-                                </TableCell>
+                <div className="rounded-md border">
+                    <Table>
+                        <TableHeader className="sticky top-0 bg-background/95 backdrop-blur-sm">
+                            <TableRow>
+                                <TableHead className="w-[140px] md:w-[200px] text-xs md:text-sm">ID Subsegmen</TableHead>
+                                <TableHead className="text-center text-xs md:text-sm">Jumlah Panen</TableHead>
+                                <TableHead className="text-xs md:text-sm">Jadwal Panen Bulanan</TableHead>
                             </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
+                        </TableHeader>
+                        <TableBody>
+                            {filteredData.map((item) => (
+                                <TableRow key={item.id_subsegmen}>
+                                    <TableCell className="font-mono text-xs md:text-sm">{item.id_subsegmen}</TableCell>
+                                    <TableCell className="text-center font-bold text-xs md:text-sm">{item.jumlah_panen}x</TableCell>
+                                    <TableCell>
+                                        <MonthlyHarvestDisplay harvestMonths={item.bulan_panen} />
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
             )}
         </div>
     </div>
