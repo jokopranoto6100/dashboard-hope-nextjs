@@ -41,7 +41,7 @@ export function KsaJagungSummaryCard({ isLoading, error, totals, displayStatus, 
       )}
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">KSA Jagung ({selectedYear}) - {getMonthName(displayMonth)}</CardTitle>
-        <Button asChild variant="outline" size="sm"><Link href="/monitoring/ksa-jagung">Lihat Detail</Link></Button>
+        <Button asChild variant="outline" size="sm"><Link href="/monitoring/ksa">Lihat Detail</Link></Button>
       </CardHeader>
       <CardContent className="flex flex-col h-full">
         {isLoading ? ( <div className="space-y-2"><Skeleton className="h-8 w-3/4 mb-1" /><Skeleton className="h-4 w-full mb-1" /><Skeleton className="h-4 w-2/3 mt-1" /></div>

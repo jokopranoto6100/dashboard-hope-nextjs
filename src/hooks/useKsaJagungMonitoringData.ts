@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useYear } from '@/context/YearContext';
-import { LeaderboardEntry } from '@/app/(dashboard)/monitoring/ksa-jagung/LeaderboardCard';
+import { LeaderboardEntry } from '@/app/(dashboard)/monitoring/ksa/jagung/LeaderboardCard';
 
 // Interface untuk data jagung - perbedaan utama: flag_kode_98 instead of flag_kode_12
 interface KsaJagungAmatanRow { 

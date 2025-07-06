@@ -12,8 +12,7 @@ import { ArrowUpDown, CheckCircle2, Eye, EyeOff, FileDown } from "lucide-react";
 import { getPercentageBadgeVariant } from "@/lib/utils";
 import { ProcessedKsaNamaData } from '@/hooks/useKsaMonitoringData';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Clock, CheckCircle, AlertTriangle } from "lucide-react";
-import { useCountdown } from "@/hooks/useCountdown";
+import { Clock } from "lucide-react";
 import { type Kegiatan } from '@/app/(dashboard)/jadwal/jadwal.config';
 
 import {

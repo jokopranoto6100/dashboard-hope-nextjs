@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// src/app/(dashboard)/monitoring/ksa/DistrictKsaTable.tsx
+// src/app/(dashboard)/monitoring/ksa/padi/DistrictKsaTable.tsx
 "use client";
 
 import React, { useMemo, useState } from 'react';
@@ -12,8 +12,7 @@ import { ArrowUpDown, CheckCircle2, Eye, EyeOff } from "lucide-react";
 import { getPercentageBadgeVariant } from "@/lib/utils";
 import { ProcessedKsaDistrictData } from '@/hooks/useKsaMonitoringData';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Clock, CheckCircle, AlertTriangle } from "lucide-react";
-import { useCountdown } from "@/hooks/useCountdown";
+import { Clock } from "lucide-react";
 import { type Kegiatan } from '@/app/(dashboard)/jadwal/jadwal.config';
 
 import {

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// src/app/(dashboard)/monitoring/ksa-jagung/NamaKsaJagungTable.tsx
+// src/app/(dashboard)/monitoring/ksa/jagung/DistrictKsaJagungTable.tsx
 "use client";
 
 import React, { useMemo, useState } from 'react';
@@ -8,9 +8,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowUpDown, CheckCircle2, Eye, EyeOff, FileDown } from "lucide-react";
+import { ArrowUpDown, CheckCircle2, Eye, EyeOff } from "lucide-react";
 import { getPercentageBadgeVariant } from "@/lib/utils";
-import { ProcessedKsaJagungNamaData } from '@/hooks/useKsaJagungMonitoringData';
+import { ProcessedKsaJagungDistrictData } from '@/hooks/useKsaJagungMonitoringData';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Clock } from "lucide-react";
 import { type Kegiatan } from '@/app/(dashboard)/jadwal/jadwal.config';
@@ -24,16 +24,15 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 
-interface NamaKsaJagungTableProps {
+interface DistrictKsaJagungTableProps {
   title: string;
   description: string;
-  data: ProcessedKsaJagungNamaData[];
+  data: ProcessedKsaJagungDistrictData[];
   totals: any;
   uniqueStatusNames: string[];
-  kabupatenName: string;
+  onRowClick: (districtData: ProcessedKsaJagungDistrictData) => void;
   isLoading: boolean;
-  onGenerateBaClick: (petugasData: ProcessedKsaJagungNamaData) => void;
-  jadwal?: Kegiatan;
+  jadwal: Kegiatan | undefined;
   displayMonth: string | undefined;
 }
 
@@ -43,7 +42,7 @@ const getDiffInDays = (d1: Date, d2: Date): number => {
   return Math.round((utc2 - utc1) / (1000 * 60 * 60 * 24));
 };
 
-const TableSkeleton = ({ columns }: { columns: ColumnDef<ProcessedKsaJagungNamaData, unknown>[] }) => (
+const TableSkeleton = ({ columns }: { columns: ColumnDef<ProcessedKsaJagungDistrictData, unknown>[] }) => (
     <div className="rounded-md border">
       <Table>
         <TableHeader>
@@ -52,7 +51,7 @@ const TableSkeleton = ({ columns }: { columns: ColumnDef<ProcessedKsaJagungNamaD
           </TableRow>
         </TableHeader>
         <TableBody>
-          {Array.from({ length: 5 }).map((_, rowIndex) => (
+          {Array.from({ length: 10 }).map((_, rowIndex) => (
             <TableRow key={rowIndex}>
               {columns.map((column, cellIndex) => ( <TableCell key={cellIndex} style={{ width: column.size ? `${column.size}px` : 'auto' }} className="p-2"><Skeleton className="h-5 w-full" /></TableCell> ))}
             </TableRow>
@@ -62,7 +61,7 @@ const TableSkeleton = ({ columns }: { columns: ColumnDef<ProcessedKsaJagungNamaD
     </div>
 );
 
-export function NamaKsaJagungTable({ title, description, data, totals, uniqueStatusNames, kabupatenName, isLoading, onGenerateBaClick, jadwal, displayMonth }: NamaKsaJagungTableProps) {
+export function DistrictKsaJagungTable({ title, description, data, totals, uniqueStatusNames, onRowClick, isLoading, jadwal, displayMonth }: DistrictKsaJagungTableProps) {
   const isMobile = useIsMobile();
   const [showAllColumns, setShowAllColumns] = useState(false);
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -100,17 +99,17 @@ export function NamaKsaJagungTable({ title, description, data, totals, uniqueSta
   }, [jadwal, displayMonth]);
 
   // PERBEDAAN: Update untuk kode_98 instead of kode_12
-  const mobileHiddenColumns = ['target', 'inkonsisten', 'kode_98', ...uniqueStatusNames.map(s => `status_nama_${s.replace(/\s+/g, '_')}`)];
+  const mobileHiddenColumns = ['target', 'inkonsisten', 'kode_98', ...uniqueStatusNames.map(s => `status_district_${s.replace(/\s+/g, '_')}`)];
 
-  const allColumns = useMemo<ColumnDef<ProcessedKsaJagungNamaData, any>[]>(() => {
-    const fixedStartCols: ColumnDef<ProcessedKsaJagungNamaData, any>[] = [
+  const allColumns = useMemo<ColumnDef<ProcessedKsaJagungDistrictData, any>[]>(() => {
+    const fixedStartCols: ColumnDef<ProcessedKsaJagungDistrictData, any>[] = [
       { 
-        accessorKey: 'nama', 
-        header: () => <div className="text-left">Nama Petugas</div>, 
-        cell: ({ row }) => <div className="truncate text-left font-medium" title={row.original.nama}>{row.original.nama}</div>, 
-        footer: () => kabupatenName, 
-        size: isMobile ? 140 : 200, 
-        minSize: 140
+        accessorKey: 'kabupaten', 
+        header: () => <div className="text-left">Kabupaten/Kota</div>, 
+        cell: ({ row }) => <div className="truncate text-left font-medium" title={row.original.kabupaten}>{row.original.kabupaten}</div>, 
+        footer: () => "Kalimantan Barat", 
+        size: isMobile ? 90 : 180, 
+        minSize: 90
       },
       { 
         accessorKey: 'target', 
@@ -157,9 +156,8 @@ export function NamaKsaJagungTable({ title, description, data, totals, uniqueSta
         minSize: 85
       },
     ];
-    
-    const dynamicStatusCols: ColumnDef<ProcessedKsaJagungNamaData, any>[] = (uniqueStatusNames || []).map(statusName => ({ 
-      id: `status_nama_${statusName.replace(/\s+/g, '_')}`, 
+    const dynamicStatusCols: ColumnDef<ProcessedKsaJagungDistrictData, any>[] = (uniqueStatusNames || []).map(statusName => ({ 
+      id: `status_district_${statusName.replace(/\s+/g, '_')}`, 
       header: ({column}) => ( 
         <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="w-full flex justify-center items-center text-xs px-0"> 
           {statusName} 
@@ -190,7 +188,7 @@ export function NamaKsaJagungTable({ title, description, data, totals, uniqueSta
       enableSorting: true, 
     }));
     
-    const fixedEndCols: ColumnDef<ProcessedKsaJagungNamaData, any>[] = [ 
+    const fixedEndCols: ColumnDef<ProcessedKsaJagungDistrictData, any>[] = [ 
       { 
         accessorKey: 'inkonsisten', 
         header: ({ column }) => ( 
@@ -217,30 +215,10 @@ export function NamaKsaJagungTable({ title, description, data, totals, uniqueSta
         footer: () => totals?.kode_98?.toLocaleString('id-ID') ?? '-', 
         size: 80, 
         minSize: 70
-      },
-      { 
-        id: 'generateBa', 
-        header: () => <div className="text-center">Berita Acara</div>, 
-        cell: ({ row }) => { 
-          // PERBEDAAN: Check kode_98 instead of kode_12 untuk enable/disable tombol
-          const hasKode98 = row.original.kode_98 > 0; 
-          return ( 
-            <div className="text-center"> 
-              <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); onGenerateBaClick(row.original); }} disabled={!hasKode98} className="text-xs px-2 py-1 h-7" title={hasKode98 ? "Generate Berita Acara untuk segmen dengan kode 98" : "Tidak ada segmen dengan kode 98"} > 
-                <FileDown className="h-3 w-3 mr-1" /> BA 
-              </Button> 
-            </div> 
-          ); 
-        }, 
-        footer: () => "", 
-        size: 100, 
-        minSize: 90, 
-        enableSorting: false, 
-      },
+      }, 
     ];
-    
     return [...fixedStartCols, ...dynamicStatusCols, ...fixedEndCols];
-  }, [totals, uniqueStatusNames, isMobile, kabupatenName, onGenerateBaClick]);
+  }, [totals, uniqueStatusNames, isMobile]);
 
   const finalColumns = useMemo(() => {
     if (isMobile && !showAllColumns) {
@@ -336,6 +314,7 @@ export function NamaKsaJagungTable({ title, description, data, totals, uniqueSta
                   <TableRow
                     key={row.id}
                     data-state={row.getIsSelected() && "selected"}
+                    onClick={() => onRowClick(row.original)}
                     className="cursor-pointer hover:bg-muted/50"
                   >
                     {row.getVisibleCells().map((cell) => (
@@ -370,7 +349,7 @@ export function NamaKsaJagungTable({ title, description, data, totals, uniqueSta
                       <TableCell
                         key={header.id}
                         className={`p-2 font-bold ${
-                          header.column.id === "nama" ? "text-left" : "text-center"
+                          header.column.id === "kabupaten" ? "text-left" : "text-center"
                         }`}
                         style={{
                           width: header.column.getSize(),

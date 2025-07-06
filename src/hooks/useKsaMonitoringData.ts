@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useYear } from '@/context/YearContext';
-import { LeaderboardEntry } from '@/app/(dashboard)/monitoring/ksa/LeaderboardCard';
+import { LeaderboardEntry } from '@/app/(dashboard)/monitoring/ksa/padi/LeaderboardCard';
 
 // Interface dari file Anda
 interface KsaAmatanRow { id: number; id_segmen: string | null; subsegmen: string | null; nama: string | null; n: number | null; amatan: string | null; status: string | null; evaluasi: string | null; tanggal: string; flag_kode_12: string | null; note: string | null; kode_kab: string | null; kode_kec: string | null; kabupaten: string | null; bulan: number | null; tahun: number | null; uploaded_at: string | null; }
