@@ -80,6 +80,11 @@ export interface UserData {
             isActive: (currentPath) => currentPath === "/monitoring/ksa",
           },
           {
+            title: "KSA Jagung",
+            url: "/monitoring/ksa-jagung",
+            isActive: (currentPath) => currentPath === "/monitoring/ksa-jagung",
+          },
+          {
             title: "SIMTP",
             url: "/monitoring/simtp",
             isActive: (currentPath) => currentPath === "/monitoring/simtp",

@@ -5,7 +5,7 @@ import { useYear } from '@/context/YearContext';
 import { LeaderboardEntry } from '@/app/(dashboard)/monitoring/ksa/LeaderboardCard';
 
 // Interface dari file Anda
-interface KsaAmatanRow { id: number; id_segmen: string | null; subsegmen: string | null; nama: string | null; n: number | null; amatan: string | null; status: string | null; evaluasi: string | null; tanggal: string; flag_kode_12: string | null; note: string | null; kode_kab: string | null; kode_kec: string | null; kabupaten: string | null; bulan: number | null; tahun: number | null; }
+interface KsaAmatanRow { id: number; id_segmen: string | null; subsegmen: string | null; nama: string | null; n: number | null; amatan: string | null; status: string | null; evaluasi: string | null; tanggal: string; flag_kode_12: string | null; note: string | null; kode_kab: string | null; kode_kec: string | null; kabupaten: string | null; bulan: number | null; tahun: number | null; uploaded_at: string | null; }
 export interface StatusValue { count: number; percentage: number; }
 export interface ProcessedKsaDistrictData { kabupaten: string; kode_kab: string; target: number; realisasi: number; persentase: number; inkonsisten: number; kode_12: number; statuses?: Record<string, StatusValue>; }
 export interface KsaDistrictTotals { target: number; realisasi: number; persentase: number; inkonsisten: number; kode_12: number; statuses?: Record<string, StatusValue>; }
@@ -82,7 +82,7 @@ export const useKsaMonitoringData = (): KsaMonitoringHookResult => {
       let maxTs: Date | null = null;
       const discoveredStatuses = new Set<string>();
       rawData.forEach(item => {
-          if (item.tanggal) { const currentTs = new Date(item.tanggal); if (!maxTs || currentTs > maxTs) maxTs = currentTs; }
+          if (item.uploaded_at) { const currentTs = new Date(item.uploaded_at); if (!maxTs || currentTs > maxTs) maxTs = currentTs; }
           if (item.status && item.status.trim() !== '') { discoveredStatuses.add(item.status.trim()); }
       });
       setLastUpdated(maxTs ? (maxTs as Date).toLocaleString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }) + ' WIB' : null);
@@ -114,7 +114,7 @@ export const useKsaMonitoringData = (): KsaMonitoringHookResult => {
                     supabase.from('kegiatan').select('id').eq('nama_kegiatan', 'Kerangka Sampel Area').single(),
                     (async () => {
                         let rawData: KsaAmatanRow[] = [];
-                        const selectColumns = ['kabupaten', 'kode_kab', 'subsegmen', 'n', 'evaluasi', 'flag_kode_12', 'tanggal', 'tahun', 'bulan', 'status', 'nama'];
+                        const selectColumns = ['kabupaten', 'kode_kab', 'subsegmen', 'n', 'evaluasi', 'flag_kode_12', 'uploaded_at', 'tahun', 'bulan', 'status', 'nama'];
                         let query = supabase.from('ksa_amatan').select(selectColumns.join(',')).eq('tahun', selectedYear);
                         if (displayMonth !== "Semua") { query = query.eq('bulan', parseInt(displayMonth)); }
                         let currentPage = 0; const itemsPerPage = 1000;
