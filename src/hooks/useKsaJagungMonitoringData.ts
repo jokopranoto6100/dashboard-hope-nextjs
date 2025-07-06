@@ -155,7 +155,7 @@ export const useKsaJagungMonitoringData = (): KsaJagungMonitoringHookResult => {
           } 
         } 
         
-        if (item.evaluasi === 'Inkonsisten') { 
+        if (item.evaluasi && item.evaluasi.toLowerCase().includes('inkonsisten')) { 
           group.inkonsistenCount++; 
           kabInkonsisten++; 
         } 
@@ -275,7 +275,7 @@ export const useKsaJagungMonitoringData = (): KsaJagungMonitoringHookResult => {
           } 
         } 
         
-        if (item.evaluasi === 'Inkonsisten') { 
+        if (item.evaluasi && item.evaluasi.toLowerCase().includes('inkonsisten')) { 
           group.inkonsistenCount++; 
           ovInkonsisten++; 
         } 

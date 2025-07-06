@@ -8,6 +8,7 @@ import { useJadwalData } from "@/hooks/useJadwalData";
 import { usePadiMonitoringData } from '@/hooks/usePadiMonitoringData';
 import { usePalawijaMonitoringData } from '@/hooks/usePalawijaMonitoringData';
 import { useKsaMonitoringData } from "@/hooks/useKsaMonitoringData";
+import { useKsaJagungMonitoringData } from "@/hooks/useKsaJagungMonitoringData";
 import { useSimtpKpiData } from "@/hooks/useSimtpKpiData";
 import { useCountdown } from "@/hooks/useCountdown";
 
@@ -15,6 +16,7 @@ import { useCountdown } from "@/hooks/useCountdown";
 import { PadiSummaryCard } from "@/app/(dashboard)/_components/homepage/PadiSummaryCard";
 import { PalawijaSummaryCard } from "@/app/(dashboard)/_components/homepage/PalawijaSummaryCard";
 import { KsaSummaryCard } from "@/app/(dashboard)/_components/homepage/KsaSummaryCard";
+import { KsaJagungSummaryCard } from "@/app/(dashboard)/_components/homepage/KsaJagungSummaryCard";
 import { SimtpSummaryCard } from "@/app/(dashboard)/_components/homepage/SimtpSummaryCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -64,21 +66,24 @@ export default function HomePage() {
   const { padiTotals, loadingPadi, errorPadi, lastUpdate, uniqueStatusNames: padiUniqueStatusNames, kegiatanId: padiKegiatanId } = usePadiMonitoringData(selectedYear, ubinanSubround);
   const { palawijaTotals, loadingPalawija, errorPalawija, lastUpdatePalawija, kegiatanId: palawijaKegiatanId } = usePalawijaMonitoringData(selectedYear, ubinanSubround);
   const { districtTotals: ksaTotals, isLoading: loadingKsa, error: errorKsa, lastUpdated: lastUpdatedKsa, displayMonth: ksaDisplayMonth, uniqueStatusNames: ksaUniqueStatusNames, kegiatanId: ksaKegiatanId } = useKsaMonitoringData();
+  const { districtTotals: ksaJagungTotals, isLoading: loadingKsaJagung, error: errorKsaJagung, lastUpdated: lastUpdatedKsaJagung, displayMonth: ksaJagungDisplayMonth, uniqueStatusNames: ksaJagungUniqueStatusNames, kegiatanId: ksaJagungKegiatanId } = useKsaJagungMonitoringData();
   const { data: simtpData, isLoading: loadingSimtp, error: errorSimtp, kegiatanId: simtpKegiatanId } = useSimtpKpiData();
   const { jadwalData, isLoading: isJadwalLoading } = useJadwalData(selectedYear);
 
-  const isAnythingLoading = loadingPadi || loadingPalawija || loadingKsa || loadingSimtp || isJadwalLoading;
+  const isAnythingLoading = loadingPadi || loadingPalawija || loadingKsa || loadingKsaJagung || loadingSimtp || isJadwalLoading;
 
   // Bagian 2: Kalkulasi & Memoization
   const jadwalPadi = React.useMemo(() => !isJadwalLoading && padiKegiatanId ? jadwalData.find(k => k.id === padiKegiatanId) : undefined, [jadwalData, isJadwalLoading, padiKegiatanId]);
   const jadwalPalawija = React.useMemo(() => !isJadwalLoading && palawijaKegiatanId ? jadwalData.find(k => k.id === palawijaKegiatanId) : undefined, [jadwalData, isJadwalLoading, palawijaKegiatanId]);
   const jadwalSimtp = React.useMemo(() => !isJadwalLoading && simtpKegiatanId ? jadwalData.find(k => k.id === simtpKegiatanId) : undefined, [jadwalData, isJadwalLoading, simtpKegiatanId]);
   const jadwalKsa = React.useMemo(() => !isJadwalLoading && ksaKegiatanId ? jadwalData.find(k => k.id === ksaKegiatanId) : undefined, [jadwalData, isJadwalLoading, ksaKegiatanId]);
+  const jadwalKsaJagung = React.useMemo(() => !isJadwalLoading && ksaJagungKegiatanId ? jadwalData.find(k => k.id === ksaJagungKegiatanId) : undefined, [jadwalData, isJadwalLoading, ksaJagungKegiatanId]);
 
   const countdownStatusPadi = useCountdown(jadwalPadi);
   const countdownStatusPalawija = useCountdown(jadwalPalawija);
   const countdownStatusSimtp = useCountdown(jadwalSimtp);
   const countdownStatusKsa = useCountdown(jadwalKsa);
+  const countdownStatusKsaJagung = useCountdown(jadwalKsaJagung);
 
   const simtpDisplayStatus = React.useMemo(() => {
       if (!jadwalSimtp || !simtpData) return null;
@@ -118,12 +123,30 @@ export default function HomePage() {
     }
     return null;
   }, [jadwalKsa, ksaDisplayMonth, ksaTotals, countdownStatusKsa]);
+  
+  const ksaJagungDisplayStatus = React.useMemo(() => {
+    if (!jadwalKsaJagung || !ksaJagungDisplayMonth || !ksaJagungTotals) return null;
+    const allJadwalItems = [...(jadwalKsaJagung.jadwal || []), ...(jadwalKsaJagung.subKegiatan?.flatMap(sub => sub.jadwal || []) || [])].sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+    if (allJadwalItems.length === 0) return null;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const currentKsaJagungSegment = allJadwalItems.find(item => new Date(item.startDate).getMonth() === (parseInt(ksaJagungDisplayMonth, 10) - 1));
+    if (!currentKsaJagungSegment) return null;
+    const segmentStart = new Date(currentKsaJagungSegment.startDate);
+    const segmentEnd = new Date(currentKsaJagungSegment.endDate);
+    if (countdownStatusKsaJagung) {
+      if (today >= segmentStart && today <= segmentEnd) return { text: `Pengamatan ${countdownStatusKsaJagung.text.toLowerCase()}`, color: countdownStatusKsaJagung.color, icon: countdownStatusKsaJagung.icon };
+      if (today > segmentEnd) return { text: ksaJagungTotals.persentase >= 100 ? "Pengamatan Selesai" : "Pengamatan Terlambat", color: ksaJagungTotals.persentase >= 100 ? "text-green-600" : "text-amber-600", icon: ksaJagungTotals.persentase >= 100 ? CheckCircle : AlertTriangle };
+      if (today < segmentStart) return { text: `Pengamatan ${countdownStatusKsaJagung.text.toLowerCase()}`, color: countdownStatusKsaJagung.color, icon: countdownStatusKsaJagung.icon };
+    }
+    return null;
+  }, [jadwalKsaJagung, ksaJagungDisplayMonth, ksaJagungTotals, countdownStatusKsaJagung]);
 
   const sortedKpiCards = React.useMemo(() => {
     const kpiCards = [
       { id: 'padi', percentage: padiTotals?.persentase },
       { id: 'palawija', percentage: palawijaTotals?.persentase },
       { id: 'ksa', percentage: ksaTotals?.persentase },
+      { id: 'ksa-jagung', percentage: ksaJagungTotals?.persentase },
       { id: 'simtp', percentage: simtpData?.monthly.percentage },
       { id: 'kegiatan1', percentage: Infinity },
       { id: 'kegiatan2', percentage: Infinity }
@@ -134,7 +157,7 @@ export default function HomePage() {
         const bValue = b.percentage ?? 101;
         return aValue - bValue;
     });
-  }, [padiTotals, palawijaTotals, ksaTotals, simtpData]);
+  }, [padiTotals, palawijaTotals, ksaTotals, ksaJagungTotals, simtpData]);
 
   // Bagian 3: Rendering
   return (
@@ -153,6 +176,9 @@ export default function HomePage() {
             }
             if (card.id === 'ksa') {
               return <KsaSummaryCard key={card.id} isLoading={isAnythingLoading} error={errorKsa} totals={ksaTotals} displayStatus={ksaDisplayStatus} displayMonth={ksaDisplayMonth || ''} uniqueStatusNames={ksaUniqueStatusNames || []} lastUpdate={lastUpdatedKsa} selectedYear={selectedYear} isHighlighted={isHighlighted} />
+            }
+            if (card.id === 'ksa-jagung') {
+              return <KsaJagungSummaryCard key={card.id} isLoading={isAnythingLoading} error={errorKsaJagung} totals={ksaJagungTotals} displayStatus={ksaJagungDisplayStatus} displayMonth={ksaJagungDisplayMonth || ''} uniqueStatusNames={ksaJagungUniqueStatusNames || []} lastUpdate={lastUpdatedKsaJagung} selectedYear={selectedYear} isHighlighted={isHighlighted} />
             }
             if (card.id === 'simtp') {
               return <SimtpSummaryCard key={card.id} isLoading={isAnythingLoading} error={errorSimtp} data={simtpData} displayStatus={simtpDisplayStatus} isHighlighted={isHighlighted} />
