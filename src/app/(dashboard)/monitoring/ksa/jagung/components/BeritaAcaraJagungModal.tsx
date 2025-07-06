@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { generateBeritaAcaraDocx } from "@/lib/docx-generator";
 import { FileDown } from 'lucide-react';
+import { toast } from "sonner";
 
 export interface BaJagungData {
   id_segmen: string;
@@ -43,11 +44,15 @@ export function BeritaAcaraJagungModal({ isOpen, onClose, data, selectedPetugas,
 
   const handleBulkGenerate = async () => {
     if (!alasan.trim() || !pengawas.nama.trim()) {
-        alert("Harap isi Nama Pengawas dan Alasan Tidak di Amati atau Kode 98.");
+        toast.error("Harap isi Nama Pengawas dan Alasan Tidak di Amati atau Kode 98.", {
+          description: "Kedua field tersebut wajib diisi untuk membuat berita acara"
+        });
         return;
     }
     if (data.length === 0) {
-        alert("Tidak ada data untuk diproses.");
+        toast.error("Tidak ada data untuk diproses.", {
+          description: "Tidak ditemukan segmen dengan kode 98 untuk petugas ini"
+        });
         return;
     }
 
@@ -76,7 +81,9 @@ export function BeritaAcaraJagungModal({ isOpen, onClose, data, selectedPetugas,
         };
 
         await generateBeritaAcaraDocx(docData);
-        alert(`Berhasil men-download Berita Acara untuk ${data.length} segmen KSA Jagung.`);
+        toast.success(`Berhasil men-download Berita Acara untuk ${data.length} segmen KSA Jagung.`, {
+          description: "File dokumen berita acara berhasil dibuat dan diunduh"
+        });
         onClose();
         
         // Reset form
@@ -84,7 +91,9 @@ export function BeritaAcaraJagungModal({ isOpen, onClose, data, selectedPetugas,
         setPengawas({ nama: '', nip: '' });
     } catch (error) {
         console.error("Error generating BA:", error);
-        alert("Gagal men-generate Berita Acara. Silakan coba lagi.");
+        toast.error("Gagal men-generate Berita Acara. Silakan coba lagi.", {
+          description: "Terjadi kesalahan saat membuat dokumen berita acara"
+        });
     } finally {
         setIsGenerating(false);
     }
@@ -92,96 +101,104 @@ export function BeritaAcaraJagungModal({ isOpen, onClose, data, selectedPetugas,
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>🌽 Berita Acara KSA Jagung - {selectedPetugas?.nama}</DialogTitle>
-          <DialogDescription>
+      <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogHeader className="flex-shrink-0">
+          <DialogTitle className="text-lg md:text-xl">🌽 Berita Acara KSA Jagung - {selectedPetugas?.nama}</DialogTitle>
+          <DialogDescription className="text-sm">
             Daftar segmen dengan kode 98 untuk petugas {selectedPetugas?.nama} di kabupaten dengan kode {selectedPetugas?.kode_kab}.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="flex-1 overflow-y-auto space-y-4 px-1">
           {/* Form input untuk pengawas dan alasan */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
-            <div className="space-y-2">
-              <Label htmlFor="nama-pengawas">Nama Pengawas *</Label>
-              <Input
-                id="nama-pengawas"
-                value={pengawas.nama}
-                onChange={(e) => setPengawas(prev => ({...prev, nama: e.target.value}))}
-                placeholder="Masukkan nama pengawas"
-              />
+          <div className="grid grid-cols-1 gap-4 p-3 md:p-4 bg-gray-50 rounded-lg">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="nama-pengawas" className="text-sm font-medium">Nama Pengawas *</Label>
+                <Input
+                  id="nama-pengawas"
+                  value={pengawas.nama}
+                  onChange={(e) => setPengawas(prev => ({...prev, nama: e.target.value}))}
+                  placeholder="Masukkan nama pengawas"
+                  className="text-sm"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="nip-pengawas" className="text-sm font-medium">NIP Pengawas</Label>
+                <Input
+                  id="nip-pengawas"
+                  value={pengawas.nip}
+                  onChange={(e) => setPengawas(prev => ({...prev, nip: e.target.value}))}
+                  placeholder="Masukkan NIP pengawas (opsional)"
+                  className="text-sm"
+                />
+              </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="nip-pengawas">NIP Pengawas</Label>
-              <Input
-                id="nip-pengawas"
-                value={pengawas.nip}
-                onChange={(e) => setPengawas(prev => ({...prev, nip: e.target.value}))}
-                placeholder="Masukkan NIP pengawas (opsional)"
-              />
-            </div>
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="alasan">Alasan Tidak di Amati atau Kode 98 *</Label>
+              <Label htmlFor="alasan" className="text-sm font-medium">Alasan Tidak di Amati atau Kode 98 *</Label>
               <Input
                 id="alasan"
                 value={alasan}
                 onChange={(e) => setAlasan(e.target.value)}
                 placeholder="Contoh: Tanaman rusak akibat banjir"
+                className="text-sm"
               />
             </div>
           </div>
 
           {/* Tabel data segmen */}
-          <div className="border rounded-lg">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-center">ID Segmen</TableHead>
-                  <TableHead className="text-center">Sub Segmen</TableHead>
-                  <TableHead className="text-center">Pencacah</TableHead>
-                  <TableHead className="text-center">Kecamatan</TableHead>
-                  <TableHead className="text-center">Kepala BPS</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {data.length > 0 ? (
-                  data.map((item, index) => (
-                    <TableRow key={index}>
-                      <TableCell className="text-center">{item.id_segmen}</TableCell>
-                      <TableCell className="text-center">{item.subsegmen}</TableCell>
-                      <TableCell className="text-center">{item.nama_pencacah}</TableCell>
-                      <TableCell className="text-center">{item.nama_kecamatan}</TableCell>
-                      <TableCell className="text-center">{item.nama_kepala_bps}</TableCell>
-                    </TableRow>
-                  ))
-                ) : (
+          <div className="border rounded-lg overflow-hidden">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground">
-                      Tidak ada data segmen dengan kode 98.
-                    </TableCell>
+                    <TableHead className="text-center text-xs md:text-sm whitespace-nowrap">ID Segmen</TableHead>
+                    <TableHead className="text-center text-xs md:text-sm whitespace-nowrap">Sub Segmen</TableHead>
+                    <TableHead className="text-center text-xs md:text-sm whitespace-nowrap">Pencacah</TableHead>
+                    <TableHead className="text-center text-xs md:text-sm whitespace-nowrap">Kecamatan</TableHead>
+                    <TableHead className="text-center text-xs md:text-sm whitespace-nowrap">Kepala BPS</TableHead>
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {data.length > 0 ? (
+                    data.map((item, index) => (
+                      <TableRow key={index}>
+                        <TableCell className="text-center text-xs md:text-sm">{item.id_segmen}</TableCell>
+                        <TableCell className="text-center text-xs md:text-sm">{item.subsegmen}</TableCell>
+                        <TableCell className="text-center text-xs md:text-sm truncate max-w-24 md:max-w-none" title={item.nama_pencacah}>{item.nama_pencacah}</TableCell>
+                        <TableCell className="text-center text-xs md:text-sm truncate max-w-24 md:max-w-none" title={item.nama_kecamatan}>{item.nama_kecamatan}</TableCell>
+                        <TableCell className="text-center text-xs md:text-sm truncate max-w-24 md:max-w-none" title={item.nama_kepala_bps}>{item.nama_kepala_bps}</TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center text-muted-foreground text-sm py-8">
+                        Tidak ada data segmen dengan kode 98.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+        <DialogFooter className="flex-shrink-0 gap-2 mt-4">
+          <Button variant="outline" onClick={onClose} className="text-sm">
             Batal
           </Button>
           <Button 
             onClick={handleBulkGenerate} 
             disabled={isGenerating || data.length === 0}
-            className="bg-orange-600 hover:bg-orange-700"
+            className="bg-orange-600 hover:bg-orange-700 text-sm"
           >
             {isGenerating ? (
               "Generating..."
             ) : (
               <>
                 <FileDown className="h-4 w-4 mr-2" />
-                Download BA ({data.length} segmen)
+                <span className="hidden sm:inline">Download BA</span>
+                <span className="sm:hidden">BA</span> ({data.length})
               </>
             )}
           </Button>

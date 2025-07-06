@@ -44,7 +44,7 @@ export function KehutananForm({ isOpen, setIsOpen, perusahaan, onSuccess }: Kehu
         form.reset({
             nama_perusahaan: perusahaan.nama_perusahaan || '',
             alamat_lengkap: perusahaan.alamat_lengkap || '',
-            status_perusahaan: perusahaan.status_perusahaan as any,
+            status_perusahaan: perusahaan.status_perusahaan || undefined,
             keterangan: perusahaan.keterangan || '',
         });
     }

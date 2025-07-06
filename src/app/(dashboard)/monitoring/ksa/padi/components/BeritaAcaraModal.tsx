@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { generateBeritaAcaraDocx } from "@/lib/docx-generator";
 import { FileDown } from 'lucide-react';
+import { toast } from "sonner";
 
 export interface BaData {
   id_segmen: string;
@@ -44,11 +45,15 @@ export function BeritaAcaraModal({ isOpen, onClose, data, selectedPetugas, displ
   // PERUBAHAN: Ubah fungsi menjadi async
   const handleBulkGenerate = async () => {
     if (!alasan.trim() || !pengawas.nama.trim()) {
-        alert("Harap isi Nama Pengawas dan Alasan Tidak di Amati atau Kode 12.");
+        toast.error("Harap isi Nama Pengawas dan Alasan Tidak di Amati atau Kode 12.", {
+          description: "Kedua field tersebut wajib diisi untuk membuat berita acara"
+        });
         return;
     }
     if (data.length === 0) {
-        alert("Tidak ada data segmen kode 12 untuk digenerate.");
+        toast.error("Tidak ada data segmen kode 12 untuk digenerate.", {
+          description: "Tidak ditemukan segmen dengan kode 12 untuk petugas ini"
+        });
         return;
     }
 
@@ -72,9 +77,20 @@ export function BeritaAcaraModal({ isOpen, onClose, data, selectedPetugas, displ
             bulan: bulanName,
             tahun: selectedYear || new Date().getFullYear(),
         });
+        
+        toast.success(`Berhasil men-download Berita Acara untuk ${data.length} segmen KSA Padi.`, {
+          description: "File dokumen berita acara berhasil dibuat dan diunduh"
+        });
+        onClose();
+        
+        // Reset form
+        setAlasan('');
+        setPengawas({ nama: '', nip: '' });
     } catch (error) {
         console.error("Gagal generate dokumen:", error);
-        alert("Terjadi kesalahan saat membuat dokumen. Lihat console untuk detail.");
+        toast.error("Terjadi kesalahan saat membuat dokumen. Silakan coba lagi.", {
+          description: "Terjadi kesalahan saat membuat dokumen berita acara"
+        });
     } finally {
         setIsGenerating(false); // Selesai loading
     }
@@ -82,55 +98,80 @@ export function BeritaAcaraModal({ isOpen, onClose, data, selectedPetugas, displ
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl">
-        <DialogHeader>
-          <DialogTitle>Generate Berita Acara Kode 12</DialogTitle>
-          <DialogDescription>
+      <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogHeader className="flex-shrink-0">
+          <DialogTitle className="text-lg md:text-xl">Generate Berita Acara Kode 12</DialogTitle>
+          <DialogDescription className="text-sm">
             Petugas: {selectedPetugas?.nama || 'N/A'}. Ditemukan {data.length} segmen dengan Kode 12.
           </DialogDescription>
         </DialogHeader>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-4">
-            <div>
-                <Label htmlFor="pengawas-nama">Nama Pengawas</Label>
-                <Input id="pengawas-nama" value={pengawas.nama} onChange={e => setPengawas(p => ({...p, nama: e.target.value}))} placeholder="Isi nama pengawas..." />
+        <div className="flex-1 overflow-y-auto space-y-4 px-1">
+          <div className="grid grid-cols-1 gap-4 p-3 md:p-4 bg-gray-50 rounded-lg">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="pengawas-nama" className="text-sm font-medium">Nama Pengawas *</Label>
+                <Input 
+                  id="pengawas-nama" 
+                  value={pengawas.nama} 
+                  onChange={e => setPengawas(p => ({...p, nama: e.target.value}))} 
+                  placeholder="Isi nama pengawas..." 
+                  className="text-sm" 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="pengawas-nip" className="text-sm font-medium">NIP Pengawas (Opsional)</Label>
+                <Input 
+                  id="pengawas-nip" 
+                  value={pengawas.nip} 
+                  onChange={e => setPengawas(p => ({...p, nip: e.target.value}))} 
+                  placeholder="Isi NIP pengawas..." 
+                  className="text-sm" 
+                />
+              </div>
             </div>
-             <div>
-                <Label htmlFor="pengawas-nip">NIP Pengawas (Opsional)</Label>
-                <Input id="pengawas-nip" value={pengawas.nip} onChange={e => setPengawas(p => ({...p, nip: e.target.value}))} placeholder="Isi NIP pengawas..." />
+            <div className="space-y-2">
+              <Label htmlFor="alasan" className="text-sm font-medium">Alasan Kode 12 (Rincikan untuk setiap sub segmen) *</Label>
+              <Input 
+                id="alasan" 
+                value={alasan} 
+                onChange={e => setAlasan(e.target.value)} 
+                placeholder="Contoh: Responden tidak dapat ditemui, akses lokasi sulit, dll." 
+                className="text-sm" 
+              />
             </div>
-             <div className="col-span-1 md:col-span-2">
-                <Label htmlFor="alasan">Alasan Kode 12 (Rincikan untuk setiap sub segmen)</Label>
-                <Input id="alasan" value={alasan} onChange={e => setAlasan(e.target.value)} placeholder="Contoh: Responden tidak dapat ditemui, akses lokasi sulit, dll." />
+          </div>
+
+          <div className="border rounded-lg overflow-hidden">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-center text-xs md:text-sm whitespace-nowrap">ID Segmen</TableHead>
+                    <TableHead className="text-center text-xs md:text-sm whitespace-nowrap">Subsegmen</TableHead>
+                    <TableHead className="text-center text-xs md:text-sm whitespace-nowrap">Kecamatan</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {data.map((item) => (
+                    <TableRow key={`${item.id_segmen}-${item.subsegmen}`}>
+                      <TableCell className="text-center text-xs md:text-sm">{item.id_segmen}</TableCell>
+                      <TableCell className="text-center text-xs md:text-sm">{item.subsegmen}</TableCell>
+                      <TableCell className="text-center text-xs md:text-sm truncate max-w-32 md:max-w-none" title={item.nama_kecamatan}>{item.nama_kecamatan}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
+          </div>
         </div>
 
-        <div className="rounded-md border overflow-auto max-h-[40vh]">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>ID Segmen</TableHead>
-                <TableHead>Subsegmen</TableHead>
-                <TableHead>Kecamatan</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.map((item) => (
-                <TableRow key={`${item.id_segmen}-${item.subsegmen}`}>
-                  <TableCell>{item.id_segmen}</TableCell>
-                  <TableCell>{item.subsegmen}</TableCell>
-                  <TableCell>{item.nama_kecamatan}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-
-        <DialogFooter className="mt-4">
-            <Button variant="outline" onClick={onClose}>Tutup</Button>
-            <Button onClick={handleBulkGenerate} disabled={isGenerating}>
-                <FileDown className="mr-2 h-4 w-4" />
-                {isGenerating ? "Membuat..." : "Generate Berita Acara"}
+        <DialogFooter className="flex-shrink-0 gap-2 mt-4">
+          <Button variant="outline" onClick={onClose} className="text-sm">Tutup</Button>
+          <Button onClick={handleBulkGenerate} disabled={isGenerating} className="text-sm">
+            <FileDown className="mr-2 h-4 w-4" />
+                <span className="hidden sm:inline">{isGenerating ? "Membuat..." : "Generate Berita Acara"}</span>
+                <span className="sm:hidden">{isGenerating ? "..." : "Generate"}</span>
             </Button>
         </DialogFooter>
       </DialogContent>
