@@ -1,16 +1,18 @@
-// Lokasi: src/app/(dashboard)/update-data/ksa/update-ksa-client.tsx (FILE BARU)
+// Lokasi: src/app/(dashboard)/update-data/ksa/update-ksa-client.tsx
 
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; // <-- Impor komponen Tabs
 import { KsaUploader } from "./ksa-uploader";
 import { Terminal } from "lucide-react";
-import { type LastUpdateInfo } from "./page"; // Impor tipe dari page.tsx
+import { type LastUpdateInfo } from "./page";
+import { uploadKsaAction, uploadKsaJagungAction } from "./_actions"; // <-- Impor kedua aksi
 
-// Helper format tanggal kita pindahkan ke client component
-function formatUpdateText(updateData: LastUpdateInfo): string {
+// Helper format tanggal tidak berubah
+function formatUpdateText(updateData: LastUpdateInfo, commodity: string): string {
     if (!updateData || !updateData.uploaded_at) {
-        return 'Belum ada riwayat pembaruan data KSA.';
+        return `Belum ada riwayat pembaruan data KSA ${commodity}.`;
     }
     try {
         const date = new Date(updateData.uploaded_at);
@@ -22,48 +24,92 @@ function formatUpdateText(updateData: LastUpdateInfo): string {
     }
 }
 
+// Terima kedua props dari page.tsx
 interface UpdateKsaClientProps {
-    lastUpdate: LastUpdateInfo;
+    lastPadiUpdate: LastUpdateInfo;
+    lastJagungUpdate: LastUpdateInfo;
 }
 
-export function UpdateKsaClient({ lastUpdate }: UpdateKsaClientProps) {
+export function UpdateKsaClient({ lastPadiUpdate, lastJagungUpdate }: UpdateKsaClientProps) {
     return (
-        // Gunakan space-y-* untuk jarak vertikal antar elemen utama
         <div className="space-y-6">
-            {/* --- JUDUL DAN DESKRIPSI HALAMAN STANDAR --- */}
             <div>
                 <h1 className="text-2xl font-bold">Update Data Amatan KSA</h1>
                 <p className="text-muted-foreground">
-                    Unggah satu atau beberapa file Excel (.xlsx) berisi data amatan KSA.
+                    Unggah file Excel (.xlsx) berisi data amatan KSA Padi atau Jagung.
                 </p>
             </div>
 
-            {/* --- KONTEN ASLI (KEDUA CARD) DIPINDAHKAN KE SINI --- */}
-            <Card className="shadow-lg">
-                <CardHeader>
-                <CardTitle>Unggah Data Baru</CardTitle>
-                <CardDescription>
-                    Proses ini akan menghapus data yang ada berdasarkan Tahun, Bulan, dan Kabupaten, lalu menggantinya dengan data baru dari file yang diunggah.
-                </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <KsaUploader />
-                </CardContent>
-            </Card>
+            <Tabs defaultValue="padi" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="padi">KSA Padi</TabsTrigger>
+                    <TabsTrigger value="jagung">KSA Jagung</TabsTrigger>
+                </TabsList>
 
-            <Card className="shadow-lg">
-                <CardHeader>
-                <CardTitle className="text-xl flex items-center">
-                    <Terminal className="mr-2 h-6 w-6 text-primary" />
-                    Riwayat Pembaruan Terakhir
-                </CardTitle>
-                </CardHeader>
-                <CardContent>
-                <p className="text-sm text-muted-foreground">
-                    {formatUpdateText(lastUpdate)}
-                </p>
-                </CardContent>
-            </Card>
+                {/* --- KONTEN TAB PADI --- */}
+                <TabsContent value="padi" className="space-y-4 mt-4">
+                    <Card className="shadow-lg">
+                        <CardHeader>
+                            <CardTitle>Unggah Data KSA Padi</CardTitle>
+                            <CardDescription>
+                                Proses ini akan mengganti data KSA Padi berdasarkan Tahun, Bulan, dan Kabupaten.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <KsaUploader
+                                uploadAction={uploadKsaAction}
+                                templateFileUrl="/templates/template_ksa_amatan.xlsx"
+                                templateFileName="template_ksa_padi.xlsx"
+                            />
+                        </CardContent>
+                    </Card>
+                    <Card className="shadow-lg">
+                        <CardHeader>
+                            <CardTitle className="text-base flex items-center">
+                                <Terminal className="mr-2 h-5 w-5 text-primary" />
+                                Riwayat Pembaruan Terakhir (Padi)
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-sm text-muted-foreground">
+                                {formatUpdateText(lastPadiUpdate, 'Padi')}
+                            </p>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+                
+                {/* --- KONTEN TAB JAGUNG --- */}
+                <TabsContent value="jagung" className="space-y-4 mt-4">
+                     <Card className="shadow-lg">
+                        <CardHeader>
+                            <CardTitle>Unggah Data KSA Jagung</CardTitle>
+                            <CardDescription>
+                                Proses ini akan mengganti data KSA Jagung berdasarkan Tahun, Bulan, dan Kabupaten.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <KsaUploader
+                                uploadAction={uploadKsaJagungAction}
+                                templateFileUrl="/templates/template_ksa_jagung.xlsx"
+                                templateFileName="template_ksa_jagung.xlsx"
+                            />
+                        </CardContent>
+                    </Card>
+                     <Card className="shadow-lg">
+                        <CardHeader>
+                            <CardTitle className="text-base flex items-center">
+                                <Terminal className="mr-2 h-5 w-5 text-primary" />
+                                Riwayat Pembaruan Terakhir (Jagung)
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-sm text-muted-foreground">
+                                {formatUpdateText(lastJagungUpdate, 'Jagung')}
+                            </p>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
         </div>
     );
 }

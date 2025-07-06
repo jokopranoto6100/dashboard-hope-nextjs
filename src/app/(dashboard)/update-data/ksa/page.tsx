@@ -2,21 +2,21 @@
 
 import { createSupabaseServerClientWithUserContext } from "@/lib/supabase-server";
 import { cookies } from "next/headers";
-import { UpdateKsaClient } from "./update-ksa-client"; // Impor komponen client baru
+import { UpdateKsaClient } from "./update-ksa-client";
 
-// Definisikan tipe agar bisa di-share dengan client component
+// Tipe ini tetap bisa digunakan untuk kedua jenis data
 export type LastUpdateInfo = { 
     uploaded_at: string | null; 
     uploaded_by_username: string | null; 
 } | null;
 
-// Fungsi untuk mengambil informasi pembaruan terakhir
-async function getLastKsaUpdateInfo(): Promise<LastUpdateInfo> {
+// Fungsi untuk mengambil info KSA Padi
+async function getLastKsaPadiUpdateInfo(): Promise<LastUpdateInfo> {
   const cookieStore = await cookies();
   const supabase = await createSupabaseServerClientWithUserContext(cookieStore);
 
   const { data, error } = await supabase
-    .from('ksa_amatan')
+    .from('ksa_amatan') // <-- Tabel KSA Padi
     .select('uploaded_at, uploaded_by_username')
     .not('uploaded_at', 'is', null) 
     .order('uploaded_at', { ascending: false }) 
@@ -24,18 +24,45 @@ async function getLastKsaUpdateInfo(): Promise<LastUpdateInfo> {
     .maybeSingle();
 
   if (error) {
-    console.error("Error fetching last KSA update info:", error.message);
+    console.error("Error fetching last KSA Padi update info:", error.message);
     return null;
   }
   return data;
 }
 
-export default async function KsaUpdatePage() {
-    // 1. Ambil data di server
-    const lastUpdate = await getLastKsaUpdateInfo();  
+// Fungsi BARU untuk mengambil info KSA Jagung
+async function getLastKsaJagungUpdateInfo(): Promise<LastUpdateInfo> {
+  const cookieStore = await cookies();
+  const supabase = await createSupabaseServerClientWithUserContext(cookieStore);
 
-    // 2. Render komponen client dan teruskan data sebagai prop
+  const { data, error } = await supabase
+    .from('ksa_amatan_jagung') // <-- Tabel KSA Jagung
+    .select('uploaded_at, uploaded_by_username')
+    .not('uploaded_at', 'is', null) 
+    .order('uploaded_at', { ascending: false }) 
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Error fetching last KSA Jagung update info:", error.message);
+    return null;
+  }
+  return data;
+}
+
+
+export default async function KsaUpdatePage() {
+    // 1. Ambil data untuk kedua jenis KSA secara paralel
+    const [lastPadiUpdate, lastJagungUpdate] = await Promise.all([
+      getLastKsaPadiUpdateInfo(),
+      getLastKsaJagungUpdateInfo()
+    ]);
+
+    // 2. Render komponen client dan teruskan kedua data sebagai props
     return (
-      <UpdateKsaClient lastUpdate={lastUpdate} />
+      <UpdateKsaClient 
+        lastPadiUpdate={lastPadiUpdate}
+        lastJagungUpdate={lastJagungUpdate}
+      />
     );
 }

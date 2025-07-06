@@ -2,18 +2,36 @@
 "use client";
 
 import { useState, useTransition, useRef } from "react";
-import { useRouter } from 'next/navigation'; // <-- 1. Pastikan import ini ada
+import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Loader2, UploadCloud, X, FileText, Download, Info, AlertTriangle, Sparkles } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import * as xlsx from 'xlsx';
 
-// Server Action ini akan kita panggil
-import { uploadKsaAction } from "./_actions"; 
+// Definisikan tipe untuk action result agar konsisten
+interface ActionResult {
+  success: boolean;
+  message: string;
+  errorDetails?: string;
+}
 
+// Interface untuk data Excel KSA
+interface ExcelKsaRecord {
+  Tanggal?: Date | string | number;
+  'ID Segmen'?: string | number;
+  [key: string]: unknown; // Untuk kolom lainnya yang mungkin ada
+}
+
+// Definisikan props agar komponen ini reusable
+interface KsaUploaderProps {
+  uploadAction: (formData: FormData) => Promise<ActionResult>;
+  templateFileUrl: string;
+  templateFileName: string;
+}
+
+// Konstanta yang dibutuhkan di dalam komponen
 const KABUPATEN_MAP: { [key: string]: string } = {
     "6101": "Sambas", "6102": "Bengkayang", "6103": "Landak", "6104": "Mempawah",
     "6105": "Sanggau", "6106": "Ketapang", "6107": "Sintang", "6108": "Kapuas Hulu",
@@ -23,8 +41,8 @@ const KABUPATEN_MAP: { [key: string]: string } = {
 const ALL_KABUPATEN_COUNT = Object.keys(KABUPATEN_MAP).length;
 const MONTH_NAMES = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
-export function KsaUploader() {
-  const router = useRouter(); // <-- 2. Inisialisasi router
+export function KsaUploader({ uploadAction, templateFileUrl, templateFileName }: KsaUploaderProps) {
+  const router = useRouter();
   const [files, setFiles] = useState<File[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -78,20 +96,36 @@ export function KsaUploader() {
         const buffer = await file.arrayBuffer();
         const workbook = xlsx.read(buffer, { type: 'buffer', cellDates: true });
         const sheetName = workbook.SheetNames[0];
-        const jsonData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]) as any[];
+        const jsonData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]) as ExcelKsaRecord[];
         for (const record of jsonData) {
-          if (record.tanggal && record['id segmen']) {
-            const date = new Date(record.tanggal);
+          if (record.Tanggal && record['ID Segmen']) {
+            let date: Date;
+            
+            // Handle different date formats from Excel
+            if (record.Tanggal instanceof Date) {
+              date = record.Tanggal;
+            } else if (typeof record.Tanggal === 'string') {
+              date = new Date(record.Tanggal);
+            } else if (typeof record.Tanggal === 'number') {
+              // Excel serial date number
+              date = new Date((record.Tanggal - 25569) * 86400 * 1000);
+            } else {
+              continue; // Skip if date format is unrecognized
+            }
+            
             if (!isNaN(date.getTime())) {
               yearSet.add(date.getFullYear());
               monthSet.add(date.getMonth() + 1);
-              kabCodeSet.add(record['id segmen'].toString().substring(0, 4));
+              const idSegmen = String(record['ID Segmen']);
+              if (idSegmen.length >= 4) {
+                kabCodeSet.add(idSegmen.substring(0, 4));
+              }
             }
           }
         }
       }
       if (yearSet.size === 0) {
-        toast.error("Tidak ditemukan data tanggal atau id segmen yang valid di dalam file.");
+        toast.error("Tidak ditemukan data 'Tanggal' atau 'ID Segmen' yang valid di dalam file.");
         setIsAnalyzing(false);
         return;
       }
@@ -129,24 +163,22 @@ export function KsaUploader() {
       toast.info(`Mengunggah ${files.length} file untuk diproses...`);
       
       try {
-        const result = await uploadKsaAction(formData);
+        const result = await uploadAction(formData);
         if (result.success) {
           toast.success(result.message);
           setFiles([]);
           if (fileInputRef.current) fileInputRef.current.value = "";
-          
-          router.refresh(); // <-- 3. PANGGIL REFRESH DI SINI, DI DALAM BLOK SUKSES
-          
+          router.refresh();
         } else {
           toast.error(result.message, { description: result.errorDetails, duration: 10000 });
         }
-      } catch (e) {
+      } catch (error) {
+        console.error('Upload error:', error);
         toast.error("Terjadi kesalahan tak terduga saat menghubungi server.");
       }
     });
   };
 
-  const templateFileUrl = "/templates/template_ksa_amatan.xlsx";
   const isLoading = isPending || isAnalyzing;
 
   return (
@@ -209,7 +241,7 @@ export function KsaUploader() {
           <AlertDescription className="mt-2 space-y-3">
             <p className="text-sm">Gunakan template ini untuk memastikan struktur file Excel Anda sesuai.</p>
             <Button variant="outline" size="sm" asChild className="shadow-sm hover:shadow">
-              <a href={templateFileUrl} download="template_ksa_amatan.xlsx">
+              <a href={templateFileUrl} download={templateFileName}>
                 <Download className="mr-2 h-4 w-4" />
                 Unduh Template Excel
               </a>
