@@ -2,21 +2,21 @@
 
 import { createSupabaseServerClientWithUserContext } from "@/lib/supabase-server";
 import { cookies } from "next/headers";
-import { UpdateKsaClient } from "./update-ksa-client";
+import { UpdateKsaClient } from "./update-ksa-client"; // Impor komponen client baru
 
-// Tipe ini tetap bisa digunakan untuk kedua jenis data
+// Definisikan tipe agar bisa di-share dengan client component
 export type LastUpdateInfo = { 
     uploaded_at: string | null; 
     uploaded_by_username: string | null; 
 } | null;
 
-// Fungsi untuk mengambil info KSA Padi
+// Fungsi untuk mengambil informasi pembaruan terakhir KSA Padi
 async function getLastKsaPadiUpdateInfo(): Promise<LastUpdateInfo> {
   const cookieStore = await cookies();
   const supabase = await createSupabaseServerClientWithUserContext(cookieStore);
 
   const { data, error } = await supabase
-    .from('ksa_amatan') // <-- Tabel KSA Padi
+    .from('ksa_amatan')
     .select('uploaded_at, uploaded_by_username')
     .not('uploaded_at', 'is', null) 
     .order('uploaded_at', { ascending: false }) 
@@ -30,13 +30,13 @@ async function getLastKsaPadiUpdateInfo(): Promise<LastUpdateInfo> {
   return data;
 }
 
-// Fungsi BARU untuk mengambil info KSA Jagung
+// Fungsi untuk mengambil informasi pembaruan terakhir KSA Jagung
 async function getLastKsaJagungUpdateInfo(): Promise<LastUpdateInfo> {
   const cookieStore = await cookies();
   const supabase = await createSupabaseServerClientWithUserContext(cookieStore);
 
   const { data, error } = await supabase
-    .from('ksa_amatan_jagung') // <-- Tabel KSA Jagung
+    .from('ksa_amatan_jagung')
     .select('uploaded_at, uploaded_by_username')
     .not('uploaded_at', 'is', null) 
     .order('uploaded_at', { ascending: false }) 
@@ -50,15 +50,14 @@ async function getLastKsaJagungUpdateInfo(): Promise<LastUpdateInfo> {
   return data;
 }
 
-
 export default async function KsaUpdatePage() {
-    // 1. Ambil data untuk kedua jenis KSA secara paralel
+    // Ambil data untuk kedua jenis KSA secara paralel
     const [lastPadiUpdate, lastJagungUpdate] = await Promise.all([
       getLastKsaPadiUpdateInfo(),
       getLastKsaJagungUpdateInfo()
     ]);
 
-    // 2. Render komponen client dan teruskan kedua data sebagai props
+    // Render komponen client dan teruskan kedua data sebagai props
     return (
       <UpdateKsaClient 
         lastPadiUpdate={lastPadiUpdate}

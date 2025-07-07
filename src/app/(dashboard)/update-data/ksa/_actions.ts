@@ -24,9 +24,6 @@ const KABUPATEN_MAP: { [key: string]: string } = {
     "6171": "Pontianak", "6172": "Singkawang"
 };
 
-// =================================================================
-// === FUNGSI UNTUK KSA PADI (TIDAK BERUBAH) ========================
-// =================================================================
 export async function uploadKsaAction(formData: FormData): Promise<ActionResult> {
   const cookieStore = await cookies();
   const supabaseUserContext = await createSupabaseServerClientWithUserContext(cookieStore);
@@ -55,11 +52,13 @@ export async function uploadKsaAction(formData: FormData): Promise<ActionResult>
       const sheet = workbook.Sheets[sheetName];
       const jsonData = xlsx.utils.sheet_to_json(sheet) as any[];
 
+      // --- LOGIKA OPSI 3 DIMULAI ---
+      // Variabel untuk menyimpan tanggal fallback per file. Direset untuk setiap file baru.
       let fallbackTahun: number | null = null;
       let fallbackBulan: number | null = null;
 
       for (const record of jsonData) {
-        const idSegmenValue = record['ID Segmen']; // <-- Membaca 'ID Segmen' dengan huruf besar
+        const idSegmenValue = record['id segmen'];
         const tanggalValue = record.tanggal;
 
         if (!idSegmenValue) {
@@ -72,6 +71,7 @@ export async function uploadKsaAction(formData: FormData): Promise<ActionResult>
         let bulan: number | null = null;
         let tanggalISO: string | null = null;
         
+        // Coba proses tanggal dari baris saat ini
         if (tanggalValue) {
             const parsedDate = new Date(tanggalValue);
             if (!isNaN(parsedDate.getTime())) {
@@ -79,6 +79,7 @@ export async function uploadKsaAction(formData: FormData): Promise<ActionResult>
                 bulan = parsedDate.getMonth() + 1; 
                 tanggalISO = parsedDate.toISOString();
 
+                // Jika fallback belum ada, simpan dari baris valid pertama ini
                 if (fallbackTahun === null) {
                     fallbackTahun = tahun;
                     fallbackBulan = bulan;
@@ -86,16 +87,20 @@ export async function uploadKsaAction(formData: FormData): Promise<ActionResult>
             }
         }
         
+        // Jika baris ini tidak punya tanggal, gunakan fallback (jika sudah ditemukan)
         if (tahun === null && bulan === null) {
             tahun = fallbackTahun;
             bulan = fallbackBulan;
         }
 
+        // Safeguard Akhir: Jangan proses baris jika tahun/bulan tetap null 
+        // (terjadi jika seluruh file tidak punya tanggal valid sama sekali)
         if (tahun === null || bulan === null) {
             console.warn(`Melewatkan baris karena tidak ada informasi Tahun/Bulan yang bisa digunakan (baik dari baris maupun fallback):`, record);
             skippedRowCount++;
             continue;
         }
+        // --- LOGIKA OPSI 3 BERAKHIR ---
         
         const idSegmenStr = idSegmenValue.toString();
         const kode_kab = idSegmenStr.substring(0, 4);
@@ -113,7 +118,7 @@ export async function uploadKsaAction(formData: FormData): Promise<ActionResult>
           amatan: record.amatan,
           status: record.status,
           evaluasi: record.evaluasi,
-          tanggal: tanggalISO,
+          tanggal: tanggalISO, // Bisa null jika baris ini pakai fallback
           flag_kode_12: record['flag kode 12'],
           note: record.note,
           kode_kab: kode_kab,
@@ -147,23 +152,19 @@ export async function uploadKsaAction(formData: FormData): Promise<ActionResult>
       return { success: false, message: "Gagal memproses data KSA di database.", errorDetails: rpcError.message };
     }
 
-    console.log("Data KSA berhasil diunggah. Memulai refresh materialized views...");
+
     
     const [refreshChartResult, refreshKondisiResult] = await Promise.all([
-      supabaseServer.rpc('refresh_chart_amatan_summary'),
-      supabaseServer.rpc('refresh_kondisi_panen')
-    ]);
+      supabaseServer.rpc('refresh_chart_amatan_summary'), // <--- Panggil fungsi baru yang spesifik
+      supabaseServer.rpc('refresh_kondisi_panen')         // <--- Panggil fungsi baru yang spesifik
+  ]);
 
     if (refreshChartResult.error) {
         console.error("Gagal me-refresh materialized view 'chart_amatan_summary':", refreshChartResult.error);
-    } else {
-        console.log("'chart_amatan_summary' berhasil di-refresh.");
     }
 
     if (refreshKondisiResult.error) {
         console.error("Gagal me-refresh materialized view 'kondisi_panen':", refreshKondisiResult.error);
-    } else {
-        console.log("'kondisi_panen' berhasil di-refresh.");
     }
 
     revalidatePath("/update-data/ksa");
@@ -183,7 +184,7 @@ export async function uploadKsaAction(formData: FormData): Promise<ActionResult>
 }
 
 // =================================================================
-// === FUNGSI KSA JAGUNG YANG TELAH DIPERBARUI ======================
+// === FUNGSI UNTUK KSA JAGUNG ===================================
 // =================================================================
 export async function uploadKsaJagungAction(formData: FormData): Promise<ActionResult> {
   const cookieStore = await cookies();
@@ -217,11 +218,15 @@ export async function uploadKsaJagungAction(formData: FormData): Promise<ActionR
       let fallbackBulan: number | null = null;
 
       for (const record of jsonData) {
-        const idSegmenValue = record['ID Segmen'];
-        const tanggalValue = record.Tanggal;
+        // Header KSA Jagung: ID; ID Segmen; Subsegmen; PCS; N; Amatan; Status; Evaluasi; Tanggal; Kode 98
+        // CATATAN: Kolom N-1, N-2, N-3 (jika ada di template) akan diabaikan dalam processing
+        // ✅ PERBAIKI: Coba berbagai variasi nama kolom untuk KSA Jagung
+        const idSegmenValue = record['ID Segmen'] || record['Id Segmen'] || record['id segmen'] || record['ID SEGMEN'];
+        const tanggalValue = record['Tanggal'] || record.tanggal || record.TANGGAL;
 
         if (!idSegmenValue) {
-           console.warn(`Melewatkan baris karena 'ID Segmen' kosong:`, record);
+           console.warn(`⚠️ Melewatkan baris KSA Jagung karena 'ID Segmen' kosong. Available keys:`, Object.keys(record));
+           console.warn(`⚠️ Record content:`, record);
            skippedRowCount++;
            continue;
         }
@@ -230,30 +235,38 @@ export async function uploadKsaJagungAction(formData: FormData): Promise<ActionR
         let bulan: number | null = null;
         let tanggalISO: string | null = null;
         
-        // =====================================================================================
-        // === PATCH DIMULAI DI SINI: Logika parsing tanggal dan waktu yang disempurnakan
-        // =====================================================================================
+        // ✅ PERBAIKI: Parsing tanggal yang lebih robust untuk KSA Jagung (format aneh seperti "2025-6-24 14:2")
         if (tanggalValue) {
             let parsedDate: Date;
 
             if (typeof tanggalValue === 'string' && tanggalValue.includes('-')) {
-                const parts = tanggalValue.split(' '); 
+                // Handle format string dengan berbagai variasi seperti "2025-6-24 14:2" atau "2024-12-15"
+                const parts = tanggalValue.trim().split(' '); 
                 const dateParts = parts[0].split('-');
                 
-                const y = dateParts[0];
-                const m = dateParts[1].padStart(2, '0');
-                const d = dateParts[2].padStart(2, '0');
-                
-                let timeStr = '00:00:00';
-                if (parts.length > 1) {
-                    const timeParts = parts[1].split(':');
-                    const hour = timeParts[0].padStart(2, '0');
-                    const minute = timeParts[1].padStart(2, '0');
-                    timeStr = `${hour}:${minute}:00`; // Memastikan format HH:mm:ss
+                if (dateParts.length >= 3) {
+                    const y = dateParts[0];
+                    const m = dateParts[1].padStart(2, '0');
+                    const d = dateParts[2].padStart(2, '0');
+                    
+                    let timeStr = '00:00:00';
+                    if (parts.length > 1 && parts[1]) {
+                        // Handle format waktu yang tidak lengkap seperti "14:2" -> "14:02:00"
+                        const timeParts = parts[1].split(':');
+                        const hour = (timeParts[0] || '00').padStart(2, '0');
+                        const minute = (timeParts[1] || '00').padStart(2, '0');
+                        const second = (timeParts[2] || '00').padStart(2, '0');
+                        timeStr = `${hour}:${minute}:${second}`;
+                    }
+                    
+                    const isoString = `${y}-${m}-${d}T${timeStr}`;
+                    parsedDate = new Date(isoString);
+                } else {
+                    parsedDate = new Date(tanggalValue);
                 }
-                
-                parsedDate = new Date(`${y}-${m}-${d}T${timeStr}`);
-
+            } else if (typeof tanggalValue === 'number') {
+                // Handle Excel serial date number
+                parsedDate = new Date((tanggalValue - 25569) * 86400 * 1000);
             } else {
                 parsedDate = new Date(tanggalValue);
             }
@@ -267,19 +280,18 @@ export async function uploadKsaJagungAction(formData: FormData): Promise<ActionR
                     fallbackTahun = tahun;
                     fallbackBulan = bulan;
                 }
+            } else {
+                console.warn(`⚠️ Tanggal KSA Jagung tidak valid:`, tanggalValue, typeof tanggalValue);
             }
         }
-        // =====================================================================================
-        // === PATCH SELESAI
-        // =====================================================================================
-
+        
         if (tahun === null && bulan === null) {
             tahun = fallbackTahun;
             bulan = fallbackBulan;
         }
 
         if (tahun === null || bulan === null) {
-            console.warn(`Melewatkan baris karena tidak ada informasi Tahun/Bulan yang bisa digunakan (baik dari baris maupun fallback):`, record);
+            console.warn(`Melewatkan baris KSA Jagung karena tidak ada informasi Tahun/Bulan yang bisa digunakan (baik dari baris maupun fallback):`, record);
             skippedRowCount++;
             continue;
         }
@@ -292,31 +304,38 @@ export async function uploadKsaJagungAction(formData: FormData): Promise<ActionR
         const scopeKey = `${tahun}-${bulan}-${kode_kab}`;
         uniqueDeletionScopesSet.add(scopeKey);
         
+        // ✅ PERBAIKI: Parsing kolom N dengan cleaning logic yang lebih robust untuk KSA Jagung
         let finalNValue: number | null = null;
-        const rawNValue = record.N;
+        const rawNValue = record['N'] || record.N;
 
-        if (rawNValue !== null && rawNValue !== undefined) {
-            let cleanedNValueStr = String(rawNValue);
+        if (rawNValue !== null && rawNValue !== undefined && rawNValue !== '') {
+            let cleanedNValueStr = String(rawNValue).trim();
+            
+            // Hapus titik di akhir jika ada (seperti "9.14." -> "9.14")
             if (cleanedNValueStr.endsWith('.')) {
                 cleanedNValueStr = cleanedNValueStr.slice(0, -1);
             }
+            
+            // Coba parse sebagai float
             const parsedN = parseFloat(cleanedNValueStr);
             if (!isNaN(parsedN)) {
                 finalNValue = parsedN;
+            } else {
+                console.warn(`⚠️ DEBUG KSA JAGUNG: Cannot parse N value: "${rawNValue}" -> "${cleanedNValueStr}"`);
             }
         }
 
         const newRow = {
           id_segmen: idSegmenValue,
-          subsegmen: record.Subsegmen,
-          nama: record.PCS,
-          n: finalNValue,
-          amatan: record.Amatan,
-          status: record.Status,
-          evaluasi: record.Evaluasi,
+          subsegmen: record['Subsegmen'] || record.Subsegmen,
+          nama: record['PCS'] || record.PCS, // PCS di KSA Jagung = nama di KSA Padi
+          n: finalNValue,                        // Hanya kolom N yang diperlukan
+          amatan: record['Amatan'] || record.Amatan,
+          status: record['Status'] || record.Status,
+          evaluasi: record['Evaluasi'] || record.Evaluasi,
           tanggal: tanggalISO,
-          flag_kode_98: record['Kode 98'],
-          note: record.note || null,
+          flag_kode_98: record['Kode 98'] || record['kode 98'], // Kode 98 di KSA Jagung = flag kode 12 di KSA Padi
+          note: null, // KSA Jagung tidak ada kolom note
           kode_kab: kode_kab,
           kode_kec: kode_kec,
           kabupaten: kabupaten,
@@ -330,7 +349,10 @@ export async function uploadKsaJagungAction(formData: FormData): Promise<ActionR
     }
     
     if (allRowsToInsert.length === 0) {
-        return { success: false, message: "Tidak ada baris data yang valid untuk diimpor." };
+        return { 
+            success: false, 
+            message: `Tidak ditemukan data 'Tanggal' atau 'ID Segmen' yang valid di dalam file KSA Jagung. Pastikan header Excel menggunakan nama kolom yang benar: 'ID Segmen' dan 'Tanggal' (sesuai template). File yang dilewati: ${skippedRowCount} baris.` 
+        };
     }
 
     const deletion_scopes = Array.from(uniqueDeletionScopesSet).map(key => {
@@ -348,11 +370,20 @@ export async function uploadKsaJagungAction(formData: FormData): Promise<ActionR
       return { success: false, message: "Gagal memproses data KSA Jagung di database.", errorDetails: rpcError.message };
     }
 
-    console.log("Data KSA Jagung berhasil diunggah. Memulai refresh materialized views...");
-    await Promise.all([
+
+    
+    const [refreshChartResult, refreshKondisiResult] = await Promise.all([
       supabaseServer.rpc('refresh_chart_amatan_summary'),
       supabaseServer.rpc('refresh_kondisi_panen')
     ]);
+
+    if (refreshChartResult.error) {
+        console.error("Gagal me-refresh materialized view 'chart_amatan_summary':", refreshChartResult.error);
+    }
+
+    if (refreshKondisiResult.error) {
+        console.error("Gagal me-refresh materialized view 'kondisi_panen':", refreshKondisiResult.error);
+    }
 
     revalidatePath("/update-data/ksa");
     revalidatePath("/monitoring/ksa");
@@ -366,6 +397,6 @@ export async function uploadKsaJagungAction(formData: FormData): Promise<ActionR
 
   } catch (error: any) {
     console.error("Upload KSA Jagung Action Error:", error);
-    return { success: false, message: "Terjadi kesalahan saat mem-parsing file Excel.", errorDetails: error.toString() };
+    return { success: false, message: "Terjadi kesalahan saat mem-parsing file Excel KSA Jagung.", errorDetails: error.toString() };
   }
 }

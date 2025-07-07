@@ -2,12 +2,13 @@
 "use client";
 
 import { useState, useTransition, useRef } from "react";
-import { useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation'; // <-- 1. Pastikan import ini ada
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Loader2, UploadCloud, X, FileText, Download, Info, AlertTriangle, Sparkles } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import * as xlsx from 'xlsx';
 
 // Definisikan tipe untuk action result agar konsisten
@@ -17,13 +18,6 @@ interface ActionResult {
   errorDetails?: string;
 }
 
-// Interface untuk data Excel KSA
-interface ExcelKsaRecord {
-  Tanggal?: Date | string | number;
-  'ID Segmen'?: string | number;
-  [key: string]: unknown; // Untuk kolom lainnya yang mungkin ada
-}
-
 // Definisikan props agar komponen ini reusable
 interface KsaUploaderProps {
   uploadAction: (formData: FormData) => Promise<ActionResult>;
@@ -31,7 +25,6 @@ interface KsaUploaderProps {
   templateFileName: string;
 }
 
-// Konstanta yang dibutuhkan di dalam komponen
 const KABUPATEN_MAP: { [key: string]: string } = {
     "6101": "Sambas", "6102": "Bengkayang", "6103": "Landak", "6104": "Mempawah",
     "6105": "Sanggau", "6106": "Ketapang", "6107": "Sintang", "6108": "Kapuas Hulu",
@@ -42,7 +35,7 @@ const ALL_KABUPATEN_COUNT = Object.keys(KABUPATEN_MAP).length;
 const MONTH_NAMES = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
 export function KsaUploader({ uploadAction, templateFileUrl, templateFileName }: KsaUploaderProps) {
-  const router = useRouter();
+  const router = useRouter(); // <-- 2. Inisialisasi router
   const [files, setFiles] = useState<File[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -96,36 +89,53 @@ export function KsaUploader({ uploadAction, templateFileUrl, templateFileName }:
         const buffer = await file.arrayBuffer();
         const workbook = xlsx.read(buffer, { type: 'buffer', cellDates: true });
         const sheetName = workbook.SheetNames[0];
-        const jsonData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]) as ExcelKsaRecord[];
+        const jsonData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]) as any[];
         for (const record of jsonData) {
-          if (record.Tanggal && record['ID Segmen']) {
+          // Support both KSA Padi format and KSA Jagung format
+          const tanggalValue = record.tanggal || record['Tanggal'] || record.TANGGAL;
+          const idSegmenValue = record['id segmen'] || record['ID Segmen'] || record['Id Segmen'] || record['ID SEGMEN'];
+          
+          if (tanggalValue && idSegmenValue) {
             let date: Date;
             
-            // Handle different date formats from Excel
-            if (record.Tanggal instanceof Date) {
-              date = record.Tanggal;
-            } else if (typeof record.Tanggal === 'string') {
-              date = new Date(record.Tanggal);
-            } else if (typeof record.Tanggal === 'number') {
-              // Excel serial date number
-              date = new Date((record.Tanggal - 25569) * 86400 * 1000);
+            // Enhanced date parsing for various formats including "2025-6-25 14:9"
+            if (typeof tanggalValue === 'string' && tanggalValue.includes('-')) {
+              const parts = tanggalValue.trim().split(' '); 
+              const dateParts = parts[0].split('-');
+              
+              if (dateParts.length >= 3) {
+                const y = dateParts[0];
+                const m = dateParts[1].padStart(2, '0');
+                const d = dateParts[2].padStart(2, '0');
+                
+                let timeStr = '00:00:00';
+                if (parts.length > 1 && parts[1]) {
+                  const timeParts = parts[1].split(':');
+                  const hour = (timeParts[0] || '00').padStart(2, '0');
+                  const minute = (timeParts[1] || '00').padStart(2, '0');
+                  const second = (timeParts[2] || '00').padStart(2, '0');
+                  timeStr = `${hour}:${minute}:${second}`;
+                }
+                
+                const isoString = `${y}-${m}-${d}T${timeStr}`;
+                date = new Date(isoString);
+              } else {
+                date = new Date(tanggalValue);
+              }
             } else {
-              continue; // Skip if date format is unrecognized
+              date = new Date(tanggalValue);
             }
             
             if (!isNaN(date.getTime())) {
               yearSet.add(date.getFullYear());
               monthSet.add(date.getMonth() + 1);
-              const idSegmen = String(record['ID Segmen']);
-              if (idSegmen.length >= 4) {
-                kabCodeSet.add(idSegmen.substring(0, 4));
-              }
+              kabCodeSet.add(idSegmenValue.toString().substring(0, 4));
             }
           }
         }
       }
       if (yearSet.size === 0) {
-        toast.error("Tidak ditemukan data 'Tanggal' atau 'ID Segmen' yang valid di dalam file.");
+        toast.error("Tidak ditemukan data tanggal atau ID segmen yang valid di dalam file. Pastikan format header Excel sesuai dengan template.");
         setIsAnalyzing(false);
         return;
       }
@@ -168,12 +178,13 @@ export function KsaUploader({ uploadAction, templateFileUrl, templateFileName }:
           toast.success(result.message);
           setFiles([]);
           if (fileInputRef.current) fileInputRef.current.value = "";
-          router.refresh();
+          
+          router.refresh(); // <-- 3. PANGGIL REFRESH DI SINI, DI DALAM BLOK SUKSES
+          
         } else {
           toast.error(result.message, { description: result.errorDetails, duration: 10000 });
         }
-      } catch (error) {
-        console.error('Upload error:', error);
+      } catch (e) {
         toast.error("Terjadi kesalahan tak terduga saat menghubungi server.");
       }
     });
