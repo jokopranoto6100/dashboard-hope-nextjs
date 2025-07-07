@@ -70,7 +70,7 @@ export function DetailKsaModalContent({ kabupaten }: DetailProps) {
   }
 
   if (error) {
-    return <p className="text-red-500 text-center py-8">{error}</p>;
+    return <p className="text-red-500 dark:text-red-400 text-center py-8">{error}</p>;
   }
   
   return (

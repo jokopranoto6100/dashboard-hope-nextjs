@@ -45,7 +45,7 @@ export function KsaJagungSummaryCard({ isLoading, error, totals, displayStatus, 
       </CardHeader>
       <CardContent className="flex flex-col h-full">
         {isLoading ? ( <div className="space-y-2"><Skeleton className="h-8 w-3/4 mb-1" /><Skeleton className="h-4 w-full mb-1" /><Skeleton className="h-4 w-2/3 mt-1" /></div>
-        ) : error ? ( <p className="text-xs text-red-500">Error: {error}</p>
+        ) : error ? ( <p className="text-xs text-red-500 dark:text-red-400">Error: {error}</p>
         ) : totals ? (
           <>
             {displayStatus && (

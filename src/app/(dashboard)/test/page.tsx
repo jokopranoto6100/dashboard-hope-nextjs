@@ -115,7 +115,7 @@ export default function TestPage() {
             <h2 className="text-lg font-semibold text-green-800">Jadwal Terintegrasi</h2>
             
             {countdownStatus && (
-                <div className={`flex items-center mt-2 p-2 rounded-md bg-white border`}>
+                <div className={`flex items-center mt-2 p-2 rounded-md bg-white dark:bg-slate-700 border`}>
                     <Clock className={`h-5 w-5 mr-3 ${countdownStatus.color}`} />
                     <span className={`text-sm font-medium ${countdownStatus.color}`}>{countdownStatus.text}</span>
                 </div>

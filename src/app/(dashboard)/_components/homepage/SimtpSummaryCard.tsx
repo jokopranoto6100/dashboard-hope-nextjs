@@ -42,7 +42,7 @@ export function SimtpSummaryCard({ isLoading, error, data, displayStatus, isHigh
         {isLoading ? (
           <div className="space-y-2"><Skeleton className="h-5 w-3/4" /><Skeleton className="h-8 w-1/2" /><Skeleton className="h-4 w-full mb-1" /><Skeleton className="h-4 w-2/3 mt-2" /></div>
         ) : error ? (
-          <p className="text-xs text-red-500">Error: {error}</p>
+          <p className="text-xs text-red-500 dark:text-red-400">Error: {error}</p>
         ) : data ? (
           <>
             <div className='space-y-1 mb-4'>

@@ -166,7 +166,7 @@ export function PalawijaMonitoringTable({ data, totals, isLoading, error, lastUp
       </CardHeader>
       <CardContent>
         {isLoading && <PalawijaTableSkeleton columns={skeletonColumns} />}
-        {error && <p className="text-red-500 text-center">Error: {error}</p>}
+        {error && <p className="text-red-500 dark:text-red-400 text-center">Error: {error}</p>}
         {!isLoading && !error && (
           <div className="w-full overflow-x-auto rounded-md border">
             <Table className="w-full table-fixed">

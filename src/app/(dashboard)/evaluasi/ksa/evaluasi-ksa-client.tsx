@@ -279,7 +279,7 @@ export function EvaluasiKsaClient() {
                         <Skeleton className="h-80"/>
                     </div>
                  ) : error ? (
-                    <p className="text-red-500 text-center py-8">{error}</p>
+                    <p className="text-red-500 dark:text-red-400 text-center py-8">{error}</p>
                  ) : (
                   <div className="space-y-6 pt-4">
                     <div className="grid gap-4 md:grid-cols-3">
@@ -362,7 +362,7 @@ export function EvaluasiKsaClient() {
                         {isCompletionLoading ? ( 
                             <Skeleton className="h-48 w-full" /> 
                         ) : completionError ? ( 
-                            <p className="text-red-500 text-center py-8">{completionError}</p> 
+                            <p className="text-red-500 dark:text-red-400 text-center py-8">{completionError}</p> 
                         ) : completionTable.getRowModel().rows.length === 0 ? ( 
                             <NoDataDisplay message="Tidak ada data kelengkapan amatan untuk filter ini."/> 
                         ) : (

@@ -39,27 +39,27 @@ const formSchema = z.object({
 type CrawlingFormValues = z.infer<typeof formSchema>;
 
 // Generate kolom dinamis sesuai struktur data
-function getDynamicColumns(data: any[]): ColumnDef<any>[] {
+function getDynamicColumns(data: FasihDataRow[]): ColumnDef<FasihDataRow>[] {
   if (!data || data.length === 0) return [];
-  return Object.keys(data[0]).map(key => ({
+  return Object.keys(data[0] as Record<string, unknown>).map(key => ({
     accessorKey: key,
     header: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
     cell: ({ row }) => {
-      const value = row.original[key];
+      const value = (row.original as Record<string, unknown>)[key];
       if (value === null || value === undefined) return '';
       if (Array.isArray(value)) {
         // Kalau array of object dengan label
         if (value.every(v => typeof v === 'object' && v !== null && 'label' in v))
-          return value.map(v => v.label).join(', ');
+          return value.map(v => (v as { label: string }).label).join(', ');
         // Kalau array of string/number
         return value.join(', ');
       }
       if (typeof value === 'object') {
-        if (value && 'label' in value) return value.label;
-        if (value && 'value' in value) return value.value;
+        if (value && 'label' in value) return (value as { label: string }).label;
+        if (value && 'value' in value) return (value as { value: string }).value;
         return JSON.stringify(value); // fallback
       }
-      return value;
+      return String(value);
     }
   }));
 }
@@ -130,7 +130,7 @@ export function CrawlingClient() {
         
         addLog('info', `Proses crawling dimulai untuk ${totalRegions} wilayah...`);
         
-        let crawledDataBuffer: FasihDataRow[] = [];
+        const crawledDataBuffer: FasihDataRow[] = [];
         for (let i = 0; i < totalRegions; i++) {
           const bpsCode = regionsToCrawl[i];
           const districtId = districtIdMap[bpsCode];
@@ -205,8 +205,8 @@ export function CrawlingClient() {
               {progressLog.map((log, index) => (
                 <div key={index} className="flex items-start mb-2">
                   {log.type === 'info' && <Terminal className="h-4 w-4 mr-2 mt-0.5" />}
-                  {log.type === 'success' && <CheckCircle className="h-4 w-4 mr-2 mt-0.5 text-green-500" />}
-                  {log.type === 'error' && <XCircle className="h-4 w-4 mr-2 mt-0.5 text-red-500" />}
+                  {log.type === 'success' && <CheckCircle className="h-4 w-4 mr-2 mt-0.5 text-green-500 dark:text-green-400" />}
+                  {log.type === 'error' && <XCircle className="h-4 w-4 mr-2 mt-0.5 text-red-500 dark:text-red-400" />}
                   <span className="flex-1">
                     <span className="text-muted-foreground mr-2">{log.timestamp}</span>
                     {log.message}
@@ -225,7 +225,7 @@ export function CrawlingClient() {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center"><CheckCircle className="h-5 w-5 mr-2 text-green-500" /> Proses Selesai</CardTitle>
+              <CardTitle className="flex items-center"><CheckCircle className="h-5 w-5 mr-2 text-green-500 dark:text-green-400" /> Proses Selesai</CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-3 gap-4 text-sm">
               <div><p className="text-muted-foreground">Total Data</p><p className="font-semibold text-lg">{allCrawledData.length} baris</p></div>

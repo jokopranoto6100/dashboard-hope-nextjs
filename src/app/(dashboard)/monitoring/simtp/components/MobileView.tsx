@@ -59,7 +59,7 @@ const MobileCard = React.memo(({ row, selectedYear }: { row: SimtpTableRow; sele
                 {monthlyData.map(month => (
                   <div key={month.month} className="flex items-center gap-2 p-2 rounded-md border text-sm">
                     {month.hasData ? (
-                      <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      <CheckCircle2 className="h-4 w-4 text-green-500 dark:text-green-400 flex-shrink-0" />
                     ) : (
                       <Circle className="h-2 w-2 text-gray-300 flex-shrink-0 ml-1" />
                     )}

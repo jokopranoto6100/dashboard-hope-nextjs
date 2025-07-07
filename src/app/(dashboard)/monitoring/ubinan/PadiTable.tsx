@@ -196,7 +196,7 @@ export function PadiMonitoringTable({ data, totals, isLoading, error, lastUpdate
       
       <CardContent>
         {isLoading && <PadiTableSkeleton columns={skeletonColumns} />}
-        {error && <p className="text-red-500 text-center">Error: {error}</p>}
+        {error && <p className="text-red-500 dark:text-red-400 text-center">Error: {error}</p>}
         {!isLoading && !error && (
           <div className="w-full overflow-x-auto rounded-md border">
             <Table>

@@ -193,7 +193,7 @@ export default function HomePage() {
           })}
         </div>
       )}
-      <p className="mt-6 text-gray-500 text-center text-xs">
+      <p className="mt-6 text-gray-500 dark:text-gray-400 text-center text-xs">
         Welcome to your Hope.
       </p>
     </>

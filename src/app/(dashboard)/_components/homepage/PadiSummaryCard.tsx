@@ -38,7 +38,7 @@ export function PadiSummaryCard({ isLoading, error, totals, countdownStatus, uni
         {isLoading ? (
           <div className="space-y-2"><Skeleton className="h-5 w-3/4" /><Skeleton className="h-8 w-1/2" /><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-2/3" /></div>
         ) : error ? (
-          <p className="text-xs text-red-500">Error: {error}</p>
+          <p className="text-xs text-red-500 dark:text-red-400">Error: {error}</p>
         ) : totals && typeof totals.persentase === 'number' ? (
           <>
             {countdownStatus && ( <div className="flex items-center text-xs text-muted-foreground mb-4"><Clock className={`h-4 w-4 mr-2 ${countdownStatus.color}`} /><span className={`font-medium ${countdownStatus.color}`}>{countdownStatus.text}</span></div> )}

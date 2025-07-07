@@ -129,12 +129,12 @@ export default function MainLayout({ children, isCollapsed, setIsCollapsed }: Ma
                 </SelectContent>
               </Select>
               <button
-                className="p-2 rounded-full border bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition"
+                className="p-2 rounded-full border bg-background hover:bg-muted transition shadow-sm"
                 onClick={toggleDarkMode}
                 aria-label="Toggle dark mode"
                 type="button"
               >
-                {isDark ? <Sun size={20} /> : <Moon size={20} />}
+                {isDark ? <Sun size={20} className="text-foreground" /> : <Moon size={20} className="text-foreground" />}
               </button>
             </div>
           </header>

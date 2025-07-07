@@ -4,6 +4,9 @@ import { supabaseServer } from "@/lib/supabase-server";
 import { MateriPedomanCard } from "./materi-pedoman-card";
 import { BahanProduksiClient } from "./bahan-produksi-client";
 
+// ✅ OPTIMIZATION: Enable ISR to reduce server load
+export const revalidate = 3600; // Revalidate every hour
+
 export interface LinkItem {
   id: string;
   label: string;

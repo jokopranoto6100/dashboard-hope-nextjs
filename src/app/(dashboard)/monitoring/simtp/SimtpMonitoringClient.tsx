@@ -73,7 +73,7 @@ const MonthlyStatusCell = React.memo(({
               role="button"
               aria-label={ariaLabel}
             >
-              <CheckCircle2 className="h-5 w-5 text-green-500" />
+              <CheckCircle2 className="h-5 w-5 text-green-500 dark:text-green-400" />
             </div>
           </TooltipTrigger>
           <TooltipContent>
@@ -97,7 +97,7 @@ const MonthlyStatusCell = React.memo(({
               role="button"
               aria-label={ariaLabel}
             >
-              <Clock className="h-4 w-4 text-blue-500" />
+              <Clock className="h-4 w-4 text-blue-500 dark:text-blue-400" />
             </div>
           </TooltipTrigger>
           <TooltipContent>
@@ -278,7 +278,7 @@ export function SimtpMonitoringClient() {
   // Error state component
   const ErrorState = () => (
     <div className="flex flex-col items-center justify-center py-12 space-y-4">
-      <AlertCircle className="h-12 w-12 text-red-500" />
+      <AlertCircle className="h-12 w-12 text-red-500 dark:text-red-400" />
       <div className="text-center">
         <p className="text-red-600 font-medium">Terjadi Kesalahan</p>
         <p className="text-sm text-gray-600 mt-1">{error}</p>
@@ -415,11 +415,11 @@ export function SimtpMonitoringClient() {
             <div className='flex flex-wrap items-center gap-x-6 gap-y-2 mt-4 text-sm text-muted-foreground' role="complementary" aria-label="Legenda status">
               <p className='font-semibold'>Legenda:</p>
               <div className='flex items-center gap-2' role="img" aria-label="Sudah upload">
-                <CheckCircle2 className="h-5 w-5 text-green-500" aria-hidden="true" /> 
+                <CheckCircle2 className="h-5 w-5 text-green-500 dark:text-green-400" aria-hidden="true" /> 
                 <span>Sudah Upload</span>
               </div>
               <div className='flex items-center gap-2' role="img" aria-label="Periode berjalan">
-                <Clock className="h-4 w-4 text-blue-500" aria-hidden="true" /> 
+                <Clock className="h-4 w-4 text-blue-500 dark:text-blue-400" aria-hidden="true" /> 
                 <span>Periode Berjalan</span>
               </div>
               <div className='flex items-center gap-2' role="img" aria-label="Belum upload">

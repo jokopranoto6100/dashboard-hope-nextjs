@@ -29,7 +29,7 @@ export const PhaseTimelineVisual = React.memo(({ urutan_fase }: PhaseTimelineVis
           <div
             className={cn(
               "flex h-6 w-7 md:h-7 md:w-9 items-center justify-center rounded-md border text-xs md:text-sm flex-shrink-0",
-              index > 0 ? "bg-destructive/10 border-destructive/50" : "bg-muted"
+              index > 0 ? "bg-destructive/10 border-destructive/50 dark:bg-destructive/20 dark:border-destructive/60" : "bg-muted dark:bg-muted/80"
             )}
             title={`Fase ${phase}`}
           >

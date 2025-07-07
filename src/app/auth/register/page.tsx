@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
+import { useDarkMode } from '@/context/DarkModeContext';
 
 import { registerUserAction } from './_actions';
 import { registerFormSchema, type RegisterFormValues } from './schema';
@@ -17,12 +18,13 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { ChevronsUpDown, Check, Loader2 } from 'lucide-react';
+import { ChevronsUpDown, Check, Loader2, Moon, Sun } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function RegisterPage() {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+  const { isDark, toggleDarkMode } = useDarkMode();
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerFormSchema),
@@ -53,15 +55,25 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <div className="relative w-full max-w-4xl bg-white rounded-lg shadow-xl overflow-hidden flex flex-col lg:flex-row-reverse">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
+      {/* Dark Mode Toggle */}
+      <button
+        className="fixed top-4 right-4 p-2 rounded-full border bg-background hover:bg-muted transition z-50 shadow-sm"
+        onClick={toggleDarkMode}
+        aria-label="Toggle dark mode"
+        type="button"
+      >
+        {isDark ? <Sun size={20} className="text-foreground" /> : <Moon size={20} className="text-foreground" />}
+      </button>
+      
+      <div className="relative w-full max-w-4xl bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden flex flex-col lg:flex-row-reverse">
         
         <div className="w-full lg:w-1/2 p-8 md:p-12 flex flex-col justify-center">
           
           {/* === TAMBAHAN: Mengembalikan header formulir yang hilang === */}
           <div className="mb-8 text-center lg:text-left">
-            <h1 className="text-4xl font-extrabold text-gray-900 mb-2">Buat Akun Baru</h1>
-            <p className="text-gray-600 text-lg">Mulai perjalanan Anda bersama Dashboard HOPE</p>
+            <h1 className="text-4xl font-extrabold text-gray-900 dark:text-gray-100 mb-2">Buat Akun Baru</h1>
+            <p className="text-gray-600 dark:text-gray-300 text-lg">Mulai perjalanan Anda bersama Dashboard HOPE</p>
           </div>
           
           <Form {...form}>

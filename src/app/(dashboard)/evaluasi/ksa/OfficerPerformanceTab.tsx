@@ -146,7 +146,7 @@ export function OfficerPerformanceTab() {
   });
 
   if (isMonthLoading) return <Skeleton className="h-96 w-full mt-4" />;
-  if (error) return <div className="text-red-500 text-center py-8">{error}</div>;
+  if (error) return <div className="text-red-500 dark:text-red-400 text-center py-8">{error}</div>;
 
   return (
     <div className="pt-4 space-y-6">
