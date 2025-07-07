@@ -1,7 +1,7 @@
 // src/app/client-layout-wrapper.tsx
 'use client';
 
-import React, { useState} from 'react';
+import React, { useState, useCallback } from 'react';
 import MainLayout from '@/components/layout/main-layout'; // Sesuaikan path jika perlu
 import { getCookie } from 'cookies-next'; // Untuk membaca cookie
 
@@ -10,20 +10,14 @@ import { getCookie } from 'cookies-next'; // Untuk membaca cookie
 const SIDEBAR_OPEN_STATE_COOKIE_NAME = "sidebar_state";
 
 export default function ClientLayoutWrapper({ children }: { children: React.ReactNode }) {
-  // Inisialisasi state 'isCollapsed'.
-  // 'isCollapsed' adalah kebalikan dari 'isOpen' yang disimpan di cookie.
-  // Jika cookie 'sidebar_state' adalah 'true' (berarti sidebar OPEN/EXPANDED), maka isCollapsed harus 'false'.
-  // Jika cookie 'sidebar_state' adalah 'false' (berarti sidebar CLOSED/COLLAPSED), maka isCollapsed harus 'true'.
-  // Default jika tidak ada cookie: sidebar tidak diciutkan (isCollapsed = false).
+  // ✅ OPTIMALISASI 6: Simplified state initialization dengan lazy loading
   const [isCollapsed, setIsCollapsed] = useState(() => {
-    const cookieValue = getCookie(SIDEBAR_OPEN_STATE_COOKIE_NAME);
-    if (cookieValue === undefined || cookieValue === null) {
-      // Tidak ada cookie, default ke sidebar terbuka (tidak diciutkan)
-      // SidebarProvider memiliki defaultOpen = true, yang berarti open = true, jadi isCollapsed = false.
-      return false;
-    }
     try {
-      const isOpen = JSON.parse(cookieValue as string); // Cookie menyimpan status 'open'
+      const cookieValue = getCookie(SIDEBAR_OPEN_STATE_COOKIE_NAME);
+      if (cookieValue === undefined || cookieValue === null) {
+        return false; // Default: sidebar terbuka
+      }
+      const isOpen = JSON.parse(cookieValue as string);
       return !isOpen; // isCollapsed adalah kebalikan dari isOpen
     } catch (error) {
       console.error("Error parsing sidebar state cookie:", error);
@@ -31,14 +25,11 @@ export default function ClientLayoutWrapper({ children }: { children: React.Reac
     }
   });
 
-  // `SidebarProvider` di dalam `MainLayout` akan menangani penulisan cookie
-  // ketika prop `open` (yang merupakan `!isCollapsed`) berubah.
-  // Fungsi `setAndPersistIsCollapsed` hanya perlu memanggil `setIsCollapsed`.
-  const setAndPersistIsCollapsed = (collapsed: boolean) => {
+  // ✅ OPTIMALISASI 7: Memoize callback untuk mengurangi re-render
+  const setAndPersistIsCollapsed = useCallback((collapsed: boolean) => {
     setIsCollapsed(collapsed);
-    // Tidak perlu menulis cookie di sini karena SidebarProvider (di dalam MainLayout) akan melakukannya
-    // berdasarkan prop 'open' yang diterimanya (!collapsed).
-  };
+    // SidebarProvider akan menangani penulisan cookie
+  }, []);
 
   return (
     <MainLayout isCollapsed={isCollapsed} setIsCollapsed={setAndPersistIsCollapsed}>

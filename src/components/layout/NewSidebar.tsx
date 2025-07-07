@@ -91,20 +91,25 @@ export default function NewSidebar({ mobile = false, onNavigate }: NewSidebarPro
   }, [supabase, router]);
 
   const isSuperAdmin = userSession?.role === 'super_admin';
+  
+  // ✅ OPTIMALISASI 2: Optimalisasi useMemo dependencies
   const navMainData = React.useMemo(
     () => getNavMainItems(pathname, isSuperAdmin),
-    [pathname, isSuperAdmin]
+    [pathname, isSuperAdmin] // Hanya re-compute jika pathname atau role berubah
   );
- const userDataForNav: UserData | null = userSession
-  ? {
+  
+  // ✅ OPTIMALISASI 3: Pisahkan user data computation untuk mengurangi re-render
+  const userDataForNav: UserData | null = React.useMemo(() => 
+    userSession ? {
       id: userSession.id ?? "",
       username: userSession.username ?? "",
       fullname: userSession.username ?? "",
       email: userSession.email ?? "",
       avatar: userSession.avatar ?? null,
       satker_id: userSession.satker_id ?? null
-    }
-  : null;
+    } : null,
+    [userSession]
+  );
 
   if (mobile) {
     if (isLoadingSession && !userSession) {

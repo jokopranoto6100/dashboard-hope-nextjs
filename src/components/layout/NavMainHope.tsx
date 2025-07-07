@@ -36,7 +36,8 @@ interface NavMainHopeProps {
   onNavigate?: () => void;
 }
 
-export function NavMainHope({ items, onNavigate }: NavMainHopeProps) {
+// ✅ OPTIMALISASI 1: Tambahkan React.memo untuk mengurangi re-render
+export const NavMainHope = React.memo(function NavMainHope({ items, onNavigate }: NavMainHopeProps) {
   const pathname = usePathname();
   const { open } = useSidebar();
 
@@ -168,4 +169,4 @@ export function NavMainHope({ items, onNavigate }: NavMainHopeProps) {
       })}
     </SidebarMenu>
   );
-}
+});

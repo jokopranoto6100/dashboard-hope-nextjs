@@ -31,16 +31,21 @@ interface MainLayoutProps {
 
 export default function MainLayout({ children, isCollapsed, setIsCollapsed }: MainLayoutProps) {
   const { selectedYear, setSelectedYear } = useYear();
-  const availableYears = Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 5 + i);
+  // ✅ OPTIMALISASI 4: Memoize availableYears untuk mengurangi re-computation
+  const availableYears = React.useMemo(
+    () => Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 5 + i),
+    [] // Hanya compute sekali karena tahun tidak berubah sering
+  );
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const handleSidebarOpenChange = (open: boolean) => {
+  // ✅ OPTIMALISASI 5: Memoize handler untuk mengurangi re-render child components
+  const handleSidebarOpenChange = React.useCallback((open: boolean) => {
     setIsCollapsed(!open);
-  };
+  }, [setIsCollapsed]);
 
   const [sheetOpen, setSheetOpen] = useState(false);
   const { isDark, toggleDarkMode } = useDarkMode();
