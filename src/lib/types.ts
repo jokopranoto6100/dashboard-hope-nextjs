@@ -41,7 +41,7 @@ export interface ChartDataPoint {
   nilai: number | null | undefined;
   kode_wilayah: string | null | undefined;
   annotations: Annotation[];
-  [key: string]: any;
+  [key: string]: string | number | null | undefined | Annotation[];
 }
 
 export interface RechartsDotProps {
@@ -49,7 +49,7 @@ export interface RechartsDotProps {
   cy: number;
   payload: ChartDataPoint;
   // Recharts might pass other properties, so we can add an index signature if needed
-  [key: string]: any;
+  [key: string]: string | number | ChartDataPoint;
 }
 
 export interface BarChartClickPayload {
@@ -66,4 +66,23 @@ export interface PieChartData {
 export interface PieChartTooltipPayload {
   name: string;
   value: number;
+}
+
+export interface BahanProduksiLink {
+  id: string;
+  label: string;
+  href: string | null;
+  icon_name: string | null;
+  description: string | null;
+  urutan: number;
+  sektor_id?: string;
+}
+
+export interface BahanProduksiSektor {
+  id: string;
+  nama: string;
+  icon_name: string | null;
+  bg_color_class: string | null;
+  urutan: number;
+  links: BahanProduksiLink[];
 }

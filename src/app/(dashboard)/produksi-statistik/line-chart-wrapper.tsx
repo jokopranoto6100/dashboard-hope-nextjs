@@ -4,7 +4,7 @@
 import { Line, LineChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis, LabelList } from 'recharts';
 
 import { formatNumber } from "@/lib/utils";
-import { ChartDataPoint, Annotation } from "@/lib/types";
+import { ChartDataPoint } from "@/lib/types";
 
 interface LineChartWrapperProps {
   data: ChartDataPoint[];
@@ -14,8 +14,8 @@ interface LineChartWrapperProps {
   showLabels: boolean;
 }
 
-const CustomActiveDot = ({ cx, cy, payload, onPointClick }: { cx: number; cy: number; payload: ChartDataPoint; onPointClick: (payload: ChartDataPoint) => void; }) => {
-  if (cx === null || cy === null) {
+const CustomActiveDot = ({ cx, cy, payload, onPointClick }: { cx?: number; cy?: number; payload?: ChartDataPoint; onPointClick: (payload: ChartDataPoint) => void; }) => {
+  if (typeof cx !== 'number' || typeof cy !== 'number' || !payload) {
     return null;
   }
   const hasAnnotations = payload.annotations && payload.annotations.length > 0;
@@ -59,8 +59,8 @@ export default function LineChartWrapper({ data, dataKey1, dataKey2, onPointClic
             name={`Tahun ${dataKey1}`} 
             connectNulls 
             dot={false}
-            activeDot={(props: any) => {
-              const { cx = 0, cy = 0, payload } = props;
+            activeDot={(props: unknown) => {
+              const { cx, cy, payload } = props as { cx?: number; cy?: number; payload?: ChartDataPoint };
               return <CustomActiveDot cx={cx} cy={cy} payload={payload} onPointClick={onPointClick} />;
             }}
         >
@@ -75,8 +75,8 @@ export default function LineChartWrapper({ data, dataKey1, dataKey2, onPointClic
                 name={`Tahun ${dataKey2}`} 
                 connectNulls 
                 dot={false}
-                activeDot={(props: any) => {
-                  const { cx, cy, payload } = props;
+                activeDot={(props: unknown) => {
+                  const { cx, cy, payload } = props as { cx?: number; cy?: number; payload?: ChartDataPoint };
                   return <CustomActiveDot cx={cx} cy={cy} payload={payload} onPointClick={onPointClick} />;
                 }}
             >

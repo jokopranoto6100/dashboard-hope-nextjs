@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowUpRight, Undo2 } from "lucide-react";
 import Link from "next/link";
 import { getIcon } from "@/lib/icon-map";
+import { BahanProduksiLink, BahanProduksiSektor } from "@/lib/types";
 import { ContentManagementDialog } from "./content-management-dialog";
 
 interface BahanProduksiClientProps {
@@ -38,7 +39,7 @@ const linkVariants: Variants = {
 };
 
 // ✅ Memoized component untuk links section
-const LinksSection = ({ links, isVisible }: { links: any[], isVisible: boolean }) => {
+const LinksSection = ({ links, isVisible }: { links: BahanProduksiLink[], isVisible: boolean }) => {
   // ✅ Precompute icons untuk menghindari re-computation
   const linksWithIcons = useMemo(() => 
     links.map(link => ({
@@ -92,7 +93,7 @@ const LinksSection = ({ links, isVisible }: { links: any[], isVisible: boolean }
 
 // ✅ Memoized card component
 const SektorCard = ({ sektor, flippedCardId, onFlip, onReset }: {
-  sektor: any;
+  sektor: BahanProduksiSektor;
   flippedCardId: string | null;
   onFlip: (id: string) => void;
   onReset: () => void;

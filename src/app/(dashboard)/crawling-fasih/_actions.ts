@@ -11,7 +11,30 @@ export interface SurveyPeriod {
 export interface FasihDataRow {
   id_assignment: string;
   code_identity: string;
-  [key: string]: any;
+  [key: string]: string | number | boolean | null;
+}
+
+interface SurveyPeriodData {
+  id: string;
+  name: string;
+}
+
+interface ProvinceData {
+  fullCode: string;
+  name: string;
+  id: string;
+}
+
+interface DistrictData {
+  fullCode: string;
+  name: string;
+  id: string;
+}
+
+interface AssignmentData {
+  id: string;
+  codeIdentity: string;
+  [key: string]: string | number | boolean | null;
 }
 
 // Skema Zod (tidak berubah)
@@ -21,11 +44,7 @@ const getPeriodsSchema = z.object({
   xsrfToken: z.string().min(1, 'XSRF Token wajib diisi'),
 });
 
-const crawlSchema = getPeriodsSchema.extend({
-  surveyPeriodId: z.string().min(1, 'Periode Survei harus dipilih'),
-  kdprov: z.string().min(2, 'Kode Provinsi minimal 2 digit.'),
-  kdkab: z.string().optional().transform(e => e === "" ? undefined : e),
-});
+// Note: crawlSchema extends getPeriodsSchema
 
 // Template Request Body (tidak berubah)
 const baseAssignmentRequestBody = {
@@ -95,7 +114,7 @@ export async function getInitialConfig(formData: FormData): Promise<{
     console.log('[FETCH 1] [SUCCESS] Berhasil mendapatkan detail survei.');
     if (!surveyData.success) throw new Error('Respons detail survei tidak berhasil.');
 
-    const periods: SurveyPeriod[] = surveyData.data?.surveyPeriods?.map((p: any) => ({ id: p.id, name: p.name })) || [];
+    const periods: SurveyPeriod[] = surveyData.data?.surveyPeriods?.map((p: SurveyPeriodData) => ({ id: p.id, name: p.name })) || [];
     const regionGroupId = surveyData.data.regionGroupId;
     console.log(`[INFO] Ditemukan ${periods.length} periode. regionGroupId: ${regionGroupId}`);
     if (!regionGroupId) throw new Error('regionGroupId tidak ditemukan.');
@@ -107,7 +126,7 @@ export async function getInitialConfig(formData: FormData): Promise<{
     console.log(`[FETCH 2] [STATUS] ${provResponse.status} ${provResponse.statusText}`);
     if (!provResponse.ok) throw new Error(`Gagal mengambil data provinsi (Status: ${provResponse.status})`);
     const provData = await provResponse.json();
-    const province = provData.data.find((p: any) => p.fullCode === kdprov);
+    const province = provData.data.find((p: ProvinceData) => p.fullCode === kdprov);
     if (!province) throw new Error(`Provinsi dengan kode ${kdprov} tidak ditemukan.`);
     const provinceId = province.id;
     console.log(`[INFO] Ditemukan ID Provinsi untuk ${kdprov}: ${provinceId}`);
@@ -119,7 +138,7 @@ export async function getInitialConfig(formData: FormData): Promise<{
     console.log(`[FETCH 3] [STATUS] ${kabResponse.status} ${kabResponse.statusText}`);
     if (!kabResponse.ok) throw new Error(`Gagal mengambil data kabupaten (Status: ${kabResponse.status})`);
     const kabData = await kabResponse.json();
-    const districtIdMap = kabData.data.reduce((acc: any, curr: any) => {
+    const districtIdMap = kabData.data.reduce((acc: Record<string, string>, curr: DistrictData) => {
         acc[curr.fullCode] = curr.id;
         return acc;
     }, {});
@@ -154,7 +173,7 @@ export async function crawlSingleDistrict(
   };
 
   try {
-    let allAssignments: any[] = [];
+    const allAssignments: AssignmentData[] = [];
     let start = 0;
     const length = 1000;
 
@@ -207,11 +226,11 @@ export async function crawlSingleDistrict(
       if (detailResponse.ok) {
         const detailDataRaw = await detailResponse.json();
         if (detailDataRaw.data && detailDataRaw.data.data) {
-          const answers: { dataKey: string, answer: any }[] = JSON.parse(detailDataRaw.data.data).answers;
-          const flatData: FasihDataRow = answers.reduce((acc, curr) => {
+          const answers: { dataKey: string, answer: string | number | boolean | null }[] = JSON.parse(detailDataRaw.data.data).answers;
+          const flatData = answers.reduce((acc, curr) => {
             acc[curr.dataKey] = curr.answer;
             return acc;
-          }, {} as any);
+          }, {} as Record<string, string | number | boolean | null>) as FasihDataRow;
           flatData.id_assignment = assignment.id;
           flatData.code_identity = assignment.codeIdentity;
           districtCrawledData.push(flatData);

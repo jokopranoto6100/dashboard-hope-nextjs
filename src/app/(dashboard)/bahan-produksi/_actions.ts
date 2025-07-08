@@ -36,7 +36,7 @@ export async function createSektor(formData: FormData) {
             if (error) return { error: { _form: [error.message] } };
 
             return { success: true };
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('createSektor error:', error);
             return { error: { _form: ['Terjadi kesalahan saat membuat sektor.'] } };
         }
@@ -53,7 +53,7 @@ export async function updateSektor(id: string, formData: FormData) {
             if (error) return { error: { _form: [error.message] } };
             
             return { success: true };
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('updateSektor error:', error);
             return { error: { _form: ['Terjadi kesalahan saat mengupdate sektor.'] } };
         }
@@ -92,7 +92,7 @@ export async function deleteSektor(id: string) {
             }
 
             return { success: true };
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('deleteSektor error:', error);
             return { error: { _form: ['Terjadi kesalahan saat menghapus sektor.'] } };
         }
@@ -132,9 +132,10 @@ export async function updateSektorOrder(items: z.infer<typeof reorderSchema>) {
             
             return { success: true };
             
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('updateSektorOrder error:', error);
-            return { error: { _form: [error.message || 'Terjadi kesalahan saat mengupdate urutan.'] } };
+            const message = error instanceof Error ? error.message : 'Terjadi kesalahan saat mengupdate urutan.';
+            return { error: { _form: [message] } };
         }
     });
 }
@@ -151,7 +152,7 @@ export async function createLink(formData: FormData) {
             if (error) return { error: { _form: [error.message] } };
             
             return { success: true };
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('createLink error:', error);
             return { error: { _form: ['Terjadi kesalahan saat membuat link.'] } };
         }
@@ -176,7 +177,7 @@ export async function updateLink(id: string, formData: FormData) {
             if (error) return { error: { _form: [error.message] } };
 
             return { success: true };
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('updateLink error:', error);
             return { error: { _form: ['Terjadi kesalahan saat mengupdate link.'] } };
         }
@@ -190,7 +191,7 @@ export async function deleteLink(id: string) {
             if (error) return { error: { _form: [error.message] } };
 
             return { success: true };
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('deleteLink error:', error);
             return { error: { _form: ['Terjadi kesalahan saat menghapus link.'] } };
         }
@@ -213,7 +214,7 @@ export async function updateMateriPedomanLink(formData: FormData) {
             if (error) return { error: { _form: [error.message] } };
             
             return { success: true, newHref: validated.data.href };
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('updateMateriPedomanLink error:', error);
             return { error: { _form: ['Terjadi kesalahan saat mengupdate link materi pedoman.'] } };
         }
@@ -221,7 +222,7 @@ export async function updateMateriPedomanLink(formData: FormData) {
 }
 
 // ✅ Batch operations untuk multiple actions
-export async function batchUpdateLinks(updates: Array<{ id: string; data: any }>) {
+export async function batchUpdateLinks(updates: Array<{ id: string; data: Record<string, unknown> }>) {
     return withPerformanceLogging('batchUpdateLinks', async () => {
         try {
             const updatePromises = updates.map(async ({ id, data }, index) => {
@@ -241,7 +242,7 @@ export async function batchUpdateLinks(updates: Array<{ id: string; data: any }>
             }
             
             return { success: true };
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('batchUpdateLinks error:', error);
             return { error: { _form: ['Terjadi kesalahan saat mengupdate multiple links.'] } };
         }

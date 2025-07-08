@@ -7,8 +7,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Loader2, UploadCloud, X, FileText, Download, Info, AlertTriangle, Sparkles } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import * as xlsx from 'xlsx';
 
 // Definisikan tipe untuk action result agar konsisten
@@ -89,7 +88,7 @@ export function KsaUploader({ uploadAction, templateFileUrl, templateFileName }:
         const buffer = await file.arrayBuffer();
         const workbook = xlsx.read(buffer, { type: 'buffer', cellDates: true });
         const sheetName = workbook.SheetNames[0];
-        const jsonData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]) as any[];
+        const jsonData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]) as Record<string, unknown>[];
         for (const record of jsonData) {
           // Support both KSA Padi format and KSA Jagung format
           const tanggalValue = record.tanggal || record['Tanggal'] || record.TANGGAL;
@@ -120,10 +119,10 @@ export function KsaUploader({ uploadAction, templateFileUrl, templateFileName }:
                 const isoString = `${y}-${m}-${d}T${timeStr}`;
                 date = new Date(isoString);
               } else {
-                date = new Date(tanggalValue);
+                date = new Date(tanggalValue as string | number);
               }
             } else {
-              date = new Date(tanggalValue);
+              date = new Date(tanggalValue as string | number);
             }
             
             if (!isNaN(date.getTime())) {
@@ -184,7 +183,7 @@ export function KsaUploader({ uploadAction, templateFileUrl, templateFileName }:
         } else {
           toast.error(result.message, { description: result.errorDetails, duration: 10000 });
         }
-      } catch (e) {
+      } catch {
         toast.error("Terjadi kesalahan tak terduga saat menghubungi server.");
       }
     });

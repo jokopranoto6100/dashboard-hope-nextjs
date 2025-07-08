@@ -80,7 +80,7 @@ export function MasterSampleUploader() {
         } else {
           toast.error(result.message, { description: result.errorDetails, duration: 10000 });
         }
-      } catch (e) {
+      } catch {
         toast.error("Terjadi kesalahan tak terduga saat menghubungi server.");
       }
     });
