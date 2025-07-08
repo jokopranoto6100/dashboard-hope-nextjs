@@ -27,7 +27,7 @@ import { useYear } from '@/context/YearContext';
 import { DescriptiveStatsRow, PupukDanBenihRow } from './types';
 
 // Impor definisi kolom tabel
-import { detailStatsColumns, comparisonStatsColumns } from './descriptive-stats-columns';
+import { detailStatsColumns, createComparisonStatsColumns } from './descriptive-stats-columns';
 import { detailFertilizerColumns, getComparisonFertilizerColumns } from './penggunaan-benih-dan-pupuk-columns';
 
 // Impor Server Action
@@ -79,14 +79,18 @@ export function EvaluasiUbinanClient() {
   const { pupukDanBenihPerKab, kalimantanBaratPupukDanBenih } = dataBenihDanPupuk;
 
   const statsColumns = useMemo(() => {
-    if (analysisMode === 'comparison' && comparisonYear) return comparisonStatsColumns;
+    if (analysisMode === 'comparison' && comparisonYear && selectedYear) {
+      return createComparisonStatsColumns(selectedYear, comparisonYear);
+    }
     return detailStatsColumns;
-  }, [analysisMode, comparisonYear]);
+  }, [analysisMode, comparisonYear, selectedYear]);
 
   const fertilizerColumns = useMemo(() => {
-      if (analysisMode === 'comparison' && comparisonYear) return getComparisonFertilizerColumns(comparisonFertilizerVariables);
-      return detailFertilizerColumns;
-  }, [analysisMode, comparisonYear, comparisonFertilizerVariables]);
+    if (analysisMode === 'comparison' && comparisonYear && selectedYear) {
+      return getComparisonFertilizerColumns(comparisonFertilizerVariables, selectedYear, comparisonYear);
+    }
+    return detailFertilizerColumns;
+  }, [analysisMode, comparisonYear, comparisonFertilizerVariables, selectedYear]);
 
   const statsTable = useReactTable({
     data: descriptiveStats, columns: statsColumns, state: { sorting: sortingStats }, onSortingChange: setSortingStats, getCoreRowModel: getCoreRowModel(), getSortedRowModel: getSortedRowModel(), meta: { kalimantanBaratData: kalbarStatsData, currentUnit, selectedKomoditas },
@@ -169,17 +173,25 @@ export function EvaluasiUbinanClient() {
 
     return (
       <Card className="mt-6">
-        <CardHeader className="flex flex-row items-start justify-between gap-4">
-          <div className="space-y-1.5">
-            <CardTitle>{title}</CardTitle>
-            <CardDescription>{description}</CardDescription>
-          </div>
-          <div className="flex items-center space-x-2 flex-shrink-0">
-            {headerActions}
-            {showUnitSwitcher && (
-              <div className="flex items-center space-x-2 pl-2 border-l">
-                <Switch id="unit-switcher" checked={useKuHa} onCheckedChange={setUseKuHa} />
-                <Label htmlFor="unit-switcher" className="text-sm font-medium whitespace-nowrap">ku/ha</Label>
+        <CardHeader>
+          <div className="flex flex-col space-y-4">
+            <div className="flex flex-row items-start justify-between gap-4">
+              <div className="space-y-1.5">
+                <CardTitle>{title}</CardTitle>
+                <CardDescription>{description}</CardDescription>
+              </div>
+              <div className="flex items-center space-x-2 flex-shrink-0">
+                {showUnitSwitcher && (
+                  <div className="flex items-center space-x-2 pl-2 border-l">
+                    <Switch id="unit-switcher" checked={useKuHa} onCheckedChange={setUseKuHa} />
+                    <Label htmlFor="unit-switcher" className="text-sm font-medium whitespace-nowrap">ku/ha</Label>
+                  </div>
+                )}
+              </div>
+            </div>
+            {headerActions && (
+              <div className="flex justify-start">
+                {headerActions}
               </div>
             )}
           </div>

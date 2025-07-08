@@ -61,7 +61,9 @@ const createDetailColumn = (
 const createComparisonColumnGroup = (
   baseKey: keyof PupukDanBenihRow,
   headerText: string,
-  unit: string
+  unit: string,
+  currentYear: number,
+  comparisonYear: number
 ): ColumnDef<PupukDanBenihRow>[] => {
   const comparisonKey = `comparison_${String(baseKey)}` as keyof PupukDanBenihRow;
   const changeKey = `change_${String(baseKey)}` as keyof PupukDanBenihRow;
@@ -71,7 +73,7 @@ const createComparisonColumnGroup = (
     {
       id: `${String(baseKey)}_this_year`,
       accessorKey: baseKey,
-      header: createTwoLineHeader(`${headerText} (Thn Ini)`, `(${unit})`),
+      header: createTwoLineHeader(`${headerText} (${currentYear})`, `(${unit})`),
       cell: ({ row }) => <div className="text-center">{formatNumber(row.original[baseKey] as number, decimalPlaces)}</div>,
       footer: ({ table }) => {
         const value = table.options.meta?.kalimantanBaratPupukDanBenih?.[baseKey] as number;
@@ -81,7 +83,7 @@ const createComparisonColumnGroup = (
     {
       id: `${String(baseKey)}_last_year`,
       accessorKey: comparisonKey,
-      header: createTwoLineHeader(`${headerText} (Thn Pembanding)`, `(${unit})`),
+      header: createTwoLineHeader(`${headerText} (${comparisonYear})`, `(${unit})`),
       cell: ({ row }) => <div className="text-center">{formatNumber(row.original[comparisonKey] as number, decimalPlaces)}</div>,
       footer: ({ table }) => {
         const value = table.options.meta?.kalimantanBaratPupukDanBenih?.[comparisonKey] as number;
@@ -130,11 +132,15 @@ const variableMap: { [key: string]: { label: string; unit: string } } = {
   'avgZAPerHa_kg_ha': { label: 'ZA', unit: 'Kg/Ha' },
 };
 
-export const getComparisonFertilizerColumns = (selectedVariables: string[]): ColumnDef<PupukDanBenihRow>[] => {
+export const getComparisonFertilizerColumns = (
+  selectedVariables: string[],
+  currentYear: number,
+  comparisonYear: number
+): ColumnDef<PupukDanBenihRow>[] => {
     const comparisonColumns = selectedVariables.flatMap(variableKey => {
         const config = variableMap[variableKey];
         if (!config) return [];
-        return createComparisonColumnGroup(variableKey as keyof PupukDanBenihRow, config.label, config.unit);
+        return createComparisonColumnGroup(variableKey as keyof PupukDanBenihRow, config.label, config.unit, currentYear, comparisonYear);
     });
 
     return [

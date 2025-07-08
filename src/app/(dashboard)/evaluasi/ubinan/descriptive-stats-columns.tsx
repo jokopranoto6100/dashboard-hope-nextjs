@@ -39,7 +39,7 @@ const createTwoLineHeaderWithUnit = (line1: string) => {
   );
 };
 
-const meanCell = ({ row, table }: { row: any, table: any }) => {
+const meanCell = ({ row, table }: { row: { original: DescriptiveStatsRow }, table: TanstackTable<DescriptiveStatsRow> }) => {
     const meanValue = row.original.mean;
     const komoditas = getSelectedKomoditas(table);
     let melebihiAmbang = false;
@@ -139,6 +139,71 @@ export const detailStatsColumns: ColumnDef<DescriptiveStatsRow>[] = [
 ];
 
 // --- SET KOLOM UNTUK MODE PERBANDINGAN --- (DIPERBAIKI)
+export const createComparisonStatsColumns = (currentYear: number, comparisonYear: number): ColumnDef<DescriptiveStatsRow>[] => [
+    {
+        accessorKey: "namaKabupaten",
+        header: "Kabupaten/Kota",
+        cell: ({ row }) => <div className="text-start min-w-[150px]">{row.original.namaKabupaten}</div>,
+        footer: "Kalimantan Barat",
+    },
+    {
+        accessorKey: "count",
+        header: `Sampel (${currentYear})`,
+        cell: ({ row }) => <div className="text-center">{row.original.count}</div>,
+        footer: ({ table }) => {
+            const kalbarData = table.options.meta?.kalimantanBaratData;
+            return <div className="text-center">{kalbarData?.count ?? '-'}</div>;
+        },
+    },
+    {
+        accessorKey: "comparisonCount",
+        header: `Sampel (${comparisonYear})`,
+        cell: ({ row }) => <div className="text-center">{row.original.comparisonCount ?? '-'}</div>,
+        footer: ({ table }) => {
+            const kalbarData = table.options.meta?.kalimantanBaratData;
+            return <div className="text-center">{kalbarData?.comparisonCount ?? '-'}</div>;
+        },
+    },
+    {
+        accessorKey: "mean",
+        header: ({ table }) => (
+            <div className="text-center">
+                <div>Mean ({currentYear})</div>
+                <div className="text-xs font-normal text-muted-foreground">({(table.options.meta?.currentUnit as string) || 'kg/plot'})</div>
+            </div>
+        ),
+        cell: meanCell,
+        footer: ({ table }) => {
+            const kalbarData = table.options.meta?.kalimantanBaratData;
+            return <div className="text-center">{formatNumber(kalbarData?.mean)}</div>;
+        },
+    },
+    {
+        accessorKey: "comparisonMean",
+        header: ({ table }) => (
+            <div className="text-center">
+                <div>Mean ({comparisonYear})</div>
+                <div className="text-xs font-normal text-muted-foreground">({(table.options.meta?.currentUnit as string) || 'kg/plot'})</div>
+            </div>
+        ),
+        cell: ({ row }) => <div className="text-center">{formatNumber(row.original.comparisonMean)}</div>,
+        footer: ({ table }) => {
+            const kalbarData = table.options.meta?.kalimantanBaratData;
+            return <div className="text-center">{formatNumber(kalbarData?.comparisonMean)}</div>;
+        },
+    },
+    {
+        accessorKey: "meanChange",
+        header: "Perubahan (%)",
+        cell: ({ row }) => <div className="text-center">{formatPercentage(row.original.meanChange)}</div>,
+        footer: ({ table }) => {
+            const kalbarData = table.options.meta?.kalimantanBaratData;
+            return <div className="text-center">{formatPercentage(kalbarData?.meanChange)}</div>;
+        },
+    },
+];
+
+// Legacy static columns for backward compatibility
 export const comparisonStatsColumns: ColumnDef<DescriptiveStatsRow>[] = [
     {
         accessorKey: "namaKabupaten",

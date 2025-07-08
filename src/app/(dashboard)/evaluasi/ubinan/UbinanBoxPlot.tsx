@@ -1,7 +1,7 @@
 // src/app/(dashboard)/evaluasi/ubinan/UbinanBoxPlot.tsx
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useDarkMode } from '@/context/DarkModeContext'; // Pastikan path ini benar
 import ReactECharts from 'echarts-for-react';
 import { BoxPlotStatsRow } from './types';
@@ -14,8 +14,25 @@ interface UbinanBoxPlotProps {
   isLoading: boolean;
 }
 
+interface TooltipParam {
+  name: string;
+  value: number[];
+}
+
 export function UbinanBoxPlot({ data, currentUnit, isLoading }: UbinanBoxPlotProps) {
   const { isDark } = useDarkMode();
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const chartOption = useMemo(() => {
     // Definisikan warna dinamis berdasarkan tema
@@ -36,7 +53,11 @@ export function UbinanBoxPlot({ data, currentUnit, isLoading }: UbinanBoxPlotPro
       title: {
         text: 'Sebaran Data Hasil Ubinan per Kabupaten/Kota',
         left: 'center',
-        textStyle: { color: textColor, fontSize: 18, fontWeight: 'bold' }
+        textStyle: { 
+          color: textColor, 
+          fontSize: isMobile ? 14 : 18, 
+          fontWeight: 'bold' 
+        }
       },
       tooltip: { 
         trigger: 'item', 
@@ -66,7 +87,7 @@ export function UbinanBoxPlot({ data, currentUnit, isLoading }: UbinanBoxPlotPro
             borderColor: boxBorderColor // Menggunakan variabel warna yang baru
           },
           tooltip: {
-            formatter: (param: any) => {
+            formatter: (param: TooltipParam) => {
               if (!param.value || param.value.length < 6) return '';
               const values = param.value;
               return [
@@ -82,7 +103,7 @@ export function UbinanBoxPlot({ data, currentUnit, isLoading }: UbinanBoxPlotPro
         },
       ]
     };
-  }, [data, currentUnit, isDark]);
+  }, [data, currentUnit, isDark, isMobile]);
 
   if (isLoading) {
     return (
