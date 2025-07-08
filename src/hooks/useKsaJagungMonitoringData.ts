@@ -417,9 +417,20 @@ export const useKsaJagungMonitoringData = (): KsaJagungMonitoringHookResult => {
                 const [kegiatanResult, ksaDataResult, leaderboardResult] = await Promise.all([
                     // PERBEDAAN: Mencari kegiatan dengan nama yang berbeda untuk jagung (fallback jika belum ada)
                     supabase.from('kegiatan').select('id').eq('nama_kegiatan', 'Kerangka Sampel Area Jagung').single()
-                      .then(result => result.error && result.error.code === 'PGRST116' 
-                        ? supabase.from('kegiatan').select('id').eq('nama_kegiatan', 'Kerangka Sampel Area').single()
-                        : result),
+                      .then(result => {
+                        if (result.error && result.error.code === 'PGRST116') {
+                          // Fallback ke nama kegiatan umum
+                          return supabase.from('kegiatan').select('id').eq('nama_kegiatan', 'Kerangka Sampel Area').single()
+                            .then(fallbackResult => {
+                              if (fallbackResult.error && fallbackResult.error.code === 'PGRST116') {
+                                // Jika kedua kegiatan tidak ditemukan, return result kosong tanpa error
+                                return { data: null, error: null };
+                              }
+                              return fallbackResult;
+                            });
+                        }
+                        return result;
+                      }),
                     (async () => {
                         let rawData: KsaJagungAmatanRow[] = [];
                         // PERBEDAAN: Query ke tabel ksa_amatan_jagung dan menggunakan flag_kode_98
@@ -455,8 +466,13 @@ export const useKsaJagungMonitoringData = (): KsaJagungMonitoringHookResult => {
                     })
                 ]);
 
-                if (kegiatanResult.error) console.error("Gagal mengambil ID kegiatan KSA Jagung:", kegiatanResult.error.message);
-                else setKegiatanId(kegiatanResult.data?.id || null);
+                if (kegiatanResult.error) {
+                    console.error("Gagal mengambil ID kegiatan KSA Jagung:", kegiatanResult.error.message);
+                } else if (!kegiatanResult.data) {
+                    console.warn("Kegiatan KSA Jagung tidak ditemukan di database. Pastikan kegiatan 'Kerangka Sampel Area Jagung' atau 'Kerangka Sampel Area' sudah dibuat.");
+                } else {
+                    setKegiatanId(kegiatanResult.data.id);
+                }
 
                 const rawData = ksaDataResult;
                 setAllRawDataCache(rawData);
