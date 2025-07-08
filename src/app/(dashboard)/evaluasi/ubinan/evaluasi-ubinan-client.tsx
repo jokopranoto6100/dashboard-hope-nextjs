@@ -253,11 +253,75 @@ export function EvaluasiUbinanClient() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-x-4 gap-y-2 mb-4">
-        <div><Button onClick={handleDownloadAnomali} disabled={isDownloading || !selectedYear} variant="outline">{isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}Download Anomali</Button></div>
-        <div className="flex flex-col sm:flex-row items-center gap-x-4 gap-y-2">
-          <div>{isLoadingFilters ? (<Skeleton className="h-10 w-36 sm:w-40" />) : (<Select value={selectedSubround === 'all' ? 'all' : String(selectedSubround)} onValueChange={handleSubroundChange} disabled={isLoadingFilters || availableSubrounds.length === 0}><SelectTrigger id="subround-filter" className="w-full sm:w-auto min-w-[150px]"><SelectValue placeholder="Pilih Subround" /></SelectTrigger><SelectContent><SelectItem value="all">Semua Subround</SelectItem>{availableSubrounds.map((subround) => (<SelectItem key={subround} value={String(subround)}>Subround {subround}</SelectItem>))}</SelectContent></Select>)}</div>
-          <div>{isLoadingFilters ? (<Skeleton className="h-10 w-36 sm:w-40" />) : (<Select value={selectedKomoditas || ""} onValueChange={handleKomoditasChange} disabled={isKomoditasDisabled}><SelectTrigger id="komoditas-filter" className="w-full sm:w-auto min-w-[150px]"><SelectValue placeholder={isKomoditasDisabled ? "Tidak ada komoditas" : "Pilih Komoditas"} /></SelectTrigger><SelectContent>{availableKomoditas.map((komoditas) => (<SelectItem key={komoditas} value={komoditas}>{komoditas}</SelectItem>))}</SelectContent></Select>)}</div>
+      <div className="flex flex-col gap-4">
+        {/* Download Button Row */}
+        <div className="flex justify-start">
+          <Button 
+            onClick={handleDownloadAnomali} 
+            disabled={isDownloading || !selectedYear} 
+            className="w-full sm:w-auto bg-amber-500 hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-700 text-white border-amber-500 dark:border-amber-600 transition-colors"
+            size="default"
+          >
+            {isDownloading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="mr-2 h-4 w-4" />
+            )}
+            Download Anomali
+          </Button>
+        </div>
+        
+        {/* Filters Row */}
+        <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
+          {/* Subround and Commodity filters - inline on mobile */}
+          <div className="grid grid-cols-2 gap-3 sm:flex sm:gap-3">
+            <div>
+              {isLoadingFilters ? (
+                <Skeleton className="h-10 w-full" />
+              ) : (
+                <Select 
+                  value={selectedSubround === 'all' ? 'all' : String(selectedSubround)} 
+                  onValueChange={handleSubroundChange} 
+                  disabled={isLoadingFilters || availableSubrounds.length === 0}
+                >
+                  <SelectTrigger id="subround-filter" className="w-full sm:w-40">
+                    <SelectValue placeholder="Pilih Subround" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua Subround</SelectItem>
+                    {availableSubrounds.map((subround) => (
+                      <SelectItem key={subround} value={String(subround)}>
+                        Subround {subround}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+            
+            <div>
+              {isLoadingFilters ? (
+                <Skeleton className="h-10 w-full" />
+              ) : (
+                <Select 
+                  value={selectedKomoditas || ""} 
+                  onValueChange={handleKomoditasChange} 
+                  disabled={isKomoditasDisabled}
+                >
+                  <SelectTrigger id="komoditas-filter" className="w-full sm:w-40">
+                    <SelectValue placeholder={isKomoditasDisabled ? "Tidak ada komoditas" : "Pilih Komoditas"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableKomoditas.map((komoditas) => (
+                      <SelectItem key={komoditas} value={komoditas}>
+                        {komoditas}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          </div>
         </div>
       </div>
       <Card>
