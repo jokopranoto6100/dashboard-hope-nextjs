@@ -2,11 +2,14 @@
 
 "use client";
 
+import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Terminal } from "lucide-react";
 import { AtapUploader } from "./atap-uploader";
 import { type LastUpdateData } from "./page"; // Impor tipe dari file page.tsx
+import { useSwipeGesture } from "@/hooks/useSwipeGesture";
+import { SwipeIndicator } from "@/components/ui/swipe-indicator";
 
 // Helper untuk memformat teks riwayat
 function formatUpdateText(updateData: { uploaded_at: string | null; uploaded_by_username: string | null; } | null, dataType: string): string {
@@ -28,23 +31,65 @@ interface UpdateAtapClientProps {
 }
 
 export function UpdateAtapClient({ lastUpdateData }: UpdateAtapClientProps) {
+  const [activeTab, setActiveTab] = useState("bulanan_kab");
+  const containerRef = useRef<HTMLDivElement>(null);
+  
+  const tabs = [
+    { value: "bulanan_kab", label: "Bulanan Kab/Kota" },
+    { value: "tahunan_kab", label: "Tahunan Kab/Kota" },
+    { value: "bulanan_prov", label: "Bulanan Provinsi" },
+    { value: "tahunan_prov", label: "Tahunan Provinsi" }
+  ];
+
+  const { bindToElement, swipeProgress } = useSwipeGesture({
+    onSwipeLeft: () => {
+      const currentIndex = tabs.findIndex(tab => tab.value === activeTab);
+      if (currentIndex < tabs.length - 1) {
+        setActiveTab(tabs[currentIndex + 1].value);
+      }
+    },
+    onSwipeRight: () => {
+      const currentIndex = tabs.findIndex(tab => tab.value === activeTab);
+      if (currentIndex > 0) {
+        setActiveTab(tabs[currentIndex - 1].value);
+      }
+    },
+    threshold: 50,
+    velocityThreshold: 0.3,
+    minSwipeDistance: 30
+  });
+
+  useEffect(() => {
+    const cleanup = bindToElement(containerRef.current);
+    return cleanup;
+  }, [bindToElement]);
+
   return (
     <div className="space-y-4">
       {/* --- JUDUL DAN DESKRIPSI HALAMAN --- */}
       <div>
         <h1 className="text-2xl font-bold">Pembaruan Data ATAP</h1>
         <p className="text-muted-foreground">
-          Unggah file Excel untuk memperbarui data Administrasi Tahapan Produksi (ATAP) untuk berbagai level dan periode.
+          Unggah file Excel untuk memperbarui data Administrasi Tahapan Produksi (ATAP) untuk berbagai level dan periode. 
+          <span className="hidden sm:inline"> Geser ke kiri/kanan untuk berpindah tab.</span>
         </p>
       </div>
 
-      <Tabs defaultValue="bulanan_kab" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 shadow-sm">
-          <TabsTrigger value="bulanan_kab">Bulanan Kab/Kota</TabsTrigger>
-          <TabsTrigger value="tahunan_kab">Tahunan Kab/Kota</TabsTrigger>
-          <TabsTrigger value="bulanan_prov">Bulanan Provinsi</TabsTrigger>
-          <TabsTrigger value="tahunan_prov">Tahunan Provinsi</TabsTrigger>
-        </TabsList>
+      <div ref={containerRef} className="relative">
+        <SwipeIndicator 
+          direction={swipeProgress.deltaX > 0 ? 'right' : 'left'} 
+          isVisible={swipeProgress.progress > 0} 
+          progress={swipeProgress.progress}
+          showProgress={true}
+        />
+        
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 shadow-sm">
+            <TabsTrigger value="bulanan_kab">Bulanan Kab/Kota</TabsTrigger>
+            <TabsTrigger value="tahunan_kab">Tahunan Kab/Kota</TabsTrigger>
+            <TabsTrigger value="bulanan_prov">Bulanan Provinsi</TabsTrigger>
+            <TabsTrigger value="tahunan_prov">Tahunan Provinsi</TabsTrigger>
+          </TabsList>
 
         {/* --- Konten untuk setiap Tab --- */}
         <TabsContent value="bulanan_kab" className="mt-4">
@@ -131,7 +176,8 @@ export function UpdateAtapClient({ lastUpdateData }: UpdateAtapClientProps) {
           </Card>
         </TabsContent>
 
-      </Tabs>
+        </Tabs>
+      </div>
     </div>
   );
 }

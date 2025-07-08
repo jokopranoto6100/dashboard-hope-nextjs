@@ -2,12 +2,15 @@
 
 "use client";
 
+import { useState, useRef, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { UploaderClientComponent } from "./uploader-client-component";
 import { MasterSampleUploader } from "./master-sample-uploader"; 
 import { Terminal } from "lucide-react";
 import { type LastUbinanUpdateData } from "./page"; // Impor tipe dari page.tsx
+import { useSwipeGesture } from "@/hooks/useSwipeGesture";
+import { SwipeIndicator } from "@/components/ui/swipe-indicator";
 
 // Helper untuk format tanggal kita pindahkan ke sini karena digunakan oleh JSX di client
 function formatUpdateText(updateData: { uploaded_at: string | null; uploaded_by_username: string | null; } | null): string {
@@ -29,6 +32,37 @@ interface UpdateUbinanClientProps {
 }
 
 export function UpdateUbinanClient({ lastUpdateData }: UpdateUbinanClientProps) {
+  const [activeTab, setActiveTab] = useState("data_raw");
+  const containerRef = useRef<HTMLDivElement>(null);
+  
+  const tabs = [
+    { value: "data_raw", label: "Raw Ubinan" },
+    { value: "master_sampel", label: "Master Sampel (iFrame)" }
+  ];
+
+  const { bindToElement, swipeProgress } = useSwipeGesture({
+    onSwipeLeft: () => {
+      const currentIndex = tabs.findIndex(tab => tab.value === activeTab);
+      if (currentIndex < tabs.length - 1) {
+        setActiveTab(tabs[currentIndex + 1].value);
+      }
+    },
+    onSwipeRight: () => {
+      const currentIndex = tabs.findIndex(tab => tab.value === activeTab);
+      if (currentIndex > 0) {
+        setActiveTab(tabs[currentIndex - 1].value);
+      }
+    },
+    threshold: 50,
+    velocityThreshold: 0.3,
+    minSwipeDistance: 30
+  });
+
+  useEffect(() => {
+    const cleanup = bindToElement(containerRef.current);
+    return cleanup;
+  }, [bindToElement]);
+
   return (
     <div className="space-y-4">
       {/* --- JUDUL DAN DESKRIPSI HALAMAN STANDAR --- */}
@@ -36,14 +70,23 @@ export function UpdateUbinanClient({ lastUpdateData }: UpdateUbinanClientProps) 
         <h1 className="text-2xl font-bold">Pembaruan Data Ubinan</h1>
         <p className="text-muted-foreground">
           Impor raw data atau perbarui data master sampel ubinan melalui halaman ini.
+          <span className="hidden sm:inline"> Geser ke kiri/kanan untuk berpindah tab.</span>
         </p>
       </div>
 
-      <Tabs defaultValue="data_raw" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 shadow-sm">
-          <TabsTrigger value="data_raw">Raw Ubinan</TabsTrigger>
-          <TabsTrigger value="master_sampel">Master Sampel (iFrame)</TabsTrigger>
-        </TabsList>
+      <div ref={containerRef} className="relative">
+        <SwipeIndicator 
+          direction={swipeProgress.deltaX > 0 ? 'right' : 'left'} 
+          isVisible={swipeProgress.progress > 0} 
+          progress={swipeProgress.progress}
+          showProgress={true}
+        />
+        
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2 shadow-sm">
+            <TabsTrigger value="data_raw">Raw Ubinan</TabsTrigger>
+            <TabsTrigger value="master_sampel">Master Sampel (iFrame)</TabsTrigger>
+          </TabsList>
         
         <TabsContent value="data_raw" className="mt-4">
           <Card className="shadow-lg">
@@ -90,7 +133,8 @@ export function UpdateUbinanClient({ lastUpdateData }: UpdateUbinanClientProps) 
             </CardContent>
           </Card>
         </TabsContent>
-      </Tabs>
+        </Tabs>
+      </div>
     </div>
   );
 }
