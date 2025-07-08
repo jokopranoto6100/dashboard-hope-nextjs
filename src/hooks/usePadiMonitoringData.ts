@@ -117,25 +117,6 @@ export const usePadiMonitoringData = (selectedYear: number, selectedSubround: st
       // BARU: Ambil kegiatan_id dari baris data pertama (semua akan sama)
       if (allRawPadiData && allRawPadiData.length > 0) {
         setKegiatanId(allRawPadiData[0].kegiatan_id);
-        
-        // DEBUG: Log untuk melihat data yang diambil
-        console.log(`[DEBUG] Padi monitoring - Tahun ${selectedYear}:`, {
-          totalRows: allRawPadiData.length,
-          dataSource: 'ubinan_dashboard',
-          sampleData: allRawPadiData.slice(0, 5).map(row => ({
-            jenis_sampel: row.jenis_sampel,
-            r701: row.r701,
-            status: row.status,
-            nmkab: row.nmkab
-          })),
-          jenissSampelDistribution: {
-            utama: allRawPadiData.filter(row => row.jenis_sampel === 'U').length,
-            cadangan: allRawPadiData.filter(row => row.jenis_sampel === 'C').length,
-            lainnya: allRawPadiData.filter(row => row.jenis_sampel !== 'U' && row.jenis_sampel !== 'C').length
-          }
-        });
-      } else {
-        console.log(`[DEBUG] Padi monitoring - Tahun ${selectedYear}: Tidak ada data padi valid ditemukan`);
       }
 
       // --- Sisa dari logika pemrosesan Anda tidak berubah ---

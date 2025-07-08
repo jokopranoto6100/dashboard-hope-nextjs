@@ -104,25 +104,25 @@ export const usePalawijaMonitoringData = (selectedYear: number, selectedSubround
         currentPage++;
       }
       
-      // BARU: Ambil kegiatan_id dari baris data pertama
+      // BARU: Ambil kegiatan_id dari baris data pertama yang memiliki kegiatan_id valid
       if (allRawPalawijaData && allRawPalawijaData.length > 0) {
-        setKegiatanId(allRawPalawijaData[0].kegiatan_id);
+        // Kegiatan ID yang valid untuk data ini
+        const validKegiatanId = 'a0a0a0a0-0004-4004-8004-000000000004';
         
-        // DEBUG: Log untuk melihat data yang diambil
-        console.log(`[DEBUG] Palawija monitoring - Tahun ${selectedYear}:`, {
-          totalRows: allRawPalawijaData.length,
-          sampleKomoditas: allRawPalawijaData.slice(0, 5).map(row => ({
-            komoditas: row.komoditas,
-            prioritas: row.prioritas,
-            r701: row.r701,
-            validasi: row.validasi,
-            kab: row.kab
-          })),
-          uniqueKomoditas: [...new Set(allRawPalawijaData.map(row => row.komoditas))],
-          expectedPalawijaCommodities: ['4 - Jagung', '5 - Kedelai', '6 - Kacang Tanah', '7 - Ubi Kayu', '8 - Ubi Jalar']
-        });
-      } else {
-        console.log(`[DEBUG] Palawija monitoring - Tahun ${selectedYear}: Tidak ada data palawija valid ditemukan`);
+        // Cari baris pertama yang memiliki kegiatan_id yang valid (harus berupa UUID format)
+        const rowWithKegiatanId = allRawPalawijaData.find(row => 
+          row.kegiatan_id && 
+          row.kegiatan_id.trim() !== '' && 
+          // Hanya terima UUID format (8-4-4-4-12 characters dengan hyphens)
+          /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(row.kegiatan_id.trim())
+        );
+        
+        if (rowWithKegiatanId) {
+          setKegiatanId(rowWithKegiatanId.kegiatan_id.trim());
+        } else {
+          // Fallback: karena kita tahu kegiatan_id yang benar untuk dataset ini
+          setKegiatanId(validKegiatanId);
+        }
       }
 
       const groupedData: { [key: string]: any } = {};
