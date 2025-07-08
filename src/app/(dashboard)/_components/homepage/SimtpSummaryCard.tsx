@@ -77,9 +77,9 @@ export function SimtpSummaryCard({ isLoading, error, data, displayStatus, isHigh
             <div className="text-xs text-muted-foreground mt-3 pt-2 border-t">
               <h4 className="font-semibold mb-1 text-foreground">Data Tahunan ({data.annual.reportForYear}):</h4>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                <Badge variant="secondary">Lahan: {data.annual.lahanCount}/{data.annual.totalDistricts}</Badge>
-                <Badge variant="secondary">Alsin: {data.annual.alsinCount}/{data.annual.totalDistricts}</Badge>
-                <Badge variant="secondary">Benih: {data.annual.benihCount}/{data.annual.totalDistricts}</Badge>
+                <Badge variant={data.annual.lahanCount === data.annual.totalDistricts ? "success" : data.annual.lahanCount > 0 ? "warning" : "danger"}>Lahan: {data.annual.lahanCount}/{data.annual.totalDistricts}</Badge>
+                <Badge variant={data.annual.alsinCount === data.annual.totalDistricts ? "success" : data.annual.alsinCount > 0 ? "warning" : "danger"}>Alsin: {data.annual.alsinCount}/{data.annual.totalDistricts}</Badge>
+                <Badge variant={data.annual.benihCount === data.annual.totalDistricts ? "success" : data.annual.benihCount > 0 ? "warning" : "danger"}>Benih: {data.annual.benihCount}/{data.annual.totalDistricts}</Badge>
               </div>
             </div>
             {data.lastUpdate && <p className="text-xs text-muted-foreground mt-2">Data per: {data.lastUpdate}</p>}

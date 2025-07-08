@@ -212,7 +212,7 @@ export default function HomePage() {
     <>
       {/* Header berwarna dengan flat color design dan dark mode support */}
       <div 
-        className="text-white p-6 rounded-xl mb-6 shadow-2xl relative overflow-hidden transition-all duration-300"
+        className="text-white p-4 md:p-6 rounded-xl mb-6 shadow-2xl relative overflow-hidden transition-all duration-300"
         style={{
           backgroundColor: '#8e97fe', // Flat color instead of gradient
         }}
@@ -225,18 +225,18 @@ export default function HomePage() {
           <div className="absolute inset-0 bg-white/10" />
         </div>
         
-        <div className="relative flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">🌾 Dashboard Statistik Pertanian</h1>
-            <p className="text-white/90 mt-2 text-lg">
-              Monitoring kegiatan survei dan sensus tahun {selectedYear}
+        <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex-1">
+            <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold tracking-tight">🌾 Dashboard Statistik Pertanian</h1>
+            <p className="text-white/90 mt-2 text-sm sm:text-base md:text-lg">
+              Monitoring kegiatan survei tahun {selectedYear}
             </p>
           </div>
           <div 
-            className="rounded-full p-4 backdrop-blur-sm"
+            className="hidden sm:block rounded-full p-3 md:p-4 backdrop-blur-sm"
             style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
           >
-            <CheckCircle className="w-10 h-10 text-white" />
+            <CheckCircle className="w-8 h-8 md:w-10 md:h-10 text-white" />
           </div>
         </div>
       </div>

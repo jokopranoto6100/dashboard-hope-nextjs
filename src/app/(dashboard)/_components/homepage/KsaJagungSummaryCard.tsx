@@ -79,7 +79,6 @@ export function KsaJagungSummaryCard({ isLoading, error, totals, displayStatus, 
                     />
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground">Realisasi: {totals.realisasi} dari {totals.target} Target</p>
                 <div className="flex flex-col md:flex-row md:gap-6">
                     <p className="text-xs text-muted-foreground mt-1 flex items-center flex-wrap">Inkonsisten:&nbsp;<Badge variant={totals.inkonsisten > 0 ? "destructive" : "success"}>{totals.inkonsisten}</Badge></p>
                     <p className="text-xs text-muted-foreground mt-1 flex items-center">Total Kode 98:&nbsp;<Badge variant="warning">{totals.kode_98}</Badge></p>
