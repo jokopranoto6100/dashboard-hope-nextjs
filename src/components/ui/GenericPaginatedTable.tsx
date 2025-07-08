@@ -44,19 +44,19 @@ const generatePaginationRange = (currentPage: number, pageCount: number, sibling
     const lastPageIndex = pageCount;
 
     if (!shouldShowLeftDots && shouldShowRightDots) {
-        let leftItemCount = 3 + 2 * siblingCount;
-        let leftRange = Array.from({ length: leftItemCount }, (_, i) => i + 1);
+        const leftItemCount = 3 + 2 * siblingCount;
+        const leftRange = Array.from({ length: leftItemCount }, (_, i) => i + 1);
         return [...leftRange, '...', pageCount];
     }
 
     if (shouldShowLeftDots && !shouldShowRightDots) {
-        let rightItemCount = 3 + 2 * siblingCount;
-        let rightRange = Array.from({ length: rightItemCount }, (_, i) => pageCount - rightItemCount + 1 + i);
+        const rightItemCount = 3 + 2 * siblingCount;
+        const rightRange = Array.from({ length: rightItemCount }, (_, i) => pageCount - rightItemCount + 1 + i);
         return [firstPageIndex, '...', ...rightRange];
     }
 
     if (shouldShowLeftDots && shouldShowRightDots) {
-        let middleRange = Array.from({ length: rightSiblingIndex - leftSiblingIndex + 1 }, (_, i) => leftSiblingIndex + i);
+        const middleRange = Array.from({ length: rightSiblingIndex - leftSiblingIndex + 1 }, (_, i) => leftSiblingIndex + i);
         return [firstPageIndex, '...', ...middleRange, '...', lastPageIndex];
     }
     return []; // fallback

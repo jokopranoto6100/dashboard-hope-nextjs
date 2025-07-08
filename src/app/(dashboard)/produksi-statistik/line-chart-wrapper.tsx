@@ -3,7 +3,7 @@
 
 import { Line, LineChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis, LabelList } from 'recharts';
 
-import { formatNumber } from "@/lib/utils";
+import { formatNumber, formatNumberInThousands } from "@/lib/utils";
 import { ChartDataPoint } from "@/lib/types";
 
 interface LineChartWrapperProps {
@@ -41,11 +41,15 @@ export default function LineChartWrapper({ data, dataKey1, dataKey2, onPointClic
     <ResponsiveContainer width="100%" height={350}>
       <LineChart 
         data={data}
-        margin={{ top: 30, right: 20, left: 10, bottom: 5 }}
+        margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
       >
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis dataKey="name" fontSize={12} />
-        <YAxis fontSize={12} tickFormatter={(value) => `${formatNumber(value)}`} />
+        <YAxis 
+          fontSize={12} 
+          tickFormatter={(value) => formatNumberInThousands(value)}
+          width={45}
+        />
         <Tooltip 
             formatter={(value: number) => formatNumber(value)}
             labelStyle={{ color: 'hsl(var(--foreground))' }}

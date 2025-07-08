@@ -110,7 +110,7 @@ export function ChartSection({
                 <Camera className="h-4 w-4" />
               </Button>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3">
               <BarChartWrapper 
                 data={processedData.barChart} 
                 onClick={onBarClick} 
@@ -149,7 +149,7 @@ export function ChartSection({
                     <Camera className="h-4 w-4" />
                   </Button>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-3">
                   {(filters.level === 'kabupaten' && processedData.pieChart.length > 0) ? (
                     <PieChartWrapper data={processedData.pieChart} />
                   ) : (
@@ -225,7 +225,7 @@ export function ChartSection({
             </Button>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-3">
           {isLineChartLoading ? (
             <Skeleton className="w-full h-[300px]" />
           ) : (

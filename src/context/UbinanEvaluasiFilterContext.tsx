@@ -42,8 +42,8 @@ export const UbinanEvaluasiFilterProvider = ({ children }: { children: ReactNode
     setIsLoadingFilters(true);
 
     try {
-      let allPossibleSubrounds: (RawSubroundType)[] = [];
-      let allPossibleKomoditas: (RawKomoditasType)[] = [];
+      const allPossibleSubrounds: (RawSubroundType)[] = [];
+      const allPossibleKomoditas: (RawKomoditasType)[] = [];
       let currentPage = 0;
       let hasMoreData = true;
 
