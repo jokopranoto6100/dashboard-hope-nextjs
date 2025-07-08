@@ -2,7 +2,7 @@
 // Lokasi: src/app/(dashboard)/monitoring/ksa/ksa-monitoring-client-page.tsx
 "use client";
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import { useYear } from '@/context/YearContext';
 import { useAuth } from '@/context/AuthContext';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -10,6 +10,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+import { useSwipeGesture } from '@/hooks/useSwipeGesture';
+import { EnhancedSwipeIndicator } from '@/components/ui/swipe-indicator';
 
 import { useKsaMonitoringData, ProcessedKsaDistrictData, ProcessedKsaNamaData } from '@/hooks/useKsaMonitoringData';
 import { useKsaJagungMonitoringData, ProcessedKsaJagungDistrictData, ProcessedKsaJagungNamaData } from '@/hooks/useKsaJagungMonitoringData';
@@ -35,7 +39,7 @@ export default function KsaMonitoringClientPage() {
   const [currentView, setCurrentView] = useState<ViewMode>('district');
   const [selectedKabupatenDetail, setSelectedKabupatenDetail] = useState<ProcessedKsaDistrictData | null>(null);
   const [selectedJagungKabupatenDetail, setSelectedJagungKabupatenDetail] = useState<ProcessedKsaJagungDistrictData | null>(null);
-  const [currentKsaType, setCurrentKsaType] = useState<KsaType>('padi');
+  const [activeTab, setActiveTab] = useState<KsaType>('padi');
 
   const [isBaModalOpen, setIsBaModalOpen] = useState(false);
   const [baModalData, setBaModalData] = useState<BaData[]>([]);
@@ -47,6 +51,38 @@ export default function KsaMonitoringClientPage() {
   const [baJagungModalData, setBaJagungModalData] = useState<BaJagungData[]>([]);
   const [selectedJagungPetugasForBa, setSelectedJagungPetugasForBa] = useState<ProcessedKsaJagungNamaData | null>(null);
   const [isBaJagungLoading, setIsBaJagungLoading] = useState(false);
+
+  // Tab navigation dengan swipe gesture
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const tabs: KsaType[] = ['padi', 'jagung'];
+  const currentTabIndex = tabs.indexOf(activeTab);
+
+  const handleSwipeLeft = useCallback(() => {
+    const nextIndex = Math.min(currentTabIndex + 1, tabs.length - 1);
+    if (nextIndex !== currentTabIndex) {
+      setActiveTab(tabs[nextIndex]);
+    }
+  }, [currentTabIndex, tabs]);
+
+  const handleSwipeRight = useCallback(() => {
+    const prevIndex = Math.max(currentTabIndex - 1, 0);
+    if (prevIndex !== currentTabIndex) {
+      setActiveTab(tabs[prevIndex]);
+    }
+  }, [currentTabIndex, tabs]);
+
+  const { bindToElement, swipeProgress } = useSwipeGesture({
+    onSwipeLeft: handleSwipeLeft,
+    onSwipeRight: handleSwipeRight,
+    threshold: 50,
+    velocityThreshold: 0.3,
+    minSwipeDistance: 30
+  });
+
+  useEffect(() => {
+    const cleanup = bindToElement(tabsRef.current);
+    return cleanup;
+  }, [bindToElement]);
 
   // KSA Padi data
   const { 
@@ -101,18 +137,27 @@ export default function KsaMonitoringClientPage() {
     setSelectedKabupatenDetail(districtData);
     setSelectedKabupatenCode(districtData.kode_kab);
     setCurrentView('nama');
-    setCurrentKsaType('padi');
+    setActiveTab('padi');
   };
 
   const handleJagungDistrictRowClick = (districtData: ProcessedKsaJagungDistrictData) => {
     setSelectedJagungKabupatenDetail(districtData);
     setJagungSelectedKabupatenCode(districtData.kode_kab);
     setCurrentView('nama');
-    setCurrentKsaType('jagung');
+    setActiveTab('jagung');
   };
 
   const handleBackToDistrictView = () => {
     setCurrentView('district');
+    setSelectedKabupatenDetail(null);
+    setSelectedJagungKabupatenDetail(null);
+    setSelectedKabupatenCode(null);
+    setJagungSelectedKabupatenCode(null);
+  };
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value as KsaType);
+    // Reset selections when changing tabs
     setSelectedKabupatenDetail(null);
     setSelectedJagungKabupatenDetail(null);
     setSelectedKabupatenCode(null);
@@ -232,9 +277,9 @@ export default function KsaMonitoringClientPage() {
       />
       
       {currentView === 'district' ? (
-        <>
+        <div className="relative" ref={tabsRef}>
           {/* Month selector */}
-          <div className="flex flex-wrap items-center justify-end gap-4">
+          <div className="flex flex-wrap items-center justify-end gap-4 mb-4">
             {pageIsLoading && !displayMonth ? (
                <Skeleton className="h-10 w-full md:w-[180px]" />
             ) : (
@@ -247,54 +292,69 @@ export default function KsaMonitoringClientPage() {
             )}
           </div>
 
-          {/* KSA Padi Section */}
-          <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-foreground">Monitoring KSA Padi</h2>
-            
-            <LeaderboardCard 
-              data={leaderboardData} 
-              isLoading={isLoading || !displayMonth}
-              monthName={selectedMonthLabel}
-              year={selectedYear || new Date().getFullYear()}
-            />
+          {/* Tab Navigation */}
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="padi" className="flex items-center gap-2 transition-all">
+                <span>🌾</span>
+                <span>KSA Padi</span>
+              </TabsTrigger>
+              <TabsTrigger value="jagung" className="flex items-center gap-2 transition-all">
+                <span>🌽</span>
+                <span>KSA Jagung</span>
+              </TabsTrigger>
+            </TabsList>
 
-            <DistrictKsaTable
-              title="KSA Padi - Data Kabupaten"
-              description={!isLoading && lastUpdated ? `Terakhir diperbarui: ${lastUpdated}` : ' '}
-              data={districtLevelData || []}
-              totals={districtTotals}
-              uniqueStatusNames={uniqueStatusNames || []}
-              onRowClick={handleDistrictRowClick}
-              isLoading={isLoading || !displayMonth}
-              jadwal={jadwalKsa}
-              displayMonth={displayMonth}
-            />
-          </div>
+            <TabsContent value="padi" className="space-y-4 animate-in fade-in-0 slide-in-from-left-4 duration-300">
+              <LeaderboardCard 
+                data={leaderboardData} 
+                isLoading={isLoading || !displayMonth}
+                monthName={selectedMonthLabel}
+                year={selectedYear || new Date().getFullYear()}
+              />
 
-          {/* KSA Jagung Section */}
-          <div className="space-y-4 mt-8">
-            <h2 className="text-xl font-semibold text-foreground">Monitoring KSA Jagung</h2>
-            
-            <LeaderboardJagungCard 
-              data={jagungLeaderboardData} 
-              isLoading={jagungIsLoading || !jagungDisplayMonth}
-              monthName={selectedMonthLabel}
-              year={selectedYear || new Date().getFullYear()}
-            />
+              <DistrictKsaTable
+                title="KSA Padi - Data Kabupaten"
+                description={!isLoading && lastUpdated ? `Terakhir diperbarui: ${lastUpdated}` : ' '}
+                data={districtLevelData || []}
+                totals={districtTotals}
+                uniqueStatusNames={uniqueStatusNames || []}
+                onRowClick={handleDistrictRowClick}
+                isLoading={isLoading || !displayMonth}
+                jadwal={jadwalKsa}
+                displayMonth={displayMonth}
+              />
+            </TabsContent>
 
-            <DistrictKsaJagungTable
-              title="KSA Jagung - Data Kabupaten"
-              description={!jagungIsLoading && jagungLastUpdated ? `Terakhir diperbarui: ${jagungLastUpdated}` : ' '}
-              data={jagungDistrictLevelData || []}
-              totals={jagungDistrictTotals}
-              uniqueStatusNames={jagungUniqueStatusNames || []}
-              onRowClick={handleJagungDistrictRowClick}
-              isLoading={jagungIsLoading || !jagungDisplayMonth}
-              jadwal={jadwalKsa}
-              displayMonth={jagungDisplayMonth}
-            />
-          </div>
-        </>
+            <TabsContent value="jagung" className="space-y-4 animate-in fade-in-0 slide-in-from-right-4 duration-300">
+              <LeaderboardJagungCard 
+                data={jagungLeaderboardData} 
+                isLoading={jagungIsLoading || !jagungDisplayMonth}
+                monthName={selectedMonthLabel}
+                year={selectedYear || new Date().getFullYear()}
+              />
+
+              <DistrictKsaJagungTable
+                title="KSA Jagung - Data Kabupaten"
+                description={!jagungIsLoading && jagungLastUpdated ? `Terakhir diperbarui: ${jagungLastUpdated}` : ' '}
+                data={jagungDistrictLevelData || []}
+                totals={jagungDistrictTotals}
+                uniqueStatusNames={jagungUniqueStatusNames || []}
+                onRowClick={handleJagungDistrictRowClick}
+                isLoading={jagungIsLoading || !jagungDisplayMonth}
+                jadwal={jadwalKsa}
+                displayMonth={jagungDisplayMonth}
+              />
+            </TabsContent>
+          </Tabs>
+
+          {/* Swipe Indicators */}
+          <EnhancedSwipeIndicator 
+            swipeProgress={swipeProgress}
+            showProgress={swipeProgress.progress > 0.1}
+            className="md:hidden"
+          />
+        </div>
       ) : (
         <>
           {/* Back button */}
@@ -305,7 +365,7 @@ export default function KsaMonitoringClientPage() {
           </div>
 
           {/* Detail view for selected kabupaten */}
-          {currentKsaType === 'padi' && selectedKabupatenDetail && (
+          {activeTab === 'padi' && selectedKabupatenDetail && (
             <NamaKsaTable
               title={`Detail KSA Padi - ${selectedKabupatenDetail.kabupaten}`}
               description={`Data untuk Tahun ${selectedYear} - Bulan ${selectedMonthLabel}`}
@@ -320,7 +380,7 @@ export default function KsaMonitoringClientPage() {
             />
           )}
 
-          {currentKsaType === 'jagung' && selectedJagungKabupatenDetail && (
+          {activeTab === 'jagung' && selectedJagungKabupatenDetail && (
             <NamaKsaJagungTable
               title={`Detail KSA Jagung - ${selectedJagungKabupatenDetail.kabupaten}`}
               description={`Data untuk Tahun ${selectedYear} - Bulan ${selectedMonthLabel}`}
