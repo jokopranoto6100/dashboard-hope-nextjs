@@ -31,19 +31,31 @@ export function KsaJagungSummaryCard({ isLoading, error, totals, displayStatus, 
   return (
     <Card className={`
       h-full transition-all duration-300 hover:shadow-xl hover:-translate-y-1 relative
-      ${isHighlighted ? 'border-2 border-amber-500 shadow-lg' : 'border'}
-    `}>
+      bg-white dark:bg-gray-800
+      border-2 border-[#fdb18f]/30 hover:border-[#fdb18f]/50 
+      dark:border-[#fdb18f]/40 dark:hover:border-[#fdb18f]/60
+      ${isHighlighted ? 'ring-2 ring-amber-400 shadow-lg border-amber-500' : ''}
+    `}
+    style={{
+      backgroundColor: 'rgba(253, 177, 143, 0.1)',
+    }}
+    >
+      {/* Dark mode background overlay */}
+      <div className="absolute inset-0 rounded-lg hidden dark:block" style={{ backgroundColor: 'rgba(253, 177, 143, 0.15)' }} />
+      
       {isHighlighted && (
-        <Badge variant="default" className="absolute -top-3 -right-3 flex items-center gap-1 bg-amber-500 text-white hover:bg-amber-600">
+        <Badge variant="default" className="absolute -top-3 -right-3 flex items-center gap-1 bg-amber-500 text-white hover:bg-amber-600 z-10">
           <AlertTriangle className="h-3 w-3" />
           Perlu Perhatian
         </Badge>
       )}
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">KSA Jagung ({selectedYear}) - {getMonthName(displayMonth)}</CardTitle>
-        <Button asChild variant="outline" size="sm"><Link href="/monitoring/ksa">Lihat Detail</Link></Button>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
+        <CardTitle className="text-sm font-medium text-[#9a3412] dark:text-[#fed7aa]">🌽 KSA Jagung ({selectedYear}) - {getMonthName(displayMonth)}</CardTitle>
+        <Button asChild variant="outline" size="sm" className="border-[#fdb18f]/40 text-[#ea580c] hover:bg-[#fdb18f]/20 dark:text-[#fb923c] dark:border-[#fdb18f]/50">
+          <Link href="/monitoring/ksa">Lihat Detail</Link>
+        </Button>
       </CardHeader>
-      <CardContent className="flex flex-col h-full">
+      <CardContent className="flex flex-col h-full relative z-10">
         {isLoading ? ( <div className="space-y-2"><Skeleton className="h-8 w-3/4 mb-1" /><Skeleton className="h-4 w-full mb-1" /><Skeleton className="h-4 w-2/3 mt-1" /></div>
         ) : error ? ( <p className="text-xs text-red-500 dark:text-red-400">Error: {error}</p>
         ) : totals ? (
@@ -55,7 +67,18 @@ export function KsaJagungSummaryCard({ isLoading, error, totals, displayStatus, 
                 </div>
             )}
             <div className="flex-grow">
-                <div className="text-2xl font-bold">{totals.persentase.toFixed(2)}%</div>
+                <div className="text-2xl font-bold text-[#9a3412] dark:text-[#fed7aa]">{totals.persentase.toFixed(2)}%</div>
+                <p className="text-xs text-[#ea580c] dark:text-[#fb923c]">Realisasi: {totals.realisasi} dari {totals.target} Target</p>
+                
+                {/* Progress Bar */}
+                <div className="mt-3 mb-4">
+                  <div className="w-full bg-orange-200 rounded-full h-2">
+                    <div 
+                      className="bg-gradient-to-r from-orange-400 to-orange-500 h-2 rounded-full transition-all duration-500"
+                      style={{ width: `${Math.min(totals.persentase, 100)}%` }}
+                    />
+                  </div>
+                </div>
                 <p className="text-xs text-muted-foreground">Realisasi: {totals.realisasi} dari {totals.target} Target</p>
                 <div className="flex flex-col md:flex-row md:gap-6">
                     <p className="text-xs text-muted-foreground mt-1 flex items-center flex-wrap">Inkonsisten:&nbsp;<Badge variant={totals.inkonsisten > 0 ? "destructive" : "success"}>{totals.inkonsisten}</Badge></p>

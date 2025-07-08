@@ -21,27 +21,49 @@ export function PalawijaSummaryCard({ isLoading, error, totals, countdownStatus,
   return (
     <Card className={`
       h-full transition-all duration-300 hover:shadow-xl hover:-translate-y-1 relative
-      ${isHighlighted ? 'border-2 border-amber-500 shadow-lg' : 'border'}
-    `}>
+      bg-white dark:bg-gray-800
+      border-2 border-[#fab067]/30 hover:border-[#fab067]/50 
+      dark:border-[#fab067]/40 dark:hover:border-[#fab067]/60
+      ${isHighlighted ? 'ring-2 ring-amber-400 shadow-lg border-amber-500' : ''}
+    `}
+    style={{
+      backgroundColor: 'rgba(250, 176, 103, 0.1)',
+    }}
+    >
+      {/* Dark mode background overlay */}
+      <div className="absolute inset-0 rounded-lg hidden dark:block" style={{ backgroundColor: 'rgba(250, 176, 103, 0.15)' }} />
+      
       {isHighlighted && (
-        <Badge variant="default" className="absolute -top-3 -right-3 flex items-center gap-1 bg-amber-500 text-white hover:bg-amber-600">
+        <Badge variant="default" className="absolute -top-3 -right-3 flex items-center gap-1 bg-amber-500 text-white hover:bg-amber-600 z-10">
           <AlertTriangle className="h-3 w-3" />
           Perlu Perhatian
         </Badge>
       )}
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">Ubinan Palawija ({selectedYear})</CardTitle>
-        <Button asChild variant="outline" size="sm"><Link href="/monitoring/ubinan">Lihat Detail</Link></Button>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
+        <CardTitle className="text-sm font-medium text-[#7c2d12] dark:text-[#fed7aa]">🌽 Ubinan Palawija ({selectedYear})</CardTitle>
+        <Button asChild variant="outline" size="sm" className="border-[#fab067]/40 text-[#c2410c] hover:bg-[#fab067]/20 dark:text-[#fb923c] dark:border-[#fab067]/50">
+          <Link href="/monitoring/ubinan">Lihat Detail</Link>
+        </Button>
       </CardHeader>
-      <CardContent className="flex flex-col h-full">
+      <CardContent className="flex flex-col h-full relative z-10">
         {isLoading ? ( <div className="space-y-2"><Skeleton className="h-5 w-3/4" /><Skeleton className="h-8 w-1/2" /><Skeleton className="h-4 w-full" /></div>
         ) : error ? ( <p className="text-xs text-red-500 dark:text-red-400">Error: {error}</p>
         ) : totals && typeof totals.persentase === 'number' ? (
           <>
             {countdownStatus && (<div className="flex items-center text-xs text-muted-foreground mb-4"><countdownStatus.icon className={`h-4 w-4 mr-2 ${countdownStatus.color}`} /><span className={`font-medium ${countdownStatus.color}`}>{countdownStatus.text}</span></div>)}
             <div className="flex-grow">
-                <div className="text-2xl font-bold">{totals.persentase.toFixed(2)}%</div>
-                <p className="text-xs text-muted-foreground">Realisasi: {totals.realisasi} dari {totals.target} Target</p>
+                <div className="text-2xl font-bold text-[#7c2d12] dark:text-[#fed7aa]">{totals.persentase.toFixed(2)}%</div>
+                <p className="text-xs text-[#c2410c] dark:text-[#fb923c]">Realisasi: {totals.realisasi} dari {totals.target} Target</p>
+                
+                {/* Progress Bar */}
+                <div className="mt-3 mb-4">
+                  <div className="w-full bg-yellow-200 rounded-full h-2">
+                    <div 
+                      className="bg-gradient-to-r from-yellow-400 to-amber-500 h-2 rounded-full transition-all duration-500"
+                      style={{ width: `${Math.min(totals.persentase, 100)}%` }}
+                    />
+                  </div>
+                </div>
             </div>
             <div className="text-xs text-muted-foreground mt-3 pt-2 border-t">
               <h4 className="font-semibold mb-2 text-foreground">Detail Status Validasi:</h4>

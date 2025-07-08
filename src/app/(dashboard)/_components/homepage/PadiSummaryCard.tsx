@@ -22,19 +22,31 @@ export function PadiSummaryCard({ isLoading, error, totals, countdownStatus, uni
   return (
     <Card className={`
       h-full transition-all duration-300 hover:shadow-xl hover:-translate-y-1 relative
-      ${isHighlighted ? 'border-2 border-amber-500 shadow-lg' : 'border'}
-    `}>
+      bg-white dark:bg-gray-800
+      border-2 border-[#78d19a]/30 hover:border-[#78d19a]/50 
+      dark:border-[#78d19a]/40 dark:hover:border-[#78d19a]/60
+      ${isHighlighted ? 'ring-2 ring-amber-400 shadow-lg border-amber-500' : ''}
+    `}
+    style={{
+      backgroundColor: 'rgba(120, 209, 154, 0.1)',
+    }}
+    >
+      {/* Dark mode background overlay */}
+      <div className="absolute inset-0 rounded-lg hidden dark:block" style={{ backgroundColor: 'rgba(120, 209, 154, 0.15)' }} />
+      
       {isHighlighted && (
-        <Badge variant="default" className="absolute -top-3 -right-3 flex items-center gap-1 bg-amber-500 text-white hover:bg-amber-600">
+        <Badge variant="default" className="absolute -top-3 -right-3 flex items-center gap-1 bg-amber-500 text-white hover:bg-amber-600 z-10">
           <AlertTriangle className="h-3 w-3" />
           Perlu Perhatian
         </Badge>
       )}
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">Ubinan Padi ({selectedYear})</CardTitle>
-        <Button asChild variant="outline" size="sm"><Link href="/monitoring/ubinan">Lihat Detail</Link></Button>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
+        <CardTitle className="text-sm font-medium text-[#0f4c2a] dark:text-[#86efac]">🌾 Ubinan Padi ({selectedYear})</CardTitle>
+        <Button asChild variant="outline" size="sm" className="border-[#78d19a]/40 text-[#166534] hover:bg-[#78d19a]/20 dark:text-[#4ade80] dark:border-[#78d19a]/50">
+          <Link href="/monitoring/ubinan">Lihat Detail</Link>
+        </Button>
       </CardHeader>
-      <CardContent className="flex flex-col h-full">
+      <CardContent className="flex flex-col h-full relative z-10">
         {isLoading ? (
           <div className="space-y-2"><Skeleton className="h-5 w-3/4" /><Skeleton className="h-8 w-1/2" /><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-2/3" /></div>
         ) : error ? (
@@ -43,11 +55,22 @@ export function PadiSummaryCard({ isLoading, error, totals, countdownStatus, uni
           <>
             {countdownStatus && ( <div className="flex items-center text-xs text-muted-foreground mb-4"><Clock className={`h-4 w-4 mr-2 ${countdownStatus.color}`} /><span className={`font-medium ${countdownStatus.color}`}>{countdownStatus.text}</span></div> )}
             <div className="flex-grow">
-              <div className="text-2xl font-bold">{totals.persentase.toFixed(2)}%</div>
-              <p className="text-xs text-muted-foreground">Realisasi: {totals.realisasi} dari {totals.targetUtama} Target Utama</p>
+              <div className="text-2xl font-bold text-[#0f4c2a] dark:text-[#86efac]">{totals.persentase.toFixed(2)}%</div>
+              <p className="text-xs text-green-600">Realisasi: {totals.realisasi} dari {totals.targetUtama} Target Utama</p>
+              
+              {/* Progress Bar */}
+              <div className="mt-3 mb-4">
+                <div className="w-full bg-green-200 rounded-full h-2">
+                  <div 
+                    className="bg-gradient-to-r from-green-400 to-emerald-500 h-2 rounded-full transition-all duration-500"
+                    style={{ width: `${Math.min(totals.persentase, 100)}%` }}
+                  />
+                </div>
+              </div>
+              
               <div className="flex flex-col md:flex-row md:gap-6">
-                  <p className="text-xs text-muted-foreground mt-1 flex items-center flex-wrap">Total Lewat Panen:&nbsp;<Badge variant={totals.lewatPanen > 0 ? "destructive" : "success"}>{totals.lewatPanen}</Badge></p>
-                  <p className="text-xs text-muted-foreground mt-1 flex items-center flex-wrap">Jumlah Anomali:&nbsp;<Badge variant={totals.anomali > 0 ? "destructive" : "success"}>{totals.anomali}</Badge></p>
+                  <p className="text-xs text-green-600 mt-1 flex items-center flex-wrap">Total Lewat Panen:&nbsp;<Badge variant={totals.lewatPanen > 0 ? "destructive" : "success"}>{totals.lewatPanen}</Badge></p>
+                  <p className="text-xs text-green-600 mt-1 flex items-center flex-wrap">Jumlah Anomali:&nbsp;<Badge variant={totals.anomali > 0 ? "destructive" : "success"}>{totals.anomali}</Badge></p>
               </div>
             </div>
             {totals.statuses && uniqueStatusNames && uniqueStatusNames.length > 0 && (

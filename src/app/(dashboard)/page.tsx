@@ -40,18 +40,66 @@ const HomepageSkeleton = () => (
   </div>
 );
 
-// Komponen dummy card untuk kegiatan lainnya
+// Komponen dummy card untuk kegiatan lainnya dengan warna custom (flat design)
 const KegiatanLainnyaCard = ({ title, isHighlighted }: { title: string, isHighlighted?: boolean }) => (
-    <Card className={`border-dashed bg-muted/50 h-full ${isHighlighted ? 'border-2 border-amber-500 shadow-lg' : 'border'}`}>
-    <CardHeader>
-      <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+    <Card className={`
+      border-dashed 
+      transition-all duration-300 
+      hover:shadow-lg 
+      hover:scale-105
+      h-full 
+      bg-white dark:bg-gray-800
+      ${isHighlighted ? 'border-2 shadow-lg ring-2' : 'border-2'}
+    `}
+    style={{
+      backgroundColor: isHighlighted 
+        ? 'rgba(249, 125, 131, 0.1)'
+        : 'rgba(117, 72, 66, 0.08)',
+      borderColor: isHighlighted ? '#f97d83' : '#754842',
+      ...(isHighlighted && { '--tw-ring-color': '#f97d83' })
+    }}
+    >
+    {/* Dark mode background overlay */}
+    <div className={`absolute inset-0 rounded-lg hidden dark:block`} 
+         style={{ 
+           backgroundColor: isHighlighted 
+             ? 'rgba(249, 125, 131, 0.15)'
+             : 'rgba(117, 72, 66, 0.12)'
+         }} />
+    
+    <CardHeader className="relative z-10">
+      <CardTitle className="text-sm font-medium">
+        <span className="dark:hidden" style={{ color: isHighlighted ? '#881337' : '#44403c' }}>
+          {title}
+        </span>
+        <span className="hidden dark:inline" style={{ color: isHighlighted ? '#fecaca' : '#d6d3d1' }}>
+          {title}
+        </span>
+      </CardTitle>
     </CardHeader>
-    <CardContent>
+    <CardContent className="relative z-10">
       <div className="flex items-center justify-center h-full py-8">
-        <div className="text-center text-muted-foreground">
-          <Clock className="mx-auto h-6 w-6 mb-2" />
-          <p className="text-sm">Belum Tersedia</p>
-          <p className="text-xs">Dalam Pengembangan</p>
+        <div className="text-center">
+          <Clock 
+            className="mx-auto h-6 w-6 mb-2" 
+            style={{ color: isHighlighted ? '#f97d83' : '#754842' }}
+          />
+          <p className="text-sm font-medium">
+            <span className="dark:hidden" style={{ color: isHighlighted ? '#881337' : '#44403c' }}>
+              Belum Tersedia
+            </span>
+            <span className="hidden dark:inline" style={{ color: isHighlighted ? '#fecaca' : '#d6d3d1' }}>
+              Belum Tersedia
+            </span>
+          </p>
+          <p className="text-xs">
+            <span className="dark:hidden" style={{ color: isHighlighted ? '#be185d' : '#78716c' }}>
+              Dalam Pengembangan
+            </span>
+            <span className="hidden dark:inline" style={{ color: isHighlighted ? '#f87171' : '#a8a29e' }}>
+              Dalam Pengembangan
+            </span>
+          </p>
         </div>
       </div>
     </CardContent>
@@ -162,10 +210,41 @@ export default function HomePage() {
   // Bagian 3: Rendering
   return (
     <>
+      {/* Header berwarna dengan flat color design dan dark mode support */}
+      <div 
+        className="text-white p-6 rounded-xl mb-6 shadow-2xl relative overflow-hidden transition-all duration-300"
+        style={{
+          backgroundColor: '#8e97fe', // Flat color instead of gradient
+        }}
+      >
+        {/* Dark mode overlay */}
+        <div className="absolute inset-0 bg-black/20 dark:bg-black/40 rounded-xl" />
+        
+        {/* Subtle pattern overlay */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute inset-0 bg-white/10" />
+        </div>
+        
+        <div className="relative flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">🌾 Dashboard Statistik Pertanian</h1>
+            <p className="text-white/90 mt-2 text-lg">
+              Monitoring kegiatan survei dan sensus tahun {selectedYear}
+            </p>
+          </div>
+          <div 
+            className="rounded-full p-4 backdrop-blur-sm"
+            style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
+          >
+            <CheckCircle className="w-10 h-10 text-white" />
+          </div>
+        </div>
+      </div>
+
       {isAnythingLoading ? (
         <HomepageSkeleton />
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-6">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 auto-rows-fr mb-6">
           {sortedKpiCards.map((card, index) => {
             const isHighlighted = index === 0;
             if (card.id === 'padi') {
@@ -193,9 +272,14 @@ export default function HomePage() {
           })}
         </div>
       )}
-      <p className="mt-6 text-gray-500 dark:text-gray-400 text-center text-xs">
-        Welcome to your Hope.
-      </p>
+      <div className="mt-8 text-center">
+        <p className="text-gray-500 dark:text-gray-400 text-sm">
+          🌾 Welcome to your <span className="font-semibold text-blue-600">Hope</span> Dashboard
+        </p>
+        <p className="text-xs text-gray-400 mt-1">
+          Membangun pertanian Indonesia yang lebih baik
+        </p>
+      </div>
     </>
   );
 }
