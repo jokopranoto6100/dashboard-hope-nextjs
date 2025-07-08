@@ -81,10 +81,10 @@ export const usePadiMonitoringData = (selectedYear: number, selectedSubround: st
       let currentPage = 0;
       const itemsPerPage = 1000;
 
-      // DIUBAH: Tambahkan 'komoditas' dan 'kegiatan_id' ke kolom yang dipilih
+      // DIUBAH: Tambahkan 'kegiatan_id' ke kolom yang dipilih, hapus 'komoditas' karena semua data sudah padi
       const selectColumns = [
         'nmkab', 'jenis_sampel', 'r701', 'tahun', 'subround', 'kab', 'anomali', 'timestamp_refresh',
-        'status', 'komoditas', 'kegiatan_id',
+        'status', 'kegiatan_id',
         lastMonthColumn,
         ...lewatPanenColumns,
       ];
@@ -99,8 +99,7 @@ export const usePadiMonitoringData = (selectedYear: number, selectedSubround: st
           queryPadi = queryPadi.eq('subround', parseInt(selectedSubround));
         }
 
-        // BARU: Tambahkan filter untuk hanya mengambil komoditas Padi
-        queryPadi = queryPadi.in('komoditas', ['1 - Padi Sawah', '3 - Padi Ladang']);
+        // DIHAPUS: Filter komoditas karena semua data di ubinan_dashboard adalah padi
 
         const { data, error } = await queryPadi
           .range(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage - 1);
@@ -118,6 +117,25 @@ export const usePadiMonitoringData = (selectedYear: number, selectedSubround: st
       // BARU: Ambil kegiatan_id dari baris data pertama (semua akan sama)
       if (allRawPadiData && allRawPadiData.length > 0) {
         setKegiatanId(allRawPadiData[0].kegiatan_id);
+        
+        // DEBUG: Log untuk melihat data yang diambil
+        console.log(`[DEBUG] Padi monitoring - Tahun ${selectedYear}:`, {
+          totalRows: allRawPadiData.length,
+          dataSource: 'ubinan_dashboard',
+          sampleData: allRawPadiData.slice(0, 5).map(row => ({
+            jenis_sampel: row.jenis_sampel,
+            r701: row.r701,
+            status: row.status,
+            nmkab: row.nmkab
+          })),
+          jenissSampelDistribution: {
+            utama: allRawPadiData.filter(row => row.jenis_sampel === 'U').length,
+            cadangan: allRawPadiData.filter(row => row.jenis_sampel === 'C').length,
+            lainnya: allRawPadiData.filter(row => row.jenis_sampel !== 'U' && row.jenis_sampel !== 'C').length
+          }
+        });
+      } else {
+        console.log(`[DEBUG] Padi monitoring - Tahun ${selectedYear}: Tidak ada data padi valid ditemukan`);
       }
 
       // --- Sisa dari logika pemrosesan Anda tidak berubah ---

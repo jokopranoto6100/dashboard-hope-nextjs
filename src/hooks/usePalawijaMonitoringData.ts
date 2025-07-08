@@ -78,8 +78,17 @@ export const usePalawijaMonitoringData = (selectedYear: number, selectedSubround
           queryPalawija = queryPalawija.eq('subround', parseInt(selectedSubround));
         }
         
-        // DIUBAH: Filter menjadi lebih spesifik dan konsisten
-        queryPalawija = queryPalawija.not('komoditas', 'in', '("1 - Padi Sawah", "3 - Padi Ladang")');
+        // DIUBAH: Filter menjadi lebih spesifik untuk komoditas palawija yang valid
+        // Daftar komoditas palawija berdasarkan data sebenarnya di database
+        const validPalawijaKomoditas = [
+          '4 - Jagung',
+          '5 - Kedelai', 
+          '6 - Kacang Tanah',
+          '7 - Ubi Kayu',
+          '8 - Ubi Jalar'
+        ];
+        
+        queryPalawija = queryPalawija.in('komoditas', validPalawijaKomoditas);
 
         const { data, error } = await queryPalawija
           .range(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage - 1);
@@ -98,6 +107,22 @@ export const usePalawijaMonitoringData = (selectedYear: number, selectedSubround
       // BARU: Ambil kegiatan_id dari baris data pertama
       if (allRawPalawijaData && allRawPalawijaData.length > 0) {
         setKegiatanId(allRawPalawijaData[0].kegiatan_id);
+        
+        // DEBUG: Log untuk melihat data yang diambil
+        console.log(`[DEBUG] Palawija monitoring - Tahun ${selectedYear}:`, {
+          totalRows: allRawPalawijaData.length,
+          sampleKomoditas: allRawPalawijaData.slice(0, 5).map(row => ({
+            komoditas: row.komoditas,
+            prioritas: row.prioritas,
+            r701: row.r701,
+            validasi: row.validasi,
+            kab: row.kab
+          })),
+          uniqueKomoditas: [...new Set(allRawPalawijaData.map(row => row.komoditas))],
+          expectedPalawijaCommodities: ['4 - Jagung', '5 - Kedelai', '6 - Kacang Tanah', '7 - Ubi Kayu', '8 - Ubi Jalar']
+        });
+      } else {
+        console.log(`[DEBUG] Palawija monitoring - Tahun ${selectedYear}: Tidak ada data palawija valid ditemukan`);
       }
 
       const groupedData: { [key: string]: any } = {};
@@ -106,22 +131,67 @@ export const usePalawijaMonitoringData = (selectedYear: number, selectedSubround
 
       if (allRawPalawijaData) {
         allRawPalawijaData.forEach(row => {
-          // ... logika grouping Anda tidak berubah ...
+          // Sekarang data sudah difilter di query level, jadi validasi minimal saja
           const kabValue = row.kab;
           let displayName: string, groupAndSortKey: string;
           const kabCodeString = (kabValue !== null && kabValue !== undefined) ? String(kabValue).trim() : '';
-          if (kabCodeString && KAB_CODE_TO_NAME[kabCodeString]) { displayName = KAB_CODE_TO_NAME[kabCodeString]; groupAndSortKey = kabCodeString; }
-          else if (kabCodeString) { displayName = `Kabupaten/Kota (Kode: ${kabCodeString})`; groupAndSortKey = kabCodeString; }
-          else { displayName = "Kabupaten Tidak Diketahui"; groupAndSortKey = "zzzz_UnknownKab"; }
-          if (!groupedData[groupAndSortKey]) { groupedData[groupAndSortKey] = { nmkab: displayName, kab_sort_key: groupAndSortKey, target: 0, realisasi: 0, clean: 0, warning: 0, error: 0, }; }
-          if (row.prioritas === "UTAMA") { groupedData[groupAndSortKey].target++; totalTarget++; }
-          if (row.r701 !== null && String(row.r701).trim() !== '') {
-            groupedData[groupAndSortKey].realisasi++; totalRealisasi++;
-            if (row.validasi === 'CLEAN') { groupedData[groupAndSortKey].clean++; totalClean++; }
-            else if (row.validasi === 'WARNING') { groupedData[groupAndSortKey].warning++; totalWarning++; }
-            else if (row.validasi === 'ERROR') { groupedData[groupAndSortKey].error++; totalError++; }
+          
+          if (kabCodeString && KAB_CODE_TO_NAME[kabCodeString]) { 
+            displayName = KAB_CODE_TO_NAME[kabCodeString]; 
+            groupAndSortKey = kabCodeString; 
           }
-          if (row.uploaded_at) { const ts = new Date(row.uploaded_at); if (!maxTimestamp || ts > maxTimestamp) maxTimestamp = ts; }
+          else if (kabCodeString) { 
+            displayName = `Kabupaten/Kota (Kode: ${kabCodeString})`; 
+            groupAndSortKey = kabCodeString; 
+          }
+          else { 
+            displayName = "Kabupaten Tidak Diketahui"; 
+            groupAndSortKey = "zzzz_UnknownKab"; 
+          }
+          
+          if (!groupedData[groupAndSortKey]) { 
+            groupedData[groupAndSortKey] = { 
+              nmkab: displayName, 
+              kab_sort_key: groupAndSortKey, 
+              target: 0, 
+              realisasi: 0, 
+              clean: 0, 
+              warning: 0, 
+              error: 0 
+            }; 
+          }
+          
+          // Hitung target hanya untuk prioritas UTAMA
+          if (row.prioritas === "UTAMA") { 
+            groupedData[groupAndSortKey].target++; 
+            totalTarget++; 
+          }
+          
+          // Hitung realisasi hanya jika ada data hasil panen yang valid
+          if (row.r701 !== null && String(row.r701).trim() !== '') {
+            groupedData[groupAndSortKey].realisasi++; 
+            totalRealisasi++;
+            
+            // Kategorikan berdasarkan status validasi
+            if (row.validasi === 'CLEAN') { 
+              groupedData[groupAndSortKey].clean++; 
+              totalClean++; 
+            }
+            else if (row.validasi === 'WARNING') { 
+              groupedData[groupAndSortKey].warning++; 
+              totalWarning++; 
+            }
+            else if (row.validasi === 'ERROR') { 
+              groupedData[groupAndSortKey].error++; 
+              totalError++; 
+            }
+          }
+          
+          // Track timestamp untuk last update
+          if (row.uploaded_at) { 
+            const ts = new Date(row.uploaded_at); 
+            if (!maxTimestamp || ts > maxTimestamp) maxTimestamp = ts; 
+          }
         });
       }
 
