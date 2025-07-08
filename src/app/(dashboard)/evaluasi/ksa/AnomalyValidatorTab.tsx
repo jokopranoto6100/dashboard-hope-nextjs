@@ -162,7 +162,20 @@ export function AnomalyValidatorTab() {
     state: { sorting },
   });
 
-  if (isLoading) return <Skeleton className="h-96 w-full mt-4" />;
+  if (isLoading) return (
+    <div className="pt-4 space-y-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <Skeleton className="h-24"/>
+        <Skeleton className="h-24"/>
+        <Skeleton className="h-24 md:col-span-2 lg:col-span-1"/>
+      </div>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <Skeleton className="h-10 w-[200px]"/>
+        <Skeleton className="h-10 w-[140px]"/>
+      </div>
+      <Skeleton className="h-96 w-full"/>
+    </div>
+  );
   if (error) return <div className="text-red-500 text-center py-8">{error}</div>;
 
   return (

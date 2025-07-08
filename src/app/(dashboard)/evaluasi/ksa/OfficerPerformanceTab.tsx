@@ -145,7 +145,21 @@ export function OfficerPerformanceTab() {
     state: { sorting },
   });
 
-  if (isMonthLoading) return <Skeleton className="h-96 w-full mt-4" />;
+  if (isMonthLoading) return (
+    <div className="pt-4 space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+        <div className="lg:col-span-1 flex flex-col justify-between space-y-4">
+          <Skeleton className="h-24"/>
+          <Skeleton className="h-24"/>
+          <Skeleton className="h-24"/>
+        </div>
+        <div className="lg:col-span-2">
+          <Skeleton className="h-[360px]"/>
+        </div>
+      </div>
+      <Skeleton className="h-96 w-full"/>
+    </div>
+  );
   if (error) return <div className="text-red-500 dark:text-red-400 text-center py-8">{error}</div>;
 
   return (
@@ -238,7 +252,7 @@ export function OfficerPerformanceTab() {
         {/* --- AKHIR BLOK KODE --- */}
 
         <div className="lg:col-span-2">
-          <Card>
+          <Card className="h-full">
               <CardHeader className="flex flex-col space-y-3 md:flex-row md:justify-between md:items-start md:space-y-0">
                   <div>
                     <CardTitle className="text-lg">Jumlah Submit Harian</CardTitle>
@@ -261,13 +275,13 @@ export function OfficerPerformanceTab() {
                     </Select>
                   </div>
               </CardHeader>
-              <CardContent className="pl-2">
+              <CardContent className="pl-2 flex-1">
                   {isChartLoading ? (
-                      <Skeleton className="h-[300px] md:h-[350px] w-full" />
+                      <Skeleton className="h-[280px] w-full" />
                   ) : chartError ? (
                       <p className="text-red-500 text-center py-8">{chartError}</p>
                   ) : (
-                      <ResponsiveContainer width="100%" height={300}>
+                      <ResponsiveContainer width="100%" height={280}>
                           <BarChart data={dailyData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
                               <CartesianGrid strokeDasharray="3 3" />
                               <XAxis 
