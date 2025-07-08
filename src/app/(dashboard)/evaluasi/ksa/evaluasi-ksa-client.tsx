@@ -45,7 +45,7 @@ export function NoDataDisplay({ message = "Coba ubah filter tahun atau wilayah A
 
 // Helper untuk format angka dan nama bulan
 const formatNumber = (num: number, decimals = 1) => (num === null || num === undefined) ? 'N/A' : new Intl.NumberFormat('id-ID', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(num);
-const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+const MONTH_NAMES = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
 export function EvaluasiKsaClient() {
     const { selectedYear } = useYear();
@@ -61,6 +61,7 @@ export function EvaluasiKsaClient() {
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedKabForModal, setSelectedKabForModal] = useState<string | null>(null);
+    const [selectedHarvestFilter, setSelectedHarvestFilter] = useState<number | null>(null);
     const [activeTab, setActiveTab] = useState("visualisasi");
     const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
     const tabsRef = useRef<HTMLDivElement>(null);
@@ -100,6 +101,13 @@ export function EvaluasiKsaClient() {
 
     const handleRowClick = (kabupaten: string) => {
         setSelectedKabForModal(kabupaten);
+        setSelectedHarvestFilter(null); // Reset harvest filter when clicking kabupaten
+        setIsModalOpen(true);
+    };
+
+    const handleHarvestCellClick = (kabupaten: string, harvestCount: number) => {
+        setSelectedKabForModal(kabupaten);
+        setSelectedHarvestFilter(harvestCount);
         setIsModalOpen(true);
     };
 
@@ -110,7 +118,18 @@ export function EvaluasiKsaClient() {
         const dynamicColumns: ColumnDef<PivotTableData>[] = harvestColumns.map(col => ({
             accessorKey: `${col}x`,
             header: () => <div className="text-center">{col}x Panen</div>,
-            cell: ({ row }) => <div className="text-center font-mono">{formatNumber(row.getValue(`${col}x`) as number ?? 0, 0)}</div>
+            cell: ({ row }) => (
+                <div 
+                    className="text-center font-mono cursor-pointer hover:bg-muted/50 py-1 px-2 rounded transition-colors"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        handleHarvestCellClick(row.getValue('kabupaten'), col);
+                    }}
+                    title={`Klik untuk melihat detail ${col}x panen di ${row.getValue('kabupaten')}`}
+                >
+                    {formatNumber(row.getValue(`${col}x`) as number ?? 0, 0)}
+                </div>
+            )
         }));
 
         return [
@@ -282,10 +301,9 @@ export function EvaluasiKsaClient() {
                     <p className="text-red-500 dark:text-red-400 text-center py-8">{error}</p>
                  ) : (
                   <div className="space-y-6 pt-4">
-                    <div className="grid gap-4 md:grid-cols-3">
+                    <div className="grid gap-4 md:grid-cols-2">
                         <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Rata-Rata Frekuensi Panen Setahun</CardTitle><Scissors className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{formatNumber(kpiData?.avgHarvestFrequency ?? 0)} kali</div><p className="text-xs text-muted-foreground">rata-rata per subsegmen/tahun</p></CardContent></Card>
-                        <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Puncak Tanam</CardTitle><Tractor className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{kpiData?.peakTanamMonth ?? '-'}</div><p className="text-xs text-muted-foreground">bulan aktivitas tanam terbanyak</p></CardContent></Card>
-                        <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Puncak Panen</CardTitle><Calendar className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{kpiData?.peakPanenMonth ?? '-'}</div><p className="text-xs text-muted-foreground">bulan aktivitas panen terbanyak</p></CardContent></Card>
+                        <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Puncak Aktivitas Tanam & Panen</CardTitle><Calendar className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="space-y-2"><div className="flex items-center justify-between"><span className="text-sm text-muted-foreground flex items-center gap-1"><Tractor className="h-3 w-3" />Tanam:</span><span className="text-lg font-semibold">{kpiData?.peakTanamMonth ?? '-'}</span></div><div className="flex items-center justify-between"><span className="text-sm text-muted-foreground flex items-center gap-1"><Scissors className="h-3 w-3" />Panen:</span><span className="text-lg font-semibold">{kpiData?.peakPanenMonth ?? '-'}</span></div></div></CardContent></Card>
                     </div>
                     <Card>
                         <CardHeader><CardTitle>Proporsi Fase Amatan per Bulan</CardTitle><CardDescription>Komposisi fase tanam padi (disederhanakan) sepanjang tahun {selectedYear}.</CardDescription></CardHeader>
@@ -298,6 +316,8 @@ export function EvaluasiKsaClient() {
                                     keys={areaChartKeys}
                                     colors={COLORS}
                                     monthNames={MONTH_NAMES}
+                                    dynamicXAxis={true}
+                                    selectedYear={selectedYear}
                                 />
                             )}
                         </CardContent>
@@ -308,13 +328,18 @@ export function EvaluasiKsaClient() {
                             {lineChartData.length === 0 ? (
                                 <NoDataDisplay />
                             ) : (
-                                <MemoizedLineChart data={lineChartData} />
+                                <MemoizedLineChart 
+                                    data={lineChartData} 
+                                    dynamicXAxis={true}
+                                    fullMonthNames={MONTH_NAMES}
+                                    selectedYear={selectedYear}
+                                />
                             )}
                         </CardContent>
                     </Card>
                     
                     <Card>
-                        <CardHeader><CardTitle className="flex items-center gap-2"><TableIcon className="h-5 w-5"/> Distribusi Frekuensi Panen</CardTitle><CardDescription>Jumlah subsegmen berdasarkan berapa kali panen dalam setahun ({selectedYear}). Klik nama kabupaten untuk melihat rincian.</CardDescription></CardHeader>
+                        <CardHeader><CardTitle className="flex items-center gap-2"><TableIcon className="h-5 w-5"/> Distribusi Frekuensi Panen</CardTitle><CardDescription>Jumlah subsegmen berdasarkan berapa kali panen dalam setahun ({selectedYear}). Klik baris untuk melihat semua detail atau klik angka panen spesifik untuk filter sesuai frekuensi.</CardDescription></CardHeader>
                         <CardContent>{pivotTableData.length === 0 ? <NoDataDisplay message="Tidak ada data panen untuk filter ini." /> : (
                             <div className="rounded-md border overflow-x-auto">
                                 <Table>
@@ -329,7 +354,11 @@ export function EvaluasiKsaClient() {
                                     </TableHeader>
                                     <TableBody>
                                         {table.getRowModel().rows.map(row => (
-                                            <TableRow key={row.id}>
+                                            <TableRow 
+                                                key={row.id} 
+                                                className="cursor-pointer hover:bg-muted/30 transition-colors"
+                                                onClick={() => handleRowClick(row.getValue('kabupaten'))}
+                                            >
                                                 {row.getVisibleCells().map(cell => (
                                                     <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
                                                 ))}
@@ -426,8 +455,13 @@ export function EvaluasiKsaClient() {
             {isModalOpen && (
                 <DetailKsaModal
                     isOpen={isModalOpen}
-                    onClose={() => setIsModalOpen(false)}
+                    onClose={() => {
+                        setIsModalOpen(false);
+                        setSelectedKabForModal(null);
+                        setSelectedHarvestFilter(null);
+                    }}
                     kabupaten={selectedKabForModal}
+                    harvestFilter={selectedHarvestFilter}
                 />
             )}
             

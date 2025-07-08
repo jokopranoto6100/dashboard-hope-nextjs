@@ -13,6 +13,7 @@ import { NoDataDisplay } from "./evaluasi-ksa-client";
 
 interface DetailProps {
   kabupaten: string;
+  harvestFilter?: number | null;
 }
 
 interface SubsegmenDetail {
@@ -21,7 +22,7 @@ interface SubsegmenDetail {
     bulan_panen: number[];
 }
 
-export function DetailKsaModalContent({ kabupaten }: DetailProps) {
+export function DetailKsaModalContent({ kabupaten, harvestFilter }: DetailProps) {
   const { supabase } = useAuth();
   const { selectedYear } = useYear();
   const [data, setData] = useState<SubsegmenDetail[]>([]);
@@ -52,13 +53,22 @@ export function DetailKsaModalContent({ kabupaten }: DetailProps) {
   }, [kabupaten, selectedYear, supabase]);
 
   const filteredData = useMemo(() => {
-    if (!searchTerm) {
-      return data;
+    let filtered = data;
+    
+    // Filter berdasarkan harvest count jika ada
+    if (harvestFilter !== null && harvestFilter !== undefined) {
+      filtered = filtered.filter(item => item.jumlah_panen === harvestFilter);
     }
-    return data.filter(item => 
-      item.id_subsegmen.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [data, searchTerm]);
+    
+    // Filter berdasarkan search term
+    if (searchTerm) {
+      filtered = filtered.filter(item =>
+        item.id_subsegmen.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    return filtered;
+  }, [data, searchTerm, harvestFilter]);
 
   if (isLoading) {
     return (
