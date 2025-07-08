@@ -13,7 +13,7 @@ interface MemoizedAreaChartProps {
 
 export const MemoizedAreaChart = React.memo(({ data, keys, colors, monthNames }: MemoizedAreaChartProps) => (
   <ResponsiveContainer width="100%" height={300}>
-    <AreaChart data={data} stackOffset="expand">
+    <AreaChart data={data} stackOffset="expand" margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
       <CartesianGrid strokeDasharray="3 3" />
       <XAxis 
         dataKey="bulan" 
@@ -23,6 +23,7 @@ export const MemoizedAreaChart = React.memo(({ data, keys, colors, monthNames }:
       <YAxis 
         tickFormatter={(tick) => `${(tick * 100).toFixed(0)}%`} 
         fontSize={12} 
+        width={45}
       />
       <Tooltip 
         formatter={(value: number, name: string, props) => {
@@ -56,10 +57,10 @@ interface MemoizedLineChartProps {
 
 export const MemoizedLineChart = React.memo(({ data }: MemoizedLineChartProps) => (
   <ResponsiveContainer width="100%" height={300}>
-    <LineChart data={data}>
+    <LineChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
       <CartesianGrid strokeDasharray="3 3" />
       <XAxis dataKey="name" fontSize={12} />
-      <YAxis fontSize={12} />
+      <YAxis fontSize={12} width={45} />
       <Tooltip />
       <Legend wrapperStyle={{ fontSize: '12px' }} />
       <Line 

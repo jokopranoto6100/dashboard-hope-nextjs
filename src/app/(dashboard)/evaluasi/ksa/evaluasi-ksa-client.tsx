@@ -289,7 +289,7 @@ export function EvaluasiKsaClient() {
                     </div>
                     <Card>
                         <CardHeader><CardTitle>Proporsi Fase Amatan per Bulan</CardTitle><CardDescription>Komposisi fase tanam padi (disederhanakan) sepanjang tahun {selectedYear}.</CardDescription></CardHeader>
-                        <CardContent>
+                        <CardContent className="pl-2 pr-6">
                             {areaChartData.length === 0 ? (
                                 <NoDataDisplay />
                             ) : (
@@ -304,7 +304,7 @@ export function EvaluasiKsaClient() {
                     </Card>
                     <Card>
                         <CardHeader><CardTitle>Aktivitas Tanam vs. Panen</CardTitle><CardDescription>Perbandingan jumlah subsegmen yang tanam dan panen setiap bulan selama tahun {selectedYear}.</CardDescription></CardHeader>
-                        <CardContent>
+                        <CardContent className="pl-2 pr-6">
                             {lineChartData.length === 0 ? (
                                 <NoDataDisplay />
                             ) : (
