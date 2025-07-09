@@ -96,8 +96,70 @@ export default function UbinanMonitoringPage() {
 
       {pageIsLoading ? (
         <div className="space-y-4">
-          <Skeleton className="h-[400px] w-full" />
-          <Skeleton className="h-[400px] w-full" />
+          {/* Tab Navigation Skeleton */}
+          <div className="grid w-full grid-cols-2 gap-2 p-1 bg-muted rounded-lg">
+            <Skeleton className="h-10 w-full rounded-md" />
+            <Skeleton className="h-10 w-full rounded-md" />
+          </div>
+          
+          {/* Table Card Skeleton */}
+          <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+            {/* Card Header Skeleton */}
+            <div className="flex flex-col space-y-1.5 p-6">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
+                <div className="flex-grow">
+                  <Skeleton className="h-6 w-48 mb-2" /> {/* Title */}
+                </div>
+                <Skeleton className="h-8 w-32" /> {/* Countdown status */}
+              </div>
+              
+              <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-2 pt-2">
+                <Skeleton className="h-4 w-40" /> {/* Description */}
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-8 w-20" /> {/* Button 1 */}
+                  <Skeleton className="h-8 w-24" /> {/* Button 2 */}
+                </div>
+              </div>
+            </div>
+            
+            {/* Card Content - Table Skeleton */}
+            <div className="p-6 pt-0">
+              <div className="rounded-md border">
+                {/* Table Header */}
+                <div className="border-b">
+                  <div className="flex">
+                    {Array.from({ length: 7 }).map((_, index) => (
+                      <div key={index} className="flex-1 p-3 border-r last:border-r-0">
+                        <Skeleton className="h-4 w-full" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Table Body */}
+                {Array.from({ length: 6 }).map((_, rowIndex) => (
+                  <div key={rowIndex} className="flex border-b last:border-b-0">
+                    {Array.from({ length: 7 }).map((_, cellIndex) => (
+                      <div key={cellIndex} className="flex-1 p-3 border-r last:border-r-0">
+                        <Skeleton className="h-4 w-full" />
+                      </div>
+                    ))}
+                  </div>
+                ))}
+                
+                {/* Table Footer */}
+                <div className="bg-muted/50 border-t">
+                  <div className="flex">
+                    {Array.from({ length: 7 }).map((_, index) => (
+                      <div key={index} className="flex-1 p-3 border-r last:border-r-0">
+                        <Skeleton className="h-4 w-full" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       ) : (
         <div className="relative" ref={tabsRef}>
