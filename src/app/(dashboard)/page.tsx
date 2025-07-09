@@ -48,7 +48,6 @@ const KegiatanLainnyaCard = ({ title, isHighlighted }: { title: string, isHighli
       hover:shadow-lg 
       hover:scale-105
       h-full 
-      bg-white dark:bg-gray-800
       ${isHighlighted ? 'border-2 shadow-lg ring-2' : 'border-2'}
     `}
     style={{
@@ -59,46 +58,23 @@ const KegiatanLainnyaCard = ({ title, isHighlighted }: { title: string, isHighli
       ...(isHighlighted && { '--tw-ring-color': '#f97d83' })
     }}
     >
-    {/* Dark mode background overlay */}
-    <div className={`absolute inset-0 rounded-lg hidden dark:block`} 
-         style={{ 
-           backgroundColor: isHighlighted 
-             ? 'rgba(249, 125, 131, 0.15)'
-             : 'rgba(117, 72, 66, 0.12)'
-         }} />
-    
-    <CardHeader className="relative z-10">
-      <CardTitle className="text-sm font-medium">
-        <span className="dark:hidden" style={{ color: isHighlighted ? '#881337' : '#44403c' }}>
-          {title}
-        </span>
-        <span className="hidden dark:inline" style={{ color: isHighlighted ? '#fecaca' : '#d6d3d1' }}>
-          {title}
-        </span>
+    <CardHeader>
+      <CardTitle className="text-sm font-medium" style={{ color: isHighlighted ? '#881337' : '#44403c' }}>
+        {title}
       </CardTitle>
     </CardHeader>
-    <CardContent className="relative z-10">
+    <CardContent>
       <div className="flex items-center justify-center h-full py-8">
         <div className="text-center">
           <Clock 
             className="mx-auto h-6 w-6 mb-2" 
             style={{ color: isHighlighted ? '#f97d83' : '#754842' }}
           />
-          <p className="text-sm font-medium">
-            <span className="dark:hidden" style={{ color: isHighlighted ? '#881337' : '#44403c' }}>
-              Belum Tersedia
-            </span>
-            <span className="hidden dark:inline" style={{ color: isHighlighted ? '#fecaca' : '#d6d3d1' }}>
-              Belum Tersedia
-            </span>
+          <p className="text-sm font-medium" style={{ color: isHighlighted ? '#881337' : '#44403c' }}>
+            Belum Tersedia
           </p>
-          <p className="text-xs">
-            <span className="dark:hidden" style={{ color: isHighlighted ? '#be185d' : '#78716c' }}>
-              Dalam Pengembangan
-            </span>
-            <span className="hidden dark:inline" style={{ color: isHighlighted ? '#f87171' : '#a8a29e' }}>
-              Dalam Pengembangan
-            </span>
+          <p className="text-xs" style={{ color: isHighlighted ? '#be185d' : '#78716c' }}>
+            Dalam Pengembangan
           </p>
         </div>
       </div>

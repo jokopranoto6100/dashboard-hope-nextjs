@@ -24,7 +24,7 @@ interface SimtpSummaryCardProps {
 export function SimtpSummaryCard({ isLoading, error, data, displayStatus, isHighlighted }: SimtpSummaryCardProps) {
   return (
     <Card className={`
-      h-full transition-all duration-300 hover:shadow-xl hover:-translate-y-1 relative
+      h-full transition-all duration-300 hover:shadow-lg hover:scale-105 relative
       bg-white dark:bg-gray-800
       border-2 border-[#c87cc3]/30 hover:border-[#c87cc3]/50 
       dark:border-[#c87cc3]/40 dark:hover:border-[#c87cc3]/60

@@ -15,13 +15,15 @@ export const DarkModeProvider = ({ children }: { children: React.ReactNode }) =>
   const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
-    // Cek localStorage saat load pertama
+    // Simple check without causing hydration issues
     const saved = localStorage.getItem('theme');
-    if (saved === 'dark') {
-      setIsDark(true);
+    const shouldBeDark = saved === 'dark';
+    
+    setIsDark(shouldBeDark);
+    
+    if (shouldBeDark) {
       document.documentElement.classList.add('dark');
     } else {
-      setIsDark(false);
       document.documentElement.classList.remove('dark');
     }
   }, []);

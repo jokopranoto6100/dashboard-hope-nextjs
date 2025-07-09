@@ -30,7 +30,7 @@ const getMonthName = (monthNumberStr: string): string => {
 export function KsaJagungSummaryCard({ isLoading, error, totals, displayStatus, displayMonth, uniqueStatusNames, lastUpdate, selectedYear, isHighlighted }: KsaJagungSummaryCardProps) {
   return (
     <Card className={`
-      h-full transition-all duration-300 hover:shadow-xl hover:-translate-y-1 relative
+      h-full transition-all duration-300 hover:shadow-lg hover:scale-105 relative
       bg-white dark:bg-gray-800
       border-2 border-[#fdb18f]/30 hover:border-[#fdb18f]/50 
       dark:border-[#fdb18f]/40 dark:hover:border-[#fdb18f]/60

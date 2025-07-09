@@ -20,7 +20,7 @@ interface PalawijaSummaryCardProps {
 export function PalawijaSummaryCard({ isLoading, error, totals, countdownStatus, lastUpdate, selectedYear, isHighlighted }: PalawijaSummaryCardProps) {
   return (
     <Card className={`
-      h-full transition-all duration-300 hover:shadow-xl hover:-translate-y-1 relative
+      h-full transition-all duration-300 hover:shadow-lg hover:scale-105 relative
       bg-white dark:bg-gray-800
       border-2 border-[#fab067]/30 hover:border-[#fab067]/50 
       dark:border-[#fab067]/40 dark:hover:border-[#fab067]/60

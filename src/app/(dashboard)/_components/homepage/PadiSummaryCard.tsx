@@ -21,7 +21,7 @@ interface PadiSummaryCardProps {
 export function PadiSummaryCard({ isLoading, error, totals, countdownStatus, uniqueStatusNames, lastUpdate, selectedYear, isHighlighted }: PadiSummaryCardProps) {
   return (
     <Card className={`
-      h-full transition-all duration-300 hover:shadow-xl hover:-translate-y-1 relative
+      h-full transition-all duration-300 hover:shadow-lg hover:scale-105 relative
       bg-white dark:bg-gray-800
       border-2 border-[#78d19a]/30 hover:border-[#78d19a]/50 
       dark:border-[#78d19a]/40 dark:hover:border-[#78d19a]/60
