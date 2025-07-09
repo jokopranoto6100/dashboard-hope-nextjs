@@ -14,6 +14,8 @@ interface SwipeGestureConfig {
   minSwipeDistance?: number;
   onSwipeStart?: () => void;
   onSwipeEnd?: () => void;
+  // New option to ignore swipes on scrollable elements
+  ignoreScrollableElements?: boolean;
 }
 
 interface TouchState {
@@ -24,6 +26,8 @@ interface TouchState {
   lastX: number;
   lastY: number;
   lastTime: number;
+  // Track the target element where touch started
+  startTarget: EventTarget | null;
 }
 
 interface SwipeProgress {
@@ -45,7 +49,8 @@ export function useSwipeGesture({
   maxSwipeTime = 500,
   minSwipeDistance = 30,
   onSwipeStart,
-  onSwipeEnd
+  onSwipeEnd,
+  ignoreScrollableElements = true
 }: SwipeGestureConfig) {
   const touchState = useRef<TouchState | null>(null);
   const [isSwiping, setIsSwiping] = useState(false);
@@ -59,6 +64,48 @@ export function useSwipeGesture({
 
   // Throttle touch move events to improve performance
   const throttleTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  // Helper function to check if an element is horizontally scrollable
+  const isElementScrollable = useCallback((element: Element): boolean => {
+    if (!element) return false;
+    
+    const hasOverflowX = window.getComputedStyle(element).overflowX;
+    const isScrollable = hasOverflowX === 'scroll' || hasOverflowX === 'auto';
+    const hasScrollableContent = element.scrollWidth > element.clientWidth;
+    
+    return isScrollable && hasScrollableContent;
+  }, []);
+
+  // Helper function to check if touch started on or inside a scrollable element
+  const isTargetInScrollableElement = useCallback((target: EventTarget | null): boolean => {
+    if (!ignoreScrollableElements || !target || !(target instanceof Element)) {
+      return false;
+    }
+
+    let currentElement: Element | null = target;
+    
+    // Check the target element and its parents up to 5 levels
+    let depth = 0;
+    while (currentElement && depth < 5) {
+      // Check for common scrollable containers
+      if (
+        isElementScrollable(currentElement) ||
+        currentElement.classList.contains('overflow-x-auto') ||
+        currentElement.classList.contains('overflow-x-scroll') ||
+        currentElement.tagName.toLowerCase() === 'table' ||
+        currentElement.classList.contains('table') ||
+        // Check for table-related elements
+        ['tbody', 'thead', 'tr', 'td', 'th'].includes(currentElement.tagName.toLowerCase())
+      ) {
+        return true;
+      }
+      
+      currentElement = currentElement.parentElement;
+      depth++;
+    }
+    
+    return false;
+  }, [ignoreScrollableElements, isElementScrollable]);
 
   const calculateVelocity = useCallback((currentX: number, currentY: number, currentTime: number) => {
     if (!touchState.current) return 0;
@@ -83,7 +130,8 @@ export function useSwipeGesture({
       startTime: currentTime,
       lastX: touch.clientX,
       lastY: touch.clientY,
-      lastTime: currentTime
+      lastTime: currentTime,
+      startTarget: e.target
     };
     
     setIsSwiping(false);
@@ -100,6 +148,11 @@ export function useSwipeGesture({
 
   const handleTouchMove = useCallback((e: TouchEvent) => {
     if (!touchState.current) return;
+
+    // Check if touch started on a scrollable element
+    if (isTargetInScrollableElement(touchState.current.startTarget)) {
+      return; // Don't process swipe if started on scrollable element
+    }
 
     const touch = e.touches[0];
     const currentTime = Date.now();
@@ -137,10 +190,26 @@ export function useSwipeGesture({
         e.preventDefault();
       }
     }
-  }, [threshold, preventDefaultTouchmoveEvent, minSwipeDistance, calculateVelocity]);
+  }, [threshold, preventDefaultTouchmoveEvent, minSwipeDistance, calculateVelocity, isTargetInScrollableElement]);
 
   const handleTouchEnd = useCallback((e: TouchEvent) => {
     if (!touchState.current) return;
+
+    // Check if touch started on a scrollable element
+    if (isTargetInScrollableElement(touchState.current.startTarget)) {
+      // Reset state but don't trigger swipe
+      touchState.current = null;
+      setIsSwiping(false);
+      setSwipeProgress({
+        deltaX: 0,
+        deltaY: 0,
+        progress: 0,
+        direction: null,
+        velocity: 0
+      });
+      onSwipeEnd?.();
+      return;
+    }
 
     const touch = e.changedTouches[0];
     const deltaX = touch.clientX - touchState.current.startX;
@@ -181,7 +250,7 @@ export function useSwipeGesture({
     });
     
     onSwipeEnd?.();
-  }, [threshold, onSwipeLeft, onSwipeRight, velocityThreshold, maxSwipeTime, calculateVelocity, onSwipeEnd]);
+  }, [threshold, onSwipeLeft, onSwipeRight, velocityThreshold, maxSwipeTime, calculateVelocity, onSwipeEnd, isTargetInScrollableElement]);
 
   // Handle touch cancel events for better UX
   const handleTouchCancel = useCallback(() => {
