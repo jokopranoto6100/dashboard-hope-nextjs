@@ -68,9 +68,17 @@ export function PadiSummaryCard({ isLoading, error, totals, countdownStatus, uni
                 </div>
               </div>
               
-              <div className="flex flex-col md:flex-row md:gap-6">
-                  <p className="text-xs text-green-600 mt-1 flex items-center flex-wrap">Total Lewat Panen:&nbsp;<Badge variant={totals.lewatPanen > 0 ? "destructive" : "success"}>{totals.lewatPanen}</Badge></p>
-                  <p className="text-xs text-green-600 mt-1 flex items-center flex-wrap">Jumlah Anomali:&nbsp;<Badge variant={totals.anomali > 0 ? "destructive" : "success"}>{totals.anomali}</Badge></p>
+              {/* Inline Stats */}
+              <div className="flex gap-3 mt-3">
+                <div className="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-950/20 rounded-md px-2 py-1 border border-dashed border-amber-300 dark:border-amber-700">
+                  <span className="text-sm font-bold text-amber-600 dark:text-amber-400">{totals.lewatPanen}</span>
+                  <span className="text-xs text-amber-700 dark:text-amber-300">Lewat Panen</span>
+                </div>
+                
+                <div className="flex items-center gap-1.5 bg-red-50 dark:bg-red-950/20 rounded-md px-2 py-1 border border-dashed border-red-300 dark:border-red-700">
+                  <span className="text-sm font-bold text-red-600 dark:text-red-400">{totals.anomali}</span>
+                  <span className="text-xs text-red-700 dark:text-red-300">Anomali</span>
+                </div>
               </div>
             </div>
             {totals.statuses && uniqueStatusNames && uniqueStatusNames.length > 0 && (

@@ -79,9 +79,17 @@ export function KsaSummaryCard({ isLoading, error, totals, displayStatus, displa
                     />
                   </div>
                 </div>
-                <div className="flex flex-col md:flex-row md:gap-6">
-                    <p className="text-xs text-muted-foreground mt-1 flex items-center flex-wrap">Inkonsisten:&nbsp;<Badge variant={totals.inkonsisten > 0 ? "destructive" : "success"}>{totals.inkonsisten}</Badge></p>
-                    <p className="text-xs text-muted-foreground mt-1 flex items-center">Total Kode 12:&nbsp;<Badge variant="warning">{totals.kode_12}</Badge></p>
+                {/* Inline Stats */}
+                <div className="flex gap-3 mt-3">
+                  <div className="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-950/20 rounded-md px-2 py-1 border border-dashed border-amber-300 dark:border-amber-700">
+                    <span className="text-sm font-bold text-amber-600 dark:text-amber-400">{totals.inkonsisten}</span>
+                    <span className="text-xs text-amber-700 dark:text-amber-300">Inkonsisten</span>
+                  </div>
+                  
+                  <div className="flex items-center gap-1.5 bg-yellow-50 dark:bg-yellow-950/20 rounded-md px-2 py-1 border border-dashed border-yellow-300 dark:border-yellow-700">
+                    <span className="text-sm font-bold text-yellow-600 dark:text-yellow-400">{totals.kode_12}</span>
+                    <span className="text-xs text-yellow-700 dark:text-yellow-300">Kode 12</span>
+                  </div>
                 </div>
             </div>
             {totals.statuses && uniqueStatusNames && uniqueStatusNames.length > 0 && (

@@ -79,9 +79,17 @@ export function KsaJagungSummaryCard({ isLoading, error, totals, displayStatus, 
                     />
                   </div>
                 </div>
-                <div className="flex flex-col md:flex-row md:gap-6">
-                    <p className="text-xs text-muted-foreground mt-1 flex items-center flex-wrap">Inkonsisten:&nbsp;<Badge variant={totals.inkonsisten > 0 ? "destructive" : "success"}>{totals.inkonsisten}</Badge></p>
-                    <p className="text-xs text-muted-foreground mt-1 flex items-center">Total Kode 98:&nbsp;<Badge variant="warning">{totals.kode_98}</Badge></p>
+                {/* Inline Stats */}
+                <div className="flex gap-3 mt-3">
+                  <div className="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-950/20 rounded-md px-2 py-1 border border-dashed border-amber-300 dark:border-amber-700">
+                    <span className="text-sm font-bold text-amber-600 dark:text-amber-400">{totals.inkonsisten}</span>
+                    <span className="text-xs text-amber-700 dark:text-amber-300">Inkonsisten</span>
+                  </div>
+                  
+                  <div className="flex items-center gap-1.5 bg-orange-50 dark:bg-orange-950/20 rounded-md px-2 py-1 border border-dashed border-orange-300 dark:border-orange-700">
+                    <span className="text-sm font-bold text-orange-600 dark:text-orange-400">{totals.kode_98}</span>
+                    <span className="text-xs text-orange-700 dark:text-orange-300">Kode 98</span>
+                  </div>
                 </div>
             </div>
             {totals.statuses && uniqueStatusNames && uniqueStatusNames.length > 0 && (
