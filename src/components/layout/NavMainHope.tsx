@@ -41,10 +41,24 @@ export const NavMainHope = React.memo(function NavMainHope({ items, onNavigate }
   const pathname = usePathname();
   const { open } = useSidebar();
 
+  // ✅ OPTIMALISASI: Memoize click handler untuk mengurangi re-render
+  const handleNavigate = React.useCallback(() => {
+    onNavigate?.();
+  }, [onNavigate]);
+
+  // ✅ OPTIMALISASI: Memoize active items untuk mengurangi computation
+  const memoizedItems = React.useMemo(() => 
+    items.map(item => ({
+      ...item,
+      isActiveComputed: item.isActive ? item.isActive(pathname) : false
+    })),
+    [items, pathname]
+  );
+
   return (
     <SidebarMenu>
-      {items.map((item) => {
-        const itemIsActive = item.isActive ? item.isActive(pathname) : false;
+      {memoizedItems.map((item) => {
+        const itemIsActive = item.isActiveComputed;
 
         // Logika untuk menu GRUP/COLLAPSIBLE
         if (item.items && item.items.length > 0) {
@@ -57,7 +71,7 @@ export const NavMainHope = React.memo(function NavMainHope({ items, onNavigate }
                       <CollapsibleTrigger asChild disabled={item.disabled}>
                         <SidebarMenuButton
                           className={cn(
-                            'group flex w-full items-center',
+                            'group flex w-full items-center transition-colors duration-200',
                             itemIsActive && open && 'bg-muted text-primary font-semibold',
                             itemIsActive && !open && 'bg-muted text-primary',
                             item.disabled && 'cursor-not-allowed opacity-50 hover:bg-transparent'
@@ -98,19 +112,14 @@ export const NavMainHope = React.memo(function NavMainHope({ items, onNavigate }
                             className={cn(
                               open ? 'pl-4 pr-2' : 'px-2',
                               subItemIsActive && 'bg-muted text-primary font-semibold',
+                              'transition-colors duration-200'
                             )}
                           >
-                            <Link href={subItem.url} onClick={onNavigate}>
-                              {subItem.icon && open && (
-                                <subItem.icon className="mr-2 h-4 w-4 shrink-0" />
+                            <Link href={subItem.url} onClick={handleNavigate}>
+                              {subItem.icon && (
+                                <subItem.icon className={cn('h-4 w-4 shrink-0', open ? 'mr-2' : '')} />
                               )}
-                              {open && <span className="truncate">{subItem.title}</span>}
-                              {!open && subItem.icon && (
-                                <subItem.icon className="h-4 w-4 shrink-0" />
-                              )}
-                              {!open && !subItem.icon && (
-                                <span className="truncate">{subItem.title.substring(0,1)}</span>
-                              )}
+                              {open && <span className="flex-grow truncate">{subItem.title}</span>}
                             </Link>
                           </SidebarMenuSubButton>
                         </div>
@@ -155,10 +164,11 @@ export const NavMainHope = React.memo(function NavMainHope({ items, onNavigate }
                 className={cn(
                   itemIsActive && open && 'bg-muted text-primary font-semibold',
                   itemIsActive && !open && 'bg-muted text-primary',
+                  'transition-colors duration-200'
                 )}
                 tooltip={item.title}
               >
-                <Link href={item.url || '#'} onClick={onNavigate}>
+                <Link href={item.url || '#'} onClick={handleNavigate}>
                   <item.icon className={cn('h-4 w-4 shrink-0', open ? 'mr-2' : '')} />
                   {open && <span className="truncate">{item.title}</span>}
                 </Link>

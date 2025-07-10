@@ -14,6 +14,8 @@ import { useYear } from '@/context/YearContext';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { useDarkMode } from '@/context/DarkModeContext';
 import { Moon, Sun, Menu } from 'lucide-react';
+import { useSwipeToClose } from '@/hooks/useSwipeToClose';
+import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 
 import {
   Sheet,
@@ -49,6 +51,34 @@ export default function MainLayout({ children, isCollapsed, setIsCollapsed }: Ma
 
   const [sheetOpen, setSheetOpen] = useState(false);
   const { isDark, toggleDarkMode } = useDarkMode();
+  const haptic = useHapticFeedback();
+
+  // Enhanced sheet open handler with haptic feedback
+  const handleSheetOpen = React.useCallback(() => {
+    haptic.light();
+    setSheetOpen(true);
+  }, [haptic]);
+
+  // Enhanced sheet close handler with haptic feedback
+  const handleSheetClose = React.useCallback(() => {
+    haptic.light();
+    setSheetOpen(false);
+  }, [haptic]);
+
+  // Swipe to close functionality for mobile sidebar
+  const { bindToElement } = useSwipeToClose({
+    onClose: handleSheetClose,
+    enabled: sheetOpen
+  });
+
+  const sheetRef = React.useRef<HTMLDivElement>(null);
+  
+  React.useEffect(() => {
+    if (sheetOpen && sheetRef.current) {
+      const cleanup = bindToElement(sheetRef.current);
+      return cleanup;
+    }
+  }, [sheetOpen, bindToElement]);
 
   return (
     <SidebarProvider
@@ -59,27 +89,28 @@ export default function MainLayout({ children, isCollapsed, setIsCollapsed }: Ma
       <div className="flex w-full min-h-screen overflow-x-hidden bg-background relative">
 
         {/* Sidebar desktop */}
-        <div className="hidden md:block">
+        <div className="hidden lg:block">
           <NewSidebar />
         </div>
 
         {/* Sidebar mobile */}
-        <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <Sheet open={sheetOpen} onOpenChange={handleSheetClose}>
           <SheetContent
+            ref={sheetRef}
             side="left"
-            className="p-0 w-[260px] max-w-[90vw] bg-background flex flex-col"
+            className="p-0 w-[min(280px,85vw)] max-w-[85vw] bg-background flex flex-col z-[90]"
           >
             <SheetHeader className="h-16 px-4 border-b flex items-center">
               <SheetTitle>
                 <span className="font-bold">Menu</span>
               </SheetTitle>
               <SheetDescription className="sr-only">
-                Navigasi utama aplikasi. Gunakan tombol 'X' di pojok atas untuk menutup.
+                Navigasi utama aplikasi. Gunakan tombol 'X' di pojok atas untuk menutup. Atau geser ke kiri untuk menutup.
               </SheetDescription>
             </SheetHeader>
 
             <div className="flex-1 overflow-y-auto">
-              <NewSidebar mobile onNavigate={() => setSheetOpen(false)} />
+              <NewSidebar mobile onNavigate={handleSheetClose} />
             </div>
           </SheetContent>
         </Sheet>
@@ -88,8 +119,8 @@ export default function MainLayout({ children, isCollapsed, setIsCollapsed }: Ma
         <div
           className={cn(
             "flex flex-col w-full min-h-screen overflow-x-hidden",
-            mounted && "transition-all duration-200 ease-linear",
-            "pl-[--sidebar-space]"
+            mounted && "transition-all duration-300 ease-out",
+            "lg:pl-[--sidebar-space]"
           )}
           style={
             {
@@ -97,17 +128,17 @@ export default function MainLayout({ children, isCollapsed, setIsCollapsed }: Ma
             } as React.CSSProperties
           }
         >
-          <header className="flex items-center justify-between h-16 border-b bg-card px-4 lg:px-6 shadow-sm sticky top-0 z-30">
+          <header className="flex items-center justify-between h-16 border-b bg-card px-4 lg:px-6 shadow-sm sticky top-0 z-[40]">
             <button
-              className="md:hidden p-2 rounded hover:bg-muted transition"
-              onClick={() => setSheetOpen(true)}
+              className="lg:hidden p-2 rounded hover:bg-muted transition-colors duration-200"
+              onClick={handleSheetOpen}
               aria-label="Buka menu"
               type="button"
             >
               <Menu className="h-6 w-6" />
             </button>
 
-            <div className="hidden md:block">
+            <div className="hidden lg:block">
               <SidebarTrigger />
             </div>
 

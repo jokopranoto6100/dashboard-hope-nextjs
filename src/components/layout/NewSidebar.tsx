@@ -149,8 +149,8 @@ export default function NewSidebar({ mobile = false, onNavigate }: NewSidebarPro
     return (
       <aside
         className={cn(
-          "flex-col border-r bg-background transition-all duration-300 ease-in-out",
-          "fixed top-0 left-0 h-screen z-50",
+          "flex-col border-r bg-background transition-all duration-300 ease-out",
+          "fixed top-0 left-0 h-screen z-[50]",
           !open ? "w-[var(--sidebar-width-icon)] items-center" : "w-[var(--sidebar-width)]",
           "pt-4 pb-2"
         )}
@@ -183,7 +183,7 @@ export default function NewSidebar({ mobile = false, onNavigate }: NewSidebarPro
     <UiSidebar
       variant="sidebar"
       collapsible="icon"
-      className={cn("flex-col bg-background z-50")}
+      className={cn("flex-col bg-background z-[50] transition-all duration-300 ease-out")}
     >
       <SidebarHeader className={cn("h-16 border-b", open ? "px-4 lg:px-6 justify-center items-start" : "px-0 justify-center items-center", "py-0")}>
         <Link href="/" className={cn("flex items-center gap-2", open ? "font-semibold" : "")} aria-label="Ke Dashboard Utama">
