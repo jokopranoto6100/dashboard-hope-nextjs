@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import NewSidebar from './NewSidebar';
 import { cn } from '@/lib/utils';
 import {
@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useYear } from '@/context/YearContext';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { useDarkMode } from '@/context/DarkModeContext';
@@ -39,10 +40,7 @@ export default function MainLayout({ children, isCollapsed, setIsCollapsed }: Ma
     [] // Hanya compute sekali karena tahun tidak berubah sering
   );
 
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const { isDark, toggleDarkMode, mounted } = useDarkMode();
 
   // ✅ OPTIMALISASI 5: Memoize handler untuk mengurangi re-render child components
   const handleSidebarOpenChange = React.useCallback((open: boolean) => {
@@ -50,7 +48,6 @@ export default function MainLayout({ children, isCollapsed, setIsCollapsed }: Ma
   }, [setIsCollapsed]);
 
   const [sheetOpen, setSheetOpen] = useState(false);
-  const { isDark, toggleDarkMode } = useDarkMode();
   const haptic = useHapticFeedback();
 
   // Enhanced sheet open handler with haptic feedback
@@ -88,9 +85,37 @@ export default function MainLayout({ children, isCollapsed, setIsCollapsed }: Ma
     >
       <div className="flex w-full min-h-screen overflow-x-hidden bg-background relative">
 
-        {/* Sidebar desktop */}
+        {/* Sidebar desktop - Show skeleton until dark mode is ready */}
         <div className="hidden lg:block">
-          <NewSidebar />
+          {mounted ? (
+            <NewSidebar />
+          ) : (
+            <aside
+              className={cn(
+                "flex-col border-r bg-background transition-all duration-300 ease-out",
+                "fixed top-0 left-0 h-screen z-[50]",
+                !isCollapsed ? "w-[16rem]" : "w-[3rem] items-center",
+                "pt-4 pb-2"
+              )}
+            >
+              <div className={cn("h-16 flex items-center", !isCollapsed ? "px-4 lg:px-6 justify-start" : "px-0 justify-center")}>
+                <Skeleton className={cn("rounded-md", !isCollapsed ? "h-8 w-8" : "h-6 w-6")} />
+                {!isCollapsed && <Skeleton className="h-5 w-32 ml-2" />}
+              </div>
+              <div className={cn("flex flex-1 flex-col gap-2 overflow-hidden py-2", !isCollapsed ? "px-3" : "px-0 items-center")}>
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className={cn("flex items-center", !isCollapsed ? "p-2" : "p-0 py-2 justify-center")}>
+                    <Skeleton className={cn("rounded", !isCollapsed ? "h-6 w-6" : "h-5 w-5")} />
+                    {!isCollapsed && <Skeleton className="h-4 w-[calc(100%-2rem)] ml-2" />}
+                  </div>
+                ))}
+              </div>
+              <div className={cn("p-2 flex items-center", !isCollapsed ? "justify-start" : "justify-center")}>
+                <Skeleton className={cn("rounded-lg", !isCollapsed ? "h-10 w-10" : "h-8 w-8")} />
+                {!isCollapsed && (<div className="ml-2 flex-1"><Skeleton className="h-4 w-3/4 mb-1" /><Skeleton className="h-3 w-1/2" /></div>)}
+              </div>
+            </aside>
+          )}
         </div>
 
         {/* Sidebar mobile */}
@@ -110,7 +135,7 @@ export default function MainLayout({ children, isCollapsed, setIsCollapsed }: Ma
             </SheetHeader>
 
             <div className="flex-1 overflow-y-auto">
-              <NewSidebar mobile onNavigate={handleSheetClose} />
+              {mounted && <NewSidebar mobile onNavigate={handleSheetClose} />}
             </div>
           </SheetContent>
         </Sheet>

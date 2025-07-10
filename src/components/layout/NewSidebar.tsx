@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from "@/context/AuthContext";
+import { useDarkMode } from "@/context/DarkModeContext";
 import { cn } from '@/lib/utils';
 import { getNavMainItems, type UserData } from '@/lib/sidebar-data';
 import { Atom } from 'lucide-react';
@@ -41,9 +42,15 @@ export default function NewSidebar({ mobile = false, onNavigate }: NewSidebarPro
   const router = useRouter();
   const { supabase } = useAuth();
   const { open } = useSidebar();
+  const { mounted } = useDarkMode();
 
   const [userSession, setUserSession] = React.useState<UserSessionData | null>(null);
   const [isLoadingSession, setIsLoadingSession] = React.useState(true);
+
+  // Don't render anything until mounted to prevent dark mode flicker
+  if (!mounted) {
+    return null;
+  }
 
   React.useEffect(() => {
     const getSession = async () => {
