@@ -92,7 +92,7 @@ export default function MainLayout({ children, isCollapsed, setIsCollapsed }: Ma
           ) : (
             <aside
               className={cn(
-                "flex-col border-r bg-background transition-all duration-300 ease-out",
+                "flex-col border-r bg-background",
                 "fixed top-0 left-0 h-screen z-[50]",
                 !isCollapsed ? "w-[16rem]" : "w-[3rem] items-center",
                 "pt-4 pb-2"
@@ -144,7 +144,6 @@ export default function MainLayout({ children, isCollapsed, setIsCollapsed }: Ma
         <div
           className={cn(
             "flex flex-col w-full min-h-screen overflow-x-hidden",
-            mounted && "transition-all duration-300 ease-out",
             "lg:pl-[--sidebar-space]"
           )}
           style={

@@ -77,11 +77,15 @@ export function NavUserHope({ onNavigate }: NavUserHopeProps) {
   return (
     <SidebarMenu>
       <SidebarMenuItem>
-        <DropdownMenu>
+        <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
-              className={cn("w-full justify-start text-left")}
+              className={cn(
+                "w-full justify-start text-left",
+                "touch-manipulation", // Better touch handling on mobile
+                "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              )}
             >
               <Avatar className={cn("h-8 w-8 rounded-lg shrink-0", !open ? "mx-auto" : "mr-2")}>
                 {userData.avatar && <AvatarImage src={userData.avatar} alt={userData.fullname} />}
@@ -105,6 +109,14 @@ export function NavUserHope({ onNavigate }: NavUserHopeProps) {
             side={isMobile ? "top" : "right"}
             align="end"
             sideOffset={isMobile ? 12 : 8}
+            avoidCollisions={true}
+            collisionPadding={16}
+            onCloseAutoFocus={(event) => {
+              // Prevent focus issues on mobile
+              if (isMobile) {
+                event.preventDefault();
+              }
+            }}
           >
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-2 py-1.5 text-left text-sm">

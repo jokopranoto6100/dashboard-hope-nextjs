@@ -190,7 +190,7 @@ export default function NewSidebar({ mobile = false, onNavigate }: NewSidebarPro
     <UiSidebar
       variant="sidebar"
       collapsible="icon"
-      className={cn("flex-col bg-background z-[50] transition-all duration-300 ease-out")}
+      className={cn("flex-col bg-background z-[50]")}
     >
       <SidebarHeader className={cn("h-16 border-b", open ? "px-4 lg:px-6 justify-center items-start" : "px-0 justify-center items-center", "py-0")}>
         <Link href="/" className={cn("flex items-center gap-2", open ? "font-semibold" : "")} aria-label="Ke Dashboard Utama">

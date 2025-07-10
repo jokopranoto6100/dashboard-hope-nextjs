@@ -26,16 +26,15 @@ export const DarkModeProvider = ({ children }: { children: React.ReactNode }) =>
     // Set state immediately to prevent hydration mismatch
     setIsDark(shouldBeDark);
     
-    // Apply theme class without transition first
+    // Apply theme class immediately without transition
     if (shouldBeDark) {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
     
-    // Add smooth transition after initial render
+    // Set mounted after initial render
     requestAnimationFrame(() => {
-      document.documentElement.style.transition = 'background-color 0.3s ease, color 0.3s ease';
       setMounted(true);
     });
   }, []);
@@ -45,11 +44,7 @@ export const DarkModeProvider = ({ children }: { children: React.ReactNode }) =>
       const newVal = !prev;
       localStorage.setItem('theme', newVal ? 'dark' : 'light');
       
-      // Ensure transition is applied
-      if (!document.documentElement.style.transition) {
-        document.documentElement.style.transition = 'background-color 0.3s ease, color 0.3s ease';
-      }
-      
+      // Apply theme change immediately without transition
       if (newVal) {
         document.documentElement.classList.add('dark');
       } else {
