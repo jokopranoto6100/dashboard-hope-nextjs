@@ -46,17 +46,9 @@ export default function NewSidebar({ mobile = false, onNavigate }: NewSidebarPro
 
   const [userSession, setUserSession] = React.useState<UserSessionData | null>(null);
   const [isLoadingSession, setIsLoadingSession] = React.useState(true);
-  const [hasInitiallyMounted, setHasInitiallyMounted] = React.useState(false);
 
-  // Track initial mount to prevent hydration mismatch, but don't re-render on dark mode changes
-  React.useEffect(() => {
-    if (mounted && !hasInitiallyMounted) {
-      setHasInitiallyMounted(true);
-    }
-  }, [mounted, hasInitiallyMounted]);
-
-  // Only prevent rendering on initial load for desktop sidebar
-  if (!mobile && !hasInitiallyMounted) {
+  // For desktop, only prevent initial SSR mismatch
+  if (!mobile && !mounted) {
     return null;
   }
 
