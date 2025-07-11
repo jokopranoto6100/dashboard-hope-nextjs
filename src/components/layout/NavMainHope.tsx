@@ -71,7 +71,7 @@ export const NavMainHope = React.memo(function NavMainHope({ items, onNavigate }
                       <CollapsibleTrigger asChild disabled={item.disabled}>
                         <SidebarMenuButton
                           className={cn(
-                            'group flex w-full items-center transition-colors duration-200',
+                            'group flex w-full items-center',
                             itemIsActive && open && 'bg-muted text-primary font-semibold',
                             itemIsActive && !open && 'bg-muted text-primary',
                             item.disabled && 'cursor-not-allowed opacity-50 hover:bg-transparent'
@@ -83,7 +83,7 @@ export const NavMainHope = React.memo(function NavMainHope({ items, onNavigate }
                           {open && (
                             <ChevronRight
                               className={cn(
-                                'h-4 w-4 shrink-0 transition-transform duration-200 ease-in-out',
+                                'h-4 w-4 shrink-0',
                                 'group-data-[state=open]:rotate-90',
                               )}
                             />
@@ -111,8 +111,7 @@ export const NavMainHope = React.memo(function NavMainHope({ items, onNavigate }
                             asChild
                             className={cn(
                               open ? 'pl-4 pr-2' : 'px-2',
-                              subItemIsActive && 'bg-muted text-primary font-semibold',
-                              'transition-colors duration-200'
+                              subItemIsActive && 'bg-muted text-primary font-semibold'
                             )}
                           >
                             <Link href={subItem.url} onClick={handleNavigate}>
@@ -163,8 +162,7 @@ export const NavMainHope = React.memo(function NavMainHope({ items, onNavigate }
                 asChild
                 className={cn(
                   itemIsActive && open && 'bg-muted text-primary font-semibold',
-                  itemIsActive && !open && 'bg-muted text-primary',
-                  'transition-colors duration-200'
+                  itemIsActive && !open && 'bg-muted text-primary'
                 )}
                 tooltip={item.title}
               >

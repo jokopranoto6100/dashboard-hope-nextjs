@@ -46,9 +46,17 @@ export default function NewSidebar({ mobile = false, onNavigate }: NewSidebarPro
 
   const [userSession, setUserSession] = React.useState<UserSessionData | null>(null);
   const [isLoadingSession, setIsLoadingSession] = React.useState(true);
+  const [hasInitiallyMounted, setHasInitiallyMounted] = React.useState(false);
 
-  // Don't render anything until mounted to prevent dark mode flicker
-  if (!mounted) {
+  // Track initial mount to prevent hydration mismatch, but don't re-render on dark mode changes
+  React.useEffect(() => {
+    if (mounted && !hasInitiallyMounted) {
+      setHasInitiallyMounted(true);
+    }
+  }, [mounted, hasInitiallyMounted]);
+
+  // Only prevent rendering on initial load for desktop sidebar
+  if (!mobile && !hasInitiallyMounted) {
     return null;
   }
 
@@ -156,7 +164,7 @@ export default function NewSidebar({ mobile = false, onNavigate }: NewSidebarPro
     return (
       <aside
         className={cn(
-          "flex-col border-r bg-background transition-all duration-300 ease-out",
+          "flex-col border-r bg-background",
           "fixed top-0 left-0 h-screen z-[50]",
           !open ? "w-[var(--sidebar-width-icon)] items-center" : "w-[var(--sidebar-width)]",
           "pt-4 pb-2"
