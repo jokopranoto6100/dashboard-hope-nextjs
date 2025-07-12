@@ -64,6 +64,16 @@ export interface SkgbSummaryTotals {
   persentase: number;
 }
 
+export interface SkgbKabupatenSummary {
+  total_kecamatan: number;
+  total_desa: number;
+  target_utama: number;
+  cadangan: number;
+  realisasi: number;
+  persentase: number;
+  total_petugas: number;
+}
+
 export interface SkgbMonitoringHookResult {
   districtData: SkgbDistrictData[];
   totals: SkgbSummaryTotals | null;
@@ -255,5 +265,169 @@ export function useSkgbDetailData(kodeKab: string | null) {
     isLoading,
     error,
     refetch: fetchDetailData
+  };
+}
+
+// Hook untuk mendapatkan summary data berdasarkan kabupaten  
+export function useSkgbSummaryByKabupaten(kodeKab: string | null) {
+  const { supabase } = useAuth();
+  const { selectedYear } = useYear();
+  const [summaryData, setSummaryData] = useState<SkgbKabupatenSummary | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Hardcoded data jumlah petugas per kabupaten (same as main hook)
+  const petugasData: Record<string, number> = {
+    '6101': 5,  // Banda Aceh
+    '6102': 5,  // Sabang
+    '6103': 5,  // Aceh Selatan
+    '6104': 4,  // Aceh Tenggara
+    '6105': 2,  // Aceh Timur
+    '6106': 5,  // Aceh Tengah
+    '6107': 2,  // Aceh Barat
+    '6108': 1,  // Aceh Besar
+    '6109': 2,  // Pidie
+    '6110': 2,  // Bireuen
+    '6111': 2,  // Aceh Utara
+    '6112': 3,  // Aceh Barat Daya
+    '6171': 0,  // Kota Banda Aceh
+    '6172': 3   // Kota Sabang
+  };
+
+  const fetchSummaryData = useCallback(async () => {
+    if (!kodeKab || !supabase) {
+      console.log('🔧 SKGB Summary - No kodeKab or supabase:', { kodeKab, hasSupabase: !!supabase });
+      setSummaryData(null);
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      console.log('🔧 SKGB Summary - Fetching data for:', { kodeKab, selectedYear });
+
+      // Try RPC function first, fallback to direct query if RPC doesn't exist
+      let rpcData, rpcError;
+      
+      try {
+        // Menggunakan RPC function untuk summary data berdasarkan kabupaten
+        const rpcResult = await supabase.rpc('get_skgb_summary_by_kabupaten', {
+          p_kode_kab: kodeKab,
+          p_tahun: selectedYear
+        });
+        rpcData = rpcResult.data;
+        rpcError = rpcResult.error;
+        console.log('🔧 SKGB Summary - RPC Response:', { rpcData, rpcError });
+        
+        // If RPC error indicates function doesn't exist, use fallback
+        if (rpcError && (rpcError.message?.includes('function') || rpcError.code === '42883')) {
+          console.log('🔧 SKGB Summary - RPC function not found, using fallback');
+          throw new Error('RPC_NOT_FOUND');
+        }
+        
+        if (rpcError) {
+          throw rpcError;
+        }
+      } catch (rpcErr: unknown) {
+        const errorMessage = rpcErr instanceof Error ? rpcErr.message : 'Unknown error';
+        console.log('🔧 SKGB Summary - RPC failed, using fallback query:', errorMessage);
+        
+        // Fallback: Use direct query instead of RPC
+        console.log('🔧 SKGB Summary - Using fallback query for kodeKab:', kodeKab);
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('skgb_pengeringan')
+          .select('kdkec, lokasi, flag_sampel, status_pendataan, created_at')
+          .eq('kdkab', kodeKab);
+
+        if (fallbackError) {
+          console.error('🔧 SKGB Summary - Fallback query error:', fallbackError);
+          throw fallbackError;
+        }
+
+        console.log('🔧 SKGB Summary - Fallback data received:', fallbackData?.length, 'records');
+        console.log('🔧 SKGB Summary - Sample data:', fallbackData?.slice(0, 3));
+
+        // Filter by year manually since we can't use EXTRACT in client
+        const filteredData = fallbackData?.filter(item => {
+          if (!item.created_at) return false;
+          const year = new Date(item.created_at).getFullYear();
+          return year === selectedYear;
+        }) || [];
+
+        console.log('🔧 SKGB Summary - Filtered by year:', filteredData.length, 'records for year', selectedYear);
+
+        // Process data manually
+        const uniqueKecamatan = new Set();
+        const uniqueDesa = new Set();
+        let targetUtama = 0;
+        let cadangan = 0;
+        let realisasi = 0;
+
+        filteredData.forEach(item => {
+          if (item.flag_sampel === 'U') {
+            uniqueKecamatan.add(item.kdkec);
+            uniqueDesa.add(item.lokasi);
+            targetUtama++;
+            if (item.status_pendataan === 'Selesai Didata') {
+              realisasi++;
+            }
+          }
+          if (item.flag_sampel === 'C') {
+            cadangan++;
+          }
+        });
+
+        const persentase = targetUtama > 0 ? (realisasi / targetUtama) * 100 : 0;
+
+        rpcData = [{
+          total_kecamatan: uniqueKecamatan.size,
+          total_desa: uniqueDesa.size,
+          target_utama: targetUtama,
+          cadangan: cadangan,
+          realisasi: realisasi,
+          persentase: Math.round(persentase * 100) / 100,
+          total_petugas: 0 // Will be overridden
+        }];
+        rpcError = null;
+        
+        console.log('🔧 SKGB Summary - Fallback result:', rpcData[0]);
+      }
+
+      if (rpcError) {
+        console.error('🔧 SKGB Summary - RPC Error:', rpcError);
+        throw rpcError;
+      }
+
+      if (rpcData?.[0]) {
+        // Override total_petugas with hardcoded data
+        const summaryWithPetugas = {
+          ...rpcData[0],
+          total_petugas: petugasData[kodeKab] || 0
+        };
+        console.log('🔧 SKGB Summary - Final data:', summaryWithPetugas);
+        setSummaryData(summaryWithPetugas);
+      } else {
+        console.log('🔧 SKGB Summary - No data returned');
+        setSummaryData(null);
+      }
+    } catch (err) {
+      console.error('🔧 SKGB Summary - Error fetching SKGB summary data:', err);
+      setError(err instanceof Error ? err.message : 'Unknown error occurred');
+      setSummaryData(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [supabase, kodeKab, selectedYear]);
+
+  useEffect(() => {
+    fetchSummaryData();
+  }, [fetchSummaryData]);
+
+  return {
+    summaryData,
+    isLoading,
+    error,
+    refetch: fetchSummaryData
   };
 }

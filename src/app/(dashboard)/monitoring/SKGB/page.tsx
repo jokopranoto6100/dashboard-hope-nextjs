@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SkgbTable, SkgbDistrictData } from './SkgbTable';
 import { SkgbDetailTable } from './SkgbDetailTable';
-import { useSkgbData, useSkgbDetailData } from '@/hooks/useSkgbData';
+import { useSkgbData, useSkgbDetailData, useSkgbSummaryByKabupaten } from '@/hooks/useSkgbData';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useJadwalData } from '@/hooks/useJadwalData';
 import { useYear } from '@/context/YearContext';
@@ -65,20 +65,52 @@ export default function SkgbPage() {
     isLoading: isDetailLoading, 
     error: detailError 
   } = useSkgbDetailData(selectedKabupaten?.kode_kab || null);
+
+  // Get summary data for selected kabupaten
+  const {
+    summaryData: kabupatenSummary,
+    isLoading: isSummaryLoading
+  } = useSkgbSummaryByKabupaten(selectedKabupaten?.kode_kab || null);
   
   // Create summary for the header cards
   const summary = useMemo(() => {
+    console.log('🔧 SKGB Page - Summary calculation:', { 
+      selectedKabupaten, 
+      kabupatenSummary, 
+      districtData: districtData.length,
+      totals 
+    });
+    
+    // If we're viewing detail for a specific kabupaten, use kabupaten summary
+    if (selectedKabupaten && kabupatenSummary) {
+      const result = {
+        totalKabupaten: kabupatenSummary.total_kecamatan, // Kecamatan count for the selected kabupaten
+        totalDesa: kabupatenSummary.total_desa, // Desa count for the selected kabupaten  
+        totalTargetUtama: kabupatenSummary.target_utama,
+        totalCadangan: kabupatenSummary.cadangan,
+        totalRealisasi: kabupatenSummary.realisasi,
+        overallPersentase: kabupatenSummary.persentase,
+        totalPetugas: kabupatenSummary.total_petugas
+      };
+      console.log('🔧 SKGB Page - Using kabupaten summary:', result);
+      return result;
+    }
+    
+    // Otherwise use the overall summary
     if (!districtData.length || !totals) return null;
     
-    return {
+    const result = {
       totalKabupaten: districtData.length,
+      totalDesa: null, // Not available in district summary
       totalTargetUtama: totals.target_utama,
       totalCadangan: totals.cadangan,
       totalRealisasi: totals.realisasi,
       overallPersentase: totals.persentase,
       totalPetugas: districtData.reduce((sum, item) => sum + item.jumlah_petugas, 0)
     };
-  }, [districtData, totals]);
+    console.log('🔧 SKGB Page - Using overall summary:', result);
+    return result;
+  }, [districtData, totals, selectedKabupaten, kabupatenSummary]);
 
   // Calculate detail totals when showing detail view
   const detailTotals = useMemo(() => {
@@ -99,6 +131,7 @@ export default function SkgbPage() {
 
   // Handle row click to show detail
   const handleRowClick = (kabupatenData: SkgbDistrictData) => {
+    console.log('🔧 SKGB Page - Kabupaten selected:', kabupatenData);
     setSelectedKabupaten(kabupatenData);
   };
 
@@ -123,16 +156,21 @@ export default function SkgbPage() {
       {/* Header */}
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Monitoring SKGB</h1>
+          <h1 className="text-3xl font-bold tracking-tight">
+            {selectedKabupaten ? `Monitoring SKGB - ${selectedKabupaten.kabupaten}` : 'Monitoring SKGB'}
+          </h1>
           <p className="text-muted-foreground">
-            Survei Konversi Gabah ke Beras - Pengeringan & Penggilingan
+            {selectedKabupaten 
+              ? `Detail survei per kecamatan dan lokasi di ${selectedKabupaten.kabupaten}`
+              : 'Survei Konversi Gabah ke Beras - Pengeringan & Penggilingan'
+            }
           </p>
         </div>
       </div>
 
       {/* Summary Cards - Hidden on Mobile */}
       {!isMobile && (
-        isLoading ? (
+        (isLoading || isSummaryLoading) ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
             {Array.from({ length: 5 }).map((_, i) => (
               <Card key={i}>
@@ -151,28 +189,35 @@ export default function SkgbPage() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Kabupaten/Kota</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                {selectedKabupaten ? 'Kecamatan' : 'Kabupaten/Kota'}
+              </CardTitle>
               <MapPin className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{summary?.totalKabupaten || 0}</div>
               <p className="text-xs text-muted-foreground">
-                Kabupaten/Kota
+                {selectedKabupaten ? 'Kecamatan' : 'Kabupaten/Kota'}
               </p>
             </CardContent>
           </Card>
           
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Target Utama</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                {selectedKabupaten ? 'Desa/Kelurahan' : 'Target Utama'}
+              </CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {summary?.totalTargetUtama?.toLocaleString() || 0}
+                {selectedKabupaten 
+                  ? (summary?.totalDesa?.toLocaleString() || 0)
+                  : (summary?.totalTargetUtama?.toLocaleString() || 0)
+                }
               </div>
               <p className="text-xs text-muted-foreground">
-                Flag sampel = U
+                {selectedKabupaten ? 'Flag sampel = U' : 'Flag sampel = U'}
               </p>
             </CardContent>
           </Card>
