@@ -65,8 +65,10 @@ export interface SkgbSummaryTotals {
 }
 
 export interface SkgbKabupatenSummary {
-  total_kecamatan: number;
-  total_desa: number;
+  total_kecamatan_u: number;
+  total_kecamatan_c: number;
+  total_desa_u: number;
+  total_desa_c: number;
   target_utama: number;
   cadangan: number;
   realisasi: number;
@@ -312,7 +314,7 @@ export function useSkgbSummaryByKabupaten(kodeKab: string | null) {
       
       try {
         // Menggunakan RPC function untuk summary data berdasarkan kabupaten
-        const rpcResult = await supabase.rpc('get_skgb_summary_by_kabupaten', {
+        const rpcResult = await supabase.rpc('get_skgb_summary_by_kabupaten_v2', {
           p_kode_kab: kodeKab,
           p_tahun: selectedYear
         });
@@ -358,22 +360,28 @@ export function useSkgbSummaryByKabupaten(kodeKab: string | null) {
         console.log('🔧 SKGB Summary - Filtered by year:', filteredData.length, 'records for year', selectedYear);
 
         // Process data manually
-        const uniqueKecamatan = new Set();
-        const uniqueDesa = new Set();
+        const kecamatanStatsU = new Map<string, number>();
+        const kecamatanStatsC = new Map<string, number>();
+        const desaStatsU = new Map<string, number>();
+        const desaStatsC = new Map<string, number>();
         let targetUtama = 0;
         let cadangan = 0;
         let realisasi = 0;
 
         filteredData.forEach(item => {
           if (item.flag_sampel === 'U') {
-            uniqueKecamatan.add(item.kdkec);
-            uniqueDesa.add(item.lokasi);
+            // Count records per kecamatan and desa for flag U
+            kecamatanStatsU.set(item.kdkec, (kecamatanStatsU.get(item.kdkec) || 0) + 1);
+            desaStatsU.set(item.lokasi, (desaStatsU.get(item.lokasi) || 0) + 1);
             targetUtama++;
             if (item.status_pendataan === 'Selesai Didata') {
               realisasi++;
             }
           }
           if (item.flag_sampel === 'C') {
+            // Count records per kecamatan and desa for flag C
+            kecamatanStatsC.set(item.kdkec, (kecamatanStatsC.get(item.kdkec) || 0) + 1);
+            desaStatsC.set(item.lokasi, (desaStatsC.get(item.lokasi) || 0) + 1);
             cadangan++;
           }
         });
@@ -381,8 +389,10 @@ export function useSkgbSummaryByKabupaten(kodeKab: string | null) {
         const persentase = targetUtama > 0 ? (realisasi / targetUtama) * 100 : 0;
 
         rpcData = [{
-          total_kecamatan: uniqueKecamatan.size,
-          total_desa: uniqueDesa.size,
+          total_kecamatan_u: kecamatanStatsU.size, // Kecamatan yang memiliki minimal 1 flag U
+          total_kecamatan_c: kecamatanStatsC.size, // Kecamatan yang memiliki minimal 1 flag C
+          total_desa_u: desaStatsU.size, // Desa yang memiliki minimal 1 flag U
+          total_desa_c: desaStatsC.size, // Desa yang memiliki minimal 1 flag C
           target_utama: targetUtama,
           cadangan: cadangan,
           realisasi: realisasi,

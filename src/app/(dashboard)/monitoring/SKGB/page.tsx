@@ -84,8 +84,10 @@ export default function SkgbPage() {
     // If we're viewing detail for a specific kabupaten, use kabupaten summary
     if (selectedKabupaten && kabupatenSummary) {
       const result = {
-        totalKabupaten: kabupatenSummary.total_kecamatan, // Kecamatan count for the selected kabupaten
-        totalDesa: kabupatenSummary.total_desa, // Desa count for the selected kabupaten  
+        totalKabupaten: kabupatenSummary.total_kecamatan_u, // Kecamatan count U for the selected kabupaten
+        totalDesa: kabupatenSummary.total_desa_u, // Desa count U for the selected kabupaten  
+        totalDesaC: kabupatenSummary.total_desa_c, // Desa count C for the selected kabupaten
+        totalKecamatanC: kabupatenSummary.total_kecamatan_c, // Kecamatan count C for the selected kabupaten
         totalTargetUtama: kabupatenSummary.target_utama,
         totalCadangan: kabupatenSummary.cadangan,
         totalRealisasi: kabupatenSummary.realisasi,
@@ -102,6 +104,8 @@ export default function SkgbPage() {
     const result = {
       totalKabupaten: districtData.length,
       totalDesa: null, // Not available in district summary
+      totalDesaC: null, // Not available in district summary
+      totalKecamatanC: null, // Not available in district summary
       totalTargetUtama: totals.target_utama,
       totalCadangan: totals.cadangan,
       totalRealisasi: totals.realisasi,
@@ -153,21 +157,6 @@ export default function SkgbPage() {
 
   return (
     <div className="min-w-0 flex flex-col gap-4">
-      {/* Header */}
-      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            {selectedKabupaten ? `Monitoring SKGB - ${selectedKabupaten.kabupaten}` : 'Monitoring SKGB'}
-          </h1>
-          <p className="text-muted-foreground">
-            {selectedKabupaten 
-              ? `Detail survei per kecamatan dan lokasi di ${selectedKabupaten.kabupaten}`
-              : 'Survei Konversi Gabah ke Beras - Pengeringan & Penggilingan'
-            }
-          </p>
-        </div>
-      </div>
-
       {/* Summary Cards - Hidden on Mobile */}
       {!isMobile && (
         (isLoading || isSummaryLoading) ? (
@@ -197,7 +186,7 @@ export default function SkgbPage() {
             <CardContent>
               <div className="text-2xl font-bold">{summary?.totalKabupaten || 0}</div>
               <p className="text-xs text-muted-foreground">
-                {selectedKabupaten ? 'Kecamatan' : 'Kabupaten/Kota'}
+                {selectedKabupaten ? `U: ${summary?.totalKabupaten || 0} | C: ${summary?.totalKecamatanC || 0}` : 'Kabupaten/Kota'}
               </p>
             </CardContent>
           </Card>
@@ -217,7 +206,7 @@ export default function SkgbPage() {
                 }
               </div>
               <p className="text-xs text-muted-foreground">
-                {selectedKabupaten ? 'Flag sampel = U' : 'Flag sampel = U'}
+                {selectedKabupaten ? `U: ${summary?.totalDesa || 0} | C: ${summary?.totalDesaC || 0}` : 'Flag sampel = U'}
               </p>
             </CardContent>
           </Card>
