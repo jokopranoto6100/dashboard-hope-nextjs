@@ -7,12 +7,59 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { SkgbTable, SkgbDistrictData } from './SkgbTable';
 import { SkgbDetailTable } from './SkgbDetailTable';
 import { useSkgbData, useSkgbDetailData } from '@/hooks/useSkgbData';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { useJadwalData } from '@/hooks/useJadwalData';
+import { useYear } from '@/context/YearContext';
 
 export default function SkgbPage() {
-  const { districtData, totals, isLoading, error, lastUpdated } = useSkgbData();
+  const { selectedYear } = useYear();
+  const { districtData, totals, isLoading, error, lastUpdated, kegiatanId } = useSkgbData();
   const [selectedKabupaten, setSelectedKabupaten] = useState<SkgbDistrictData | null>(null);
+  const isMobile = useIsMobile();
   
-  // Get detail data when a kabupaten is selected
+  // Use kegiatanId from the hook instead of hardcoding
+  const { jadwalData, isLoading: isJadwalLoading } = useJadwalData(selectedYear);
+  
+  // Find SKGB jadwal - for SKGB we need to find the "Pencacahan" jadwal
+  const skgbJadwal = useMemo(() => {
+    if (isJadwalLoading || !jadwalData) {
+      return undefined;
+    }
+    
+    // For SKGB, the kegiatanId is actually the subkegiatan "Pelaksanaan Lapangan" ID
+    // So we can directly find it in jadwalData
+    const pelaksanaanLapanganKegiatan = kegiatanId ? jadwalData.find(k => k.id === kegiatanId) : undefined;
+    
+    if (pelaksanaanLapanganKegiatan) {
+      // Look for "Pencacahan" jadwal in this kegiatan
+      const pencacachanJadwal = pelaksanaanLapanganKegiatan.jadwal?.find(j => 
+        j.nama?.toLowerCase().includes('pencacahan') ||
+        j.nama?.toLowerCase().includes('cacah')
+      );
+      
+      if (pencacachanJadwal) {
+        // Create a kegiatan-like structure with this jadwal
+        return {
+          id: pelaksanaanLapanganKegiatan.id,
+          kegiatan: 'Pencacahan',
+          jadwal: [pencacachanJadwal]
+        };
+      }
+      
+      // Fallback: return the whole kegiatan if no specific Pencacahan jadwal found
+      return pelaksanaanLapanganKegiatan;
+    }
+    
+    // Fallback: try to find by name containing "SKGB" or "Konversi" or "Pencacahan"
+    return jadwalData.find(k => 
+      k.kegiatan?.toLowerCase().includes('pencacahan') ||
+      k.kegiatan?.toLowerCase().includes('skgb') ||
+      k.kegiatan?.toLowerCase().includes('konversi') ||
+      k.kegiatan?.toLowerCase().includes('gabah')
+    );
+  }, [jadwalData, isJadwalLoading, kegiatanId]);
+
+  
   const { 
     detailData, 
     isLoading: isDetailLoading, 
@@ -78,37 +125,33 @@ export default function SkgbPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Monitoring SKGB</h1>
           <p className="text-muted-foreground">
-            Sistem Kerangka Ganda Berbasis (SKGB) - Monitoring Pengeringan
-            {lastUpdated && (
-              <span className="block text-sm text-muted-foreground/70 mt-1">
-                Last updated: {lastUpdated}
-              </span>
-            )}
+            Survei Konversi Gabah ke Beras - Pengeringan & Penggilingan
           </p>
         </div>
       </div>
 
-      {/* Summary Cards */}
-      {isLoading ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Card key={i}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <Skeleton className="h-4 w-32" />
-                <Skeleton className="h-4 w-4" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-8 w-16 mb-2" />
-                <Skeleton className="h-3 w-24" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      {/* Summary Cards - Hidden on Mobile */}
+      {!isMobile && (
+        isLoading ? (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Card key={i}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-4 w-4" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-8 w-16 mb-2" />
+                  <Skeleton className="h-3 w-24" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Kabupaten</CardTitle>
+              <CardTitle className="text-sm font-medium">Kabupaten/Kota</CardTitle>
               <MapPin className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -179,6 +222,7 @@ export default function SkgbPage() {
             </CardContent>
           </Card>
         </div>
+        )
       )}
 
       {/* Data Table */}
@@ -190,16 +234,18 @@ export default function SkgbPage() {
           onBack={handleBack}
           isLoading={isDetailLoading}
           lastUpdated={lastUpdated}
+          jadwal={skgbJadwal}
         />
       ) : (
         <SkgbTable
           title="Monitoring SKGB per Kabupaten"
-          description="Tabulasi data SKGB berdasarkan kabupaten/kota dengan informasi jumlah petugas lapangan. Klik pada baris untuk melihat detail kecamatan dan lokasi."
+          description="Klik pada baris untuk melihat detail kecamatan dan lokasi."
           data={districtData}
           totals={totals}
           onRowClick={handleRowClick}
           isLoading={isLoading}
           lastUpdated={lastUpdated}
+          jadwal={skgbJadwal}
         />
       )}
     </div>

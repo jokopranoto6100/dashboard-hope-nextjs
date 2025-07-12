@@ -68,6 +68,23 @@ export const useJadwalData = (selectedYear: number): JadwalDataHook => {
       setError(rpcError.message);
     } else {
       const rawData = (data || []) as Kegiatan[];
+      
+      // DEBUG: Log raw data untuk melihat struktur yang diterima
+      console.log('🔍 useJadwalData - Raw data received:', rawData);
+      console.log('🔍 useJadwalData - Looking for kegiatan with ID b0b0b0b0-0002-4002-8002-000000000002');
+      const targetKegiatan = rawData.find(k => k.id === 'b0b0b0b0-0002-4002-8002-000000000002');
+      if (targetKegiatan) {
+        console.log('🎯 useJadwalData - Found target kegiatan:', {
+          id: targetKegiatan.id,
+          kegiatan: targetKegiatan.kegiatan,
+          jadwal: targetKegiatan.jadwal,
+          jadwalLength: targetKegiatan.jadwal?.length
+        });
+      } else {
+        console.log('❌ useJadwalData - Target kegiatan NOT FOUND in raw data');
+        console.log('🔍 useJadwalData - Available kegiatan IDs:', rawData.map(k => k.id));
+      }
+      
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       

@@ -7,8 +7,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowUpDown, Eye, EyeOff } from "lucide-react";
-import { getPercentageBadgeVariant } from "@/lib/utils";
+import { getPercentageBadgeVariant, capitalizeWords } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { type Kegiatan } from '@/app/(dashboard)/jadwal/jadwal.config';
+import { Clock } from "lucide-react";
 
 import {
   ColumnDef,
@@ -42,6 +44,7 @@ interface SkgbTableProps {
   onRowClick?: (districtData: SkgbDistrictData) => void;
   isLoading: boolean;
   lastUpdated?: string | null;
+  jadwal?: Kegiatan;
 }
 
 const TableSkeleton = ({ columns }: { columns: ColumnDef<SkgbDistrictData, unknown>[] }) => (
@@ -71,12 +74,56 @@ const TableSkeleton = ({ columns }: { columns: ColumnDef<SkgbDistrictData, unkno
   </div>
 );
 
-export function SkgbTable({ title, description, data, totals, onRowClick, isLoading, lastUpdated }: SkgbTableProps) {
+export function SkgbTable({ title, description, data, totals, onRowClick, isLoading, lastUpdated, jadwal }: SkgbTableProps) {
   const isMobile = useIsMobile();
   const [showAllColumns, setShowAllColumns] = useState(false);
   const [sorting, setSorting] = useState<SortingState>([]);
 
-  const mobileHiddenColumns = ['cadangan', 'jumlah_petugas'];
+  // Helper function untuk menghitung selisih hari
+  const getDiffInDays = (d1: Date, d2: Date): number => {
+    const timeDiff = d2.getTime() - d1.getTime();
+    return Math.round(timeDiff / (1000 * 60 * 60 * 24));
+  };
+
+  // Countdown status calculation
+  const countdownStatus = useMemo(() => {
+    if (!jadwal) {
+      return null;
+    }
+    
+    // For SKGB Pencacahan subkegiatan, get jadwal items from the subkegiatan itself
+    // The jadwal passed here should be the Pencacahan subkegiatan, not the main SKGB kegiatan
+    const allJadwalItems = [...(jadwal.jadwal || [])];
+    
+    if (allJadwalItems.length === 0) {
+      return null;
+    }
+    
+    const allStartDates = allJadwalItems.map(j => new Date(j.startDate));
+    const allEndDates = allJadwalItems.map(j => new Date(j.endDate));
+    const earliestStart = new Date(Math.min(...allStartDates.map(d => d.getTime())));
+    const latestEnd = new Date(Math.max(...allEndDates.map(d => d.getTime())));
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (today > latestEnd) {
+      return { text: "Jadwal Telah Berakhir", color: "text-gray-500" };
+    }
+    if (today >= earliestStart && today <= latestEnd) {
+      const daysLeft = getDiffInDays(today, latestEnd);
+      if (daysLeft === 0) return { text: "Berakhir Hari Ini", color: "text-red-600 font-bold" };
+      return { text: `Berakhir dalam ${daysLeft} hari`, color: "text-green-600" };
+    }
+    if (today < earliestStart) {
+      const daysUntil = getDiffInDays(today, earliestStart);
+      if (daysUntil === 1) return { text: "Dimulai Besok", color: "text-blue-600" };
+      return { text: `Dimulai dalam ${daysUntil} hari`, color: "text-blue-600" };
+    }
+    
+    return null;
+  }, [jadwal]);
+
+  const mobileHiddenColumns = ['target_utama', 'cadangan', 'jumlah_petugas'];
 
   const columns: ColumnDef<SkgbDistrictData>[] = useMemo(() => [
     {
@@ -88,7 +135,7 @@ export function SkgbTable({ title, description, data, totals, onRowClick, isLoad
       ),
       cell: ({ row }) => (
         <div className="font-medium text-left pl-2">
-          {row.getValue('kabupaten')}
+          {capitalizeWords(row.getValue('kabupaten'))}
         </div>
       ),
       size: 200,
@@ -98,7 +145,7 @@ export function SkgbTable({ title, description, data, totals, onRowClick, isLoad
       accessorKey: 'target_utama',
       header: ({ column }) => (
         <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="h-8 p-1 font-semibold hover:bg-transparent">
-          Target Utama <ArrowUpDown className="ml-2 h-3 w-3" />
+          Utama <ArrowUpDown className="ml-2 h-3 w-3" />
         </Button>
       ),
       cell: ({ row }) => (
@@ -144,7 +191,7 @@ export function SkgbTable({ title, description, data, totals, onRowClick, isLoad
       accessorKey: 'jumlah_petugas',
       header: ({ column }) => (
         <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="h-8 p-1 font-semibold hover:bg-transparent">
-          Jumlah Petugas <ArrowUpDown className="ml-2 h-3 w-3" />
+          Petugas <ArrowUpDown className="ml-2 h-3 w-3" />
         </Button>
       ),
       cell: ({ row }) => (
@@ -160,7 +207,7 @@ export function SkgbTable({ title, description, data, totals, onRowClick, isLoad
       accessorKey: 'persentase',
       header: ({ column }) => (
         <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="h-8 p-1 font-semibold hover:bg-transparent">
-          Persentase <ArrowUpDown className="ml-2 h-3 w-3" />
+          {isMobile ? '(%)' : 'Persentase'} <ArrowUpDown className="ml-2 h-3 w-3" />
         </Button>
       ),
       cell: ({ row }) => {
@@ -220,17 +267,27 @@ export function SkgbTable({ title, description, data, totals, onRowClick, isLoad
     <Card>
       <CardHeader>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
+          <div className="flex-grow">
             <CardTitle>{title}</CardTitle>
-            <CardDescription>
-              {description}
-              {lastUpdated && (
-                <span className="block text-xs text-muted-foreground/70 mt-1">
-                  Last updated: {lastUpdated}
-                </span>
-              )}
-            </CardDescription>
           </div>
+          
+          {countdownStatus && !isLoading && (
+            <div className={`flex items-center text-xs p-2 rounded-md border bg-gray-50 dark:bg-gray-800 w-full sm:w-auto`}>
+              <Clock className={`h-4 w-4 mr-2 flex-shrink-0 ${countdownStatus.color}`} />
+              <span className={`font-medium whitespace-nowrap ${countdownStatus.color}`}>{countdownStatus.text}</span>
+            </div>
+          )}
+        </div>
+        
+        <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-2 pt-2">
+          <CardDescription>
+            {description}
+            {lastUpdated && (
+              <span className="block text-xs text-muted-foreground/70 mt-1">
+                Last updated: {lastUpdated}
+              </span>
+            )}
+          </CardDescription>
           
           {isMobile && (
             <Button
@@ -295,8 +352,10 @@ export function SkgbTable({ title, description, data, totals, onRowClick, isLoad
               {/* Total Row */}
               {totals && (
                 <TableRow className="bg-muted/50 font-semibold border-t-2">
-                  <TableCell className="p-2 font-bold">TOTAL</TableCell>
-                  <TableCell className="p-2 text-center">{totals.target_utama?.toLocaleString() || 0}</TableCell>
+                  <TableCell className="p-2 font-bold">Kalimantan Barat</TableCell>
+                  {(!isMobile || showAllColumns) && (
+                    <TableCell className="p-2 text-center">{totals.target_utama?.toLocaleString() || 0}</TableCell>
+                  )}
                   {(!isMobile || showAllColumns) && (
                     <TableCell className="p-2 text-center">{totals.cadangan?.toLocaleString() || 0}</TableCell>
                   )}

@@ -8,6 +8,17 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+// Utility function to capitalize each word
+export function capitalizeWords(text: string): string {
+  if (!text) return text;
+  
+  return text
+    .toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
 // Definisikan tipe varian berdasarkan varian yang ada di badge.tsx
 export type PercentageBadgeVariantType = VariantProps<
   typeof badgeVariants

@@ -70,6 +70,7 @@ export interface SkgbMonitoringHookResult {
   isLoading: boolean;
   error: string | null;
   lastUpdated: string | null;
+  kegiatanId: string | null;
   refetch: () => Promise<void>;
 }
 
@@ -82,6 +83,7 @@ export function useSkgbData(): SkgbMonitoringHookResult {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const [kegiatanId, setKegiatanId] = useState<string | null>(null);
 
   // Hardcoded data jumlah petugas per kabupaten (data riil berdasarkan lapangan)
   const petugasData: Record<string, number> = {
@@ -105,10 +107,21 @@ export function useSkgbData(): SkgbMonitoringHookResult {
     try {
       setIsLoading(true);
       setError(null);
+      setKegiatanId(null); // Reset kegiatan ID
 
       if (!supabase) {
         throw new Error('Supabase client not available');
       }
+
+      // Use hardcoded SKGB kegiatan ID (like ubinan monitoring pattern)
+      const hardcodedKegiatanId = 'b0b0b0b0-0002-4002-8002-000000000002';
+      console.log('🔧 SKGB useSkgbData - Setting kegiatanId:', hardcodedKegiatanId);
+      console.log('🔧 SKGB useSkgbData - Before setKegiatanId, current kegiatanId:', kegiatanId);
+      setKegiatanId(hardcodedKegiatanId);
+      console.log('🔧 SKGB useSkgbData - After setKegiatanId called');
+      
+      // Note: Using hardcoded ID because SKGB kegiatan might not exist in database yet
+      // or has different naming convention
 
       // Menggunakan RPC function untuk mendapatkan data SKGB yang sudah diproses
       const { data: rpcData, error: rpcError } = await supabase.rpc('get_skgb_monitoring_data', {
@@ -181,12 +194,16 @@ export function useSkgbData(): SkgbMonitoringHookResult {
     fetchData();
   }, [fetchData]);
 
+  // Debug log untuk return values
+  console.log('🔧 SKGB useSkgbData - Returning kegiatanId:', kegiatanId);
+
   return {
     districtData,
     totals,
     isLoading,
     error,
     lastUpdated,
+    kegiatanId,
     refetch: fetchData
   };
 }
