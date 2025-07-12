@@ -223,11 +223,16 @@ export function SkgbDetailTable({ kabupatenName, data, totals, onBack, isLoading
     return (
       <Card>
         <CardHeader>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={onBack}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
-            </Button>
+          <div className="flex flex-col gap-4">
+            {/* Back Button Row */}
+            <div className="flex items-center">
+              <Button variant="outline" size="sm" onClick={onBack}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Kembali
+              </Button>
+            </div>
+            
+            {/* Header Content */}
             <div>
               <CardTitle className="flex items-center gap-2">
                 Detail SKGB - {kabupatenName}
@@ -249,12 +254,17 @@ export function SkgbDetailTable({ kabupatenName, data, totals, onBack, isLoading
   return (
     <Card>
       <CardHeader>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-4">
+          {/* Back Button Row */}
+          <div className="flex items-center">
             <Button variant="outline" size="sm" onClick={onBack}>
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
+              Kembali
             </Button>
+          </div>
+          
+          {/* Header and Countdown Row */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex-grow">
               <CardTitle>Detail SKGB - {kabupatenName}</CardTitle>
               <CardDescription>
@@ -266,25 +276,27 @@ export function SkgbDetailTable({ kabupatenName, data, totals, onBack, isLoading
                 )}
               </CardDescription>
             </div>
+            
+            {countdownStatus && !isLoading && (
+              <div className={`flex items-center text-xs p-2 rounded-md border bg-gray-50 dark:bg-gray-800 w-full sm:w-auto`}>
+                <Clock className={`h-4 w-4 mr-2 flex-shrink-0 ${countdownStatus.color}`} />
+                <span className={`font-medium whitespace-nowrap ${countdownStatus.color}`}>{countdownStatus.text}</span>
+              </div>
+            )}
           </div>
           
-          {countdownStatus && !isLoading && (
-            <div className={`flex items-center text-xs p-2 rounded-md border bg-gray-50 dark:bg-gray-800 w-full sm:w-auto`}>
-              <Clock className={`h-4 w-4 mr-2 flex-shrink-0 ${countdownStatus.color}`} />
-              <span className={`font-medium whitespace-nowrap ${countdownStatus.color}`}>{countdownStatus.text}</span>
-            </div>
-          )}
-          
+          {/* Mobile Toggle Button Row */}
           {isMobile && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowAllColumns(!showAllColumns)}
-              className="self-start sm:self-auto"
-            >
-              {showAllColumns ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
-              {showAllColumns ? 'Sembunyikan' : 'Tampilkan'} Kolom
-            </Button>
+            <div className="flex justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowAllColumns(!showAllColumns)}
+              >
+                {showAllColumns ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
+                {showAllColumns ? 'Ringkas' : 'Lengkap'}
+              </Button>
+            </div>
           )}
         </div>
       </CardHeader>

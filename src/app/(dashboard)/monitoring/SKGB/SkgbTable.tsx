@@ -128,10 +128,10 @@ export function SkgbTable({ title, description, data, totals, onRowClick, isLoad
   const columns: ColumnDef<SkgbDistrictData>[] = useMemo(() => [
     {
       accessorKey: 'kabupaten',
-      header: ({ column }) => (
-        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="h-8 p-1 font-semibold hover:bg-transparent">
-          Kabupaten <ArrowUpDown className="ml-2 h-3 w-3" />
-        </Button>
+      header: () => (
+        <div className="h-8 p-1 font-semibold flex items-center">
+          Kabupaten/Kota
+        </div>
       ),
       cell: ({ row }) => (
         <div className="font-medium text-left pl-2">
@@ -139,14 +139,14 @@ export function SkgbTable({ title, description, data, totals, onRowClick, isLoad
         </div>
       ),
       size: 200,
-      enableSorting: true,
+      enableSorting: false,
     },
     {
       accessorKey: 'target_utama',
-      header: ({ column }) => (
-        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="h-8 p-1 font-semibold hover:bg-transparent">
-          Utama <ArrowUpDown className="ml-2 h-3 w-3" />
-        </Button>
+      header: () => (
+        <div className="h-8 p-1 font-semibold flex items-center justify-center">
+          Utama
+        </div>
       ),
       cell: ({ row }) => (
         <div className="text-center font-medium">
@@ -154,14 +154,14 @@ export function SkgbTable({ title, description, data, totals, onRowClick, isLoad
         </div>
       ),
       size: 120,
-      enableSorting: true,
+      enableSorting: false,
     },
     {
       accessorKey: 'cadangan',
-      header: ({ column }) => (
-        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="h-8 p-1 font-semibold hover:bg-transparent">
-          Cadangan <ArrowUpDown className="ml-2 h-3 w-3" />
-        </Button>
+      header: () => (
+        <div className="h-8 p-1 font-semibold flex items-center justify-center">
+          Cadangan
+        </div>
       ),
       cell: ({ row }) => (
         <div className="text-center font-medium">
@@ -169,15 +169,15 @@ export function SkgbTable({ title, description, data, totals, onRowClick, isLoad
         </div>
       ),
       size: 100,
-      enableSorting: true,
+      enableSorting: false,
       meta: { className: isMobile && !showAllColumns ? 'hidden' : '' },
     },
     {
       accessorKey: 'realisasi',
-      header: ({ column }) => (
-        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="h-8 p-1 font-semibold hover:bg-transparent">
-          Realisasi <ArrowUpDown className="ml-2 h-3 w-3" />
-        </Button>
+      header: () => (
+        <div className="h-8 p-1 font-semibold flex items-center justify-center">
+          Realisasi
+        </div>
       ),
       cell: ({ row }) => (
         <div className="text-center font-medium text-green-600">
@@ -185,14 +185,14 @@ export function SkgbTable({ title, description, data, totals, onRowClick, isLoad
         </div>
       ),
       size: 100,
-      enableSorting: true,
+      enableSorting: false,
     },
     {
       accessorKey: 'jumlah_petugas',
-      header: ({ column }) => (
-        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="h-8 p-1 font-semibold hover:bg-transparent">
-          Petugas <ArrowUpDown className="ml-2 h-3 w-3" />
-        </Button>
+      header: () => (
+        <div className="h-8 p-1 font-semibold flex items-center justify-center">
+          Petugas
+        </div>
       ),
       cell: ({ row }) => (
         <div className="text-center font-medium text-blue-600">
@@ -200,7 +200,7 @@ export function SkgbTable({ title, description, data, totals, onRowClick, isLoad
         </div>
       ),
       size: 120,
-      enableSorting: true,
+      enableSorting: false,
       meta: { className: isMobile && !showAllColumns ? 'hidden' : '' },
     },
     {
@@ -297,7 +297,7 @@ export function SkgbTable({ title, description, data, totals, onRowClick, isLoad
               className="self-start sm:self-auto"
             >
               {showAllColumns ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
-              {showAllColumns ? 'Sembunyikan' : 'Tampilkan'} Kolom
+              {showAllColumns ? 'Ringkas' : 'Lengkap'}
             </Button>
           )}
         </div>
