@@ -63,7 +63,7 @@ const TableSkeleton = ({ columns }: { columns: ColumnDef<SkgbDetailData, unknown
   </div>
 );
 
-export function SkgbDetailTable({ kabupatenName, data, totals, onBack, isLoading, lastUpdated, jadwal }: SkgbDetailTableProps) {
+export function SkgbPengeringanDetailTable({ kabupatenName, data, totals, onBack, isLoading, lastUpdated, jadwal }: SkgbDetailTableProps) {
   const isMobile = useIsMobile();
   const [showAllColumns, setShowAllColumns] = useState(false);
   const [sorting, setSorting] = useState<SortingState>([]);

@@ -74,7 +74,7 @@ const TableSkeleton = ({ columns }: { columns: ColumnDef<SkgbDistrictData, unkno
   </div>
 );
 
-export function SkgbTable({ title, description, data, totals, onRowClick, isLoading, lastUpdated, jadwal }: SkgbTableProps) {
+export function SkgbPengeringanTable({ title, description, data, totals, onRowClick, isLoading, lastUpdated, jadwal }: SkgbTableProps) {
   const isMobile = useIsMobile();
   const [showAllColumns, setShowAllColumns] = useState(false);
   const [sorting, setSorting] = useState<SortingState>([]);
