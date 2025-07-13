@@ -127,10 +127,7 @@ export function useSkgbData(): SkgbMonitoringHookResult {
 
       // Use hardcoded SKGB kegiatan ID (like ubinan monitoring pattern)
       const hardcodedKegiatanId = 'b0b0b0b0-0002-4002-8002-000000000002';
-      console.log('🔧 SKGB useSkgbData - Setting kegiatanId:', hardcodedKegiatanId);
-      console.log('🔧 SKGB useSkgbData - Before setKegiatanId, current kegiatanId:', kegiatanId);
       setKegiatanId(hardcodedKegiatanId);
-      console.log('🔧 SKGB useSkgbData - After setKegiatanId called');
       
       // Note: Using hardcoded ID because SKGB kegiatan might not exist in database yet
       // or has different naming convention
@@ -204,11 +201,8 @@ export function useSkgbData(): SkgbMonitoringHookResult {
 
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
-
-  // Debug log untuk return values
-  console.log('🔧 SKGB useSkgbData - Returning kegiatanId:', kegiatanId);
-
+  }, [fetchData]);  // Debug log untuk return values
+  
   return {
     districtData,
     totals,
@@ -298,7 +292,6 @@ export function useSkgbSummaryByKabupaten(kodeKab: string | null) {
 
   const fetchSummaryData = useCallback(async () => {
     if (!kodeKab || !supabase) {
-      console.log('🔧 SKGB Summary - No kodeKab or supabase:', { kodeKab, hasSupabase: !!supabase });
       setSummaryData(null);
       return;
     }
@@ -307,7 +300,6 @@ export function useSkgbSummaryByKabupaten(kodeKab: string | null) {
       setIsLoading(true);
       setError(null);
 
-      console.log('🔧 SKGB Summary - Fetching data for:', { kodeKab, selectedYear });
 
       // Try RPC function first, fallback to direct query if RPC doesn't exist
       let rpcData, rpcError;
@@ -320,23 +312,17 @@ export function useSkgbSummaryByKabupaten(kodeKab: string | null) {
         });
         rpcData = rpcResult.data;
         rpcError = rpcResult.error;
-        console.log('🔧 SKGB Summary - RPC Response:', { rpcData, rpcError });
         
         // If RPC error indicates function doesn't exist, use fallback
         if (rpcError && (rpcError.message?.includes('function') || rpcError.code === '42883')) {
-          console.log('🔧 SKGB Summary - RPC function not found, using fallback');
           throw new Error('RPC_NOT_FOUND');
         }
         
         if (rpcError) {
           throw rpcError;
         }
-      } catch (rpcErr: unknown) {
-        const errorMessage = rpcErr instanceof Error ? rpcErr.message : 'Unknown error';
-        console.log('🔧 SKGB Summary - RPC failed, using fallback query:', errorMessage);
-        
+      } catch {
         // Fallback: Use direct query instead of RPC
-        console.log('🔧 SKGB Summary - Using fallback query for kodeKab:', kodeKab);
         const { data: fallbackData, error: fallbackError } = await supabase
           .from('skgb_pengeringan')
           .select('kdkec, lokasi, flag_sampel, status_pendataan, created_at')
@@ -347,8 +333,6 @@ export function useSkgbSummaryByKabupaten(kodeKab: string | null) {
           throw fallbackError;
         }
 
-        console.log('🔧 SKGB Summary - Fallback data received:', fallbackData?.length, 'records');
-        console.log('🔧 SKGB Summary - Sample data:', fallbackData?.slice(0, 3));
 
         // Filter by year manually since we can't use EXTRACT in client
         const filteredData = fallbackData?.filter(item => {
@@ -357,7 +341,6 @@ export function useSkgbSummaryByKabupaten(kodeKab: string | null) {
           return year === selectedYear;
         }) || [];
 
-        console.log('🔧 SKGB Summary - Filtered by year:', filteredData.length, 'records for year', selectedYear);
 
         // Process data manually
         const kecamatanStatsU = new Map<string, number>();
@@ -401,7 +384,6 @@ export function useSkgbSummaryByKabupaten(kodeKab: string | null) {
         }];
         rpcError = null;
         
-        console.log('🔧 SKGB Summary - Fallback result:', rpcData[0]);
       }
 
       if (rpcError) {
@@ -415,10 +397,8 @@ export function useSkgbSummaryByKabupaten(kodeKab: string | null) {
           ...rpcData[0],
           total_petugas: petugasData[kodeKab] || 0
         };
-        console.log('🔧 SKGB Summary - Final data:', summaryWithPetugas);
         setSummaryData(summaryWithPetugas);
       } else {
-        console.log('🔧 SKGB Summary - No data returned');
         setSummaryData(null);
       }
     } catch (err) {

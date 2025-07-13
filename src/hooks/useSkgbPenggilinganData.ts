@@ -115,7 +115,6 @@ export function useSkgbPenggilinganData(): SkgbPenggilinganMonitoringHookResult 
 
       // Use same kegiatan ID as pengeringan (as per specification)
       const hardcodedKegiatanId = 'b0b0b0b0-0002-4002-8002-000000000002';
-      console.log('🔧 SKGB Penggilingan useSkgbPenggilinganData - Setting kegiatanId:', hardcodedKegiatanId);
       setKegiatanId(hardcodedKegiatanId);
       
       // Menggunakan RPC function untuk mendapatkan data SKGB Penggilingan yang sudah diproses
@@ -190,7 +189,6 @@ export function useSkgbPenggilinganData(): SkgbPenggilinganMonitoringHookResult 
   }, [fetchData]);
 
   // Debug log untuk return values
-  console.log('🔧 SKGB Penggilingan useSkgbPenggilinganData - Returning kegiatanId:', kegiatanId);
 
   return {
     districtData,
@@ -263,7 +261,6 @@ export function useSkgbPenggilinganSummaryByKabupaten(kodeKab: string | null) {
 
   const fetchSummaryData = useCallback(async () => {
     if (!kodeKab || !supabase) {
-      console.log('🔧 SKGB Penggilingan Summary - No kodeKab or supabase:', { kodeKab, hasSupabase: !!supabase });
       setSummaryData(null);
       return;
     }
@@ -272,7 +269,6 @@ export function useSkgbPenggilinganSummaryByKabupaten(kodeKab: string | null) {
       setIsLoading(true);
       setError(null);
 
-      console.log('🔧 SKGB Penggilingan Summary - Fetching data for:', { kodeKab, selectedYear });
 
       // Try RPC function first, fallback to direct query if RPC doesn't exist
       let rpcData, rpcError;
@@ -285,23 +281,17 @@ export function useSkgbPenggilinganSummaryByKabupaten(kodeKab: string | null) {
         });
         rpcData = rpcResult.data;
         rpcError = rpcResult.error;
-        console.log('🔧 SKGB Penggilingan Summary - RPC Response:', { rpcData, rpcError });
         
         // If RPC error indicates function doesn't exist, use fallback
         if (rpcError && (rpcError.message?.includes('function') || rpcError.code === '42883')) {
-          console.log('🔧 SKGB Penggilingan Summary - RPC function not found, using fallback');
           throw new Error('RPC_NOT_FOUND');
         }
         
         if (rpcError) {
           throw rpcError;
         }
-      } catch (rpcErr: unknown) {
-        const errorMessage = rpcErr instanceof Error ? rpcErr.message : 'Unknown error';
-        console.log('🔧 SKGB Penggilingan Summary - RPC failed, using fallback query:', errorMessage);
-        
+      } catch {
         // Fallback: Use direct query instead of RPC
-        console.log('🔧 SKGB Penggilingan Summary - Using fallback query for kodeKab:', kodeKab);
         const { data: fallbackData, error: fallbackError } = await supabase
           .from('skgb_penggilingan')
           .select('kdkec, kddesa, nmdesa, flag_sampel, status_pendataan, tahun')
@@ -313,7 +303,6 @@ export function useSkgbPenggilinganSummaryByKabupaten(kodeKab: string | null) {
           throw fallbackError;
         }
 
-        console.log('🔧 SKGB Penggilingan Summary - Fallback data received:', fallbackData?.length, 'records');
 
         // Process data manually
         const kecamatanStatsU = new Map<string, number>();
@@ -357,7 +346,6 @@ export function useSkgbPenggilinganSummaryByKabupaten(kodeKab: string | null) {
         }];
         rpcError = null;
         
-        console.log('🔧 SKGB Penggilingan Summary - Fallback result:', rpcData[0]);
       }
 
       if (rpcError) {
@@ -366,10 +354,8 @@ export function useSkgbPenggilinganSummaryByKabupaten(kodeKab: string | null) {
       }
 
       if (rpcData?.[0]) {
-        console.log('🔧 SKGB Penggilingan Summary - Final data:', rpcData[0]);
         setSummaryData(rpcData[0]);
       } else {
-        console.log('🔧 SKGB Penggilingan Summary - No data returned');
         setSummaryData(null);
       }
     } catch (err) {

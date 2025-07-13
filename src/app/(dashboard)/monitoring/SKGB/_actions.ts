@@ -26,7 +26,6 @@ export interface SkgbPengeringanRecord {
   date_modified: string
   created_at: string
   tahun: number
-  kegiatan_id: string
 }
 
 export interface SkgbPenggilinganRecord {
@@ -149,20 +148,15 @@ export async function updateSkgbPengeringan(
     status_pendataan?: string
   }
 ): Promise<UpdateResponse<SkgbPengeringanRecord>> {
-  console.log('updateSkgbPengeringan called with:', { id, updates })
-  
   try {
     // Check if record exists first
-    const { data: existingRecord, error: checkError } = await supabaseServer
+    const { error: checkError } = await supabaseServer
       .from('skgb_pengeringan')
-      .select('id, petugas, email_petugas, status_pendataan')
+      .select('id')
       .eq('id', id)
       .single()
 
-    console.log('Existing record check:', { existingRecord, checkError })
-
     if (checkError) {
-      console.error('Record not found or check failed:', checkError)
       throw new Error(`Record with id ${id} not found: ${checkError.message}`)
     }
 
@@ -183,26 +177,19 @@ export async function updateSkgbPengeringan(
     // Don't manually set date_modified - there's a trigger that handles it
     // Based on the trigger: update_skgb_pengeringan_date_modified
 
-    console.log('Update data prepared:', updateData)
-
-    console.log('Attempting update on skgb_pengeringan table...')
     const { data, error } = await supabaseServer
       .from('skgb_pengeringan')
       .update(updateData)
       .eq('id', id)
       .select()
 
-    console.log('Update result:', { data, error })
-
     if (error) {
-      console.error('Error updating SKGB Pengeringan:', error)
       return { success: false, error: error.message }
     }
 
     revalidatePath('/monitoring/SKGB')
     return { success: true, data: data?.[0] }
   } catch (err) {
-    console.error('Exception in updateSkgbPengeringan:', err)
     const errorMessage = err instanceof Error ? err.message : 'Unknown error'
     return { success: false, error: `Failed to update SKGB Pengeringan record: ${errorMessage}` }
   }
@@ -217,20 +204,15 @@ export async function updateSkgbPenggilingan(
     status_pendataan?: string
   }
 ): Promise<UpdateResponse<SkgbPenggilinganRecord>> {
-  console.log('updateSkgbPenggilingan called with:', { id, updates })
-  
   try {
     // Check if record exists first
-    const { data: existingRecord, error: checkError } = await supabaseServer
+    const { error: checkError } = await supabaseServer
       .from('skgb_penggilingan')
-      .select('id, petugas, email_petugas, status_pendataan')
+      .select('id')
       .eq('id', id)
       .single()
 
-    console.log('Existing record check:', { existingRecord, checkError })
-
     if (checkError) {
-      console.error('Record not found or check failed:', checkError)
       throw new Error(`Record with id ${id} not found: ${checkError.message}`)
     }
 
@@ -250,25 +232,19 @@ export async function updateSkgbPenggilingan(
     
     // Don't manually set date_modified - assuming similar trigger exists
     
-    console.log('Update data prepared:', updateData)
-
     const { data, error } = await supabaseServer
       .from('skgb_penggilingan')
       .update(updateData)
       .eq('id', id)
       .select()
 
-    console.log('Update result:', { data, error })
-
     if (error) {
-      console.error('Error updating SKGB Penggilingan:', error)
       return { success: false, error: error.message }
     }
 
     revalidatePath('/monitoring/SKGB')
     return { success: true, data: data?.[0] }
   } catch (err) {
-    console.error('Exception in updateSkgbPenggilingan:', err)
     const errorMessage = err instanceof Error ? err.message : 'Unknown error'
     return { success: false, error: `Failed to update SKGB Penggilingan record: ${errorMessage}` }
   }
@@ -334,22 +310,12 @@ export async function bulkUpdateSkgbPenggilingan(
 
 // Get petugas by satker using RPC function
 export async function getPetugasBySatker(satkerId: string): Promise<PetugasRecord[]> {
-  console.log('getPetugasBySatker called with satkerId:', satkerId)
-  
   try {
     const { data, error } = await supabaseServer
       .rpc('get_petugas_by_satker', { p_satker_id: satkerId })
 
-    console.log('RPC response - data:', data)
-    console.log('RPC response - error:', error)
-
     if (error) {
-      console.error('Error fetching petugas by satker:', error)
-      
       // Fallback: try direct table query if RPC fails
-      console.log('Trying fallback direct table query...')
-      
-      // Try different possible table names
       let fallbackData = null
       let fallbackError = null
       
@@ -362,7 +328,6 @@ export async function getPetugasBySatker(satkerId: string): Promise<PetugasRecor
         .order('nama_petugas', { ascending: true })
       
       if (result1.error) {
-        console.log('petugas_db table not found, trying petugas...')
         // Try petugas table
         const result2 = await supabaseServer
           .from('petugas')
@@ -371,7 +336,6 @@ export async function getPetugasBySatker(satkerId: string): Promise<PetugasRecor
           .order('nama', { ascending: true })
         
         if (result2.error) {
-          console.log('petugas table also not found:', result2.error)
           fallbackError = result2.error
         } else {
           // Map petugas data to PetugasRecord format
@@ -389,9 +353,6 @@ export async function getPetugasBySatker(satkerId: string): Promise<PetugasRecor
         fallbackData = result1.data
       }
 
-      console.log('Fallback response - data:', fallbackData)
-      console.log('Fallback response - error:', fallbackError)
-
       if (fallbackError) {
         throw new Error(`Failed to fetch petugas data: ${error.message}`)
       }
@@ -401,7 +362,6 @@ export async function getPetugasBySatker(satkerId: string): Promise<PetugasRecor
 
     return data || []
   } catch (err) {
-    console.error('Exception in getPetugasBySatker:', err)
     const errorMessage = err instanceof Error ? err.message : 'Unknown error'
     throw new Error(`Failed to fetch petugas data: ${errorMessage}`)
   }
@@ -409,8 +369,6 @@ export async function getPetugasBySatker(satkerId: string): Promise<PetugasRecor
 
 // Get all petugas (for super_admin)
 export async function getAllPetugas(): Promise<PetugasRecord[]> {
-  console.log('getAllPetugas called')
-  
   try {
     // Try petugas_db first
     const { data: dbData, error: dbError } = await supabaseServer
@@ -420,7 +378,6 @@ export async function getAllPetugas(): Promise<PetugasRecord[]> {
       .order('nama_petugas', { ascending: true })
 
     if (dbError) {
-      console.log('petugas_db not found, trying petugas table...')
       // Try petugas table as fallback
       const { data: fallbackData, error: fallbackError } = await supabaseServer
         .from('petugas')
@@ -428,7 +385,6 @@ export async function getAllPetugas(): Promise<PetugasRecord[]> {
         .order('nama', { ascending: true })
 
       if (fallbackError) {
-        console.error('Error fetching all petugas:', fallbackError)
         throw new Error('Failed to fetch petugas data')
       }
 
@@ -461,78 +417,198 @@ export async function fetchSkgbRecordsWithPagination(
   flagSampel: string = 'U',
   searchTerm?: string
 ): Promise<{ records: (SkgbPengeringanRecord | SkgbPenggilinganRecord)[], total: number }> {
-  console.log(`fetchSkgbRecordsWithPagination called with: ${skgbType}, satkerId: ${satkerId}, page: ${page}, limit: ${limit}, flagSampel: ${flagSampel}, searchTerm: ${searchTerm}`)
-  
   const offset = (page - 1) * limit
   
   try {
     if (skgbType === 'pengeringan') {
-      // Use RPC function with filters for pengeringan
-      const { data, error } = await supabaseServer
-        .rpc('get_skgb_pengeringan_records', {
-          p_kdkab: satkerId || null,
-          p_flag_sampel: flagSampel,
-          p_search_term: searchTerm || null,
-          p_limit: limit,
-          p_offset: offset
-        })
+      // Try RPC function first, fallback to direct query if RPC doesn't exist
+      let data, totalCount = 0;
+      
+      try {
+        const { data: rpcData, error } = await supabaseServer
+          .rpc('get_skgb_pengeringan_records', {
+            p_kdkab: satkerId || null,
+            p_flag_sampel: flagSampel,
+            p_search_term: searchTerm || null,
+            p_limit: limit,
+            p_offset: offset
+          })
 
-      if (error) {
-        console.error('Error fetching SKGB Pengeringan with pagination:', error)
-        throw new Error('Failed to fetch SKGB Pengeringan records')
+        if (error) {
+          throw new Error('RPC not available')
+        }
+
+        data = rpcData
+
+        // Get count using RPC
+        const { data: countData, error: countError } = await supabaseServer
+          .rpc('get_skgb_pengeringan_count', {
+            p_kdkab: satkerId || null,
+            p_flag_sampel: flagSampel,
+            p_search_term: searchTerm || null
+          })
+
+        if (countError) {
+          throw new Error('Count RPC not available')
+        }
+
+        totalCount = countData || 0
+      } catch {
+        // Fallback to direct table query
+        let query = supabaseServer
+          .from('skgb_pengeringan')
+          .select(`
+            id, kdprov, nmprov, kdkab, nmkab, kdkec, nmkec, lokasi, idsubsegmen,
+            nks, fase_amatan, x, y, bulan_panen, flag_sampel, petugas, 
+            email_petugas, status_pendataan, date_modified, created_at, tahun
+          `)
+
+        // Apply filters
+        if (satkerId) {
+          query = query.eq('kdkab', satkerId)
+        }
+        
+        if (flagSampel !== 'ALL') {
+          query = query.eq('flag_sampel', flagSampel)
+        }
+        
+        if (searchTerm && searchTerm.trim() !== '') {
+          const search = searchTerm.trim().toLowerCase()
+          query = query.or(`nmkab.ilike.%${search}%,nmkec.ilike.%${search}%,lokasi.ilike.%${search}%,idsubsegmen.ilike.%${search}%,petugas.ilike.%${search}%`)
+        }
+
+        // Get total count first - need separate query for count
+        let countQuery = supabaseServer
+          .from('skgb_pengeringan')
+          .select('*', { count: 'exact' })
+
+        // Apply same filters for count
+        if (satkerId) {
+          countQuery = countQuery.eq('kdkab', satkerId)
+        }
+        
+        if (flagSampel !== 'ALL') {
+          countQuery = countQuery.eq('flag_sampel', flagSampel)
+        }
+        
+        if (searchTerm && searchTerm.trim() !== '') {
+          const search = searchTerm.trim().toLowerCase()
+          countQuery = countQuery.or(`nmkab.ilike.%${search}%,nmkec.ilike.%${search}%,lokasi.ilike.%${search}%,idsubsegmen.ilike.%${search}%,petugas.ilike.%${search}%`)
+        }
+        
+        const { count } = await countQuery
+        totalCount = count || 0
+
+        // Get paginated data
+        const result = await query
+          .order('nmkab', { ascending: true })
+          .order('nmkec', { ascending: true })
+          .range(offset, offset + limit - 1)
+
+        if (result.error) {
+          throw new Error('Failed to fetch SKGB Pengeringan records')
+        }
+        
+        data = result.data
       }
 
-      // Get total count with same filters
-      const { data: countData, error: countError } = await supabaseServer
-        .rpc('get_skgb_pengeringan_count', {
-          p_kdkab: satkerId || null,
-          p_flag_sampel: flagSampel,
-          p_search_term: searchTerm || null
-        })
-
-      if (countError) {
-        console.error('Error fetching SKGB Pengeringan count:', countError)
-        throw new Error('Failed to fetch SKGB Pengeringan count')
-      }
-
-      const totalCount = countData || 0
-      console.log(`Found ${totalCount} total pengeringan records`)
       return { records: data || [], total: totalCount }
     } else {
-      // Use RPC function with filters for penggilingan
-      const { data, error } = await supabaseServer
-        .rpc('get_skgb_penggilingan_records', {
-          p_kdkab: satkerId || null,
-          p_flag_sampel: flagSampel,
-          p_search_term: searchTerm || null,
-          p_limit: limit,
-          p_offset: offset
-        })
+      // Try RPC function first, fallback to direct query if RPC doesn't exist
+      let data, totalCount = 0;
+      
+      try {
+        const { data: rpcData, error } = await supabaseServer
+          .rpc('get_skgb_penggilingan_records', {
+            p_kdkab: satkerId || null,
+            p_flag_sampel: flagSampel,
+            p_search_term: searchTerm || null,
+            p_limit: limit,
+            p_offset: offset
+          })
 
-      if (error) {
-        console.error('Error fetching SKGB Penggilingan with pagination:', error)
-        throw new Error('Failed to fetch SKGB Penggilingan records')
+        if (error) {
+          throw new Error('RPC not available')
+        }
+
+        data = rpcData
+
+        // Get count using RPC
+        const { data: countData, error: countError } = await supabaseServer
+          .rpc('get_skgb_penggilingan_count', {
+            p_kdkab: satkerId || null,
+            p_flag_sampel: flagSampel,
+            p_search_term: searchTerm || null
+          })
+
+        if (countError) {
+          throw new Error('Count RPC not available')
+        }
+
+        totalCount = countData || 0
+      } catch {
+        // Fallback to direct table query
+        let query = supabaseServer
+          .from('skgb_penggilingan')
+          .select(`
+            id, kdprov, nmprov, kdkab, nmkab, kdkec, nmkec, kddesa, nmdesa,
+            id_sbr, nks, nama_usaha, narahubung, telp, alamat_usaha, x, y,
+            skala_usaha, flag_sampel, petugas, email_petugas, status_pendataan,
+            date_modified, created_at, tahun
+          `)
+
+        // Apply filters
+        if (satkerId) {
+          query = query.eq('kdkab', satkerId)
+        }
+        
+        if (flagSampel !== 'ALL') {
+          query = query.eq('flag_sampel', flagSampel)
+        }
+        
+        if (searchTerm && searchTerm.trim() !== '') {
+          const search = searchTerm.trim().toLowerCase()
+          query = query.or(`nmkab.ilike.%${search}%,nmkec.ilike.%${search}%,nmdesa.ilike.%${search}%,nama_usaha.ilike.%${search}%,petugas.ilike.%${search}%`)
+        }
+
+        // Get total count first - need separate query for count
+        let countQuery = supabaseServer
+          .from('skgb_penggilingan')
+          .select('*', { count: 'exact' })
+
+        // Apply same filters for count
+        if (satkerId) {
+          countQuery = countQuery.eq('kdkab', satkerId)
+        }
+        
+        if (flagSampel !== 'ALL') {
+          countQuery = countQuery.eq('flag_sampel', flagSampel)
+        }
+        
+        if (searchTerm && searchTerm.trim() !== '') {
+          const search = searchTerm.trim().toLowerCase()
+          countQuery = countQuery.or(`nmkab.ilike.%${search}%,nmkec.ilike.%${search}%,nmdesa.ilike.%${search}%,nama_usaha.ilike.%${search}%,petugas.ilike.%${search}%`)
+        }
+        
+        const { count } = await countQuery
+        totalCount = count || 0
+
+        // Get paginated data
+        const result = await query
+          .order('nmkab', { ascending: true })
+          .order('nmkec', { ascending: true })
+          .range(offset, offset + limit - 1)
+
+        if (result.error) {
+          throw new Error('Failed to fetch SKGB Penggilingan records')
+        }
+        
+        data = result.data
       }
 
-      // Get total count with same filters
-      const { data: countData, error: countError } = await supabaseServer
-        .rpc('get_skgb_penggilingan_count', {
-          p_kdkab: satkerId || null,
-          p_flag_sampel: flagSampel,
-          p_search_term: searchTerm || null
-        })
-
-      if (countError) {
-        console.error('Error fetching SKGB Penggilingan count:', countError)
-        throw new Error('Failed to fetch SKGB Penggilingan count')
-      }
-
-      const totalCount = countData || 0
-      console.log(`Found ${totalCount} total penggilingan records`)
       return { records: data || [], total: totalCount }
     }
   } catch (err) {
-    console.error('Exception in fetchSkgbRecordsWithPagination:', err)
     const errorMessage = err instanceof Error ? err.message : 'Unknown error'
     throw new Error(`Failed to fetch SKGB records: ${errorMessage}`)
   }

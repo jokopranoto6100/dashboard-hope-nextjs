@@ -96,8 +96,7 @@ export function SkgbManageSampleModal({
           }
           
           setPetugasList(petugasData);
-        } catch (error) {
-          console.error("Error loading petugas:", error);
+        } catch {
           toast.error("Gagal memuat data petugas");
           setPetugasList([]);
         } finally {
@@ -111,10 +110,10 @@ export function SkgbManageSampleModal({
 
   // Load SKGB records when modal opens, page changes, or filters change
   useEffect(() => {
-    if (isOpen && userSatkerId) {
+    if (isOpen && (userSatkerId || userRole === 'super_admin')) {
       fetchSkgbRecords();
     }
-  }, [isOpen, userSatkerId, skgbType, currentPage, flagSampelFilter, debouncedSearchTerm]);
+  }, [isOpen, userSatkerId, skgbType, currentPage, flagSampelFilter, debouncedSearchTerm, userRole]);
 
   // Reset page when filters change
   useEffect(() => {
@@ -122,12 +121,13 @@ export function SkgbManageSampleModal({
   }, [flagSampelFilter, debouncedSearchTerm]);
 
   const fetchSkgbRecords = async () => {
-    if (!userSatkerId) return;
+    if (!userSatkerId && userRole !== 'super_admin') return;
     
     setIsLoadingRecords(true);
     try {
-      // Use pagination for better performance
-      const satkerId = userRole === 'super_admin' ? undefined : userSatkerId;
+      // For super_admin: fetch all data (satkerId = undefined)
+      // For regular user: use their satkerId
+      const satkerId = userRole === 'super_admin' ? undefined : userSatkerId || undefined;
       const result = await fetchSkgbRecordsWithPagination(
         skgbType, 
         satkerId, 
@@ -139,8 +139,7 @@ export function SkgbManageSampleModal({
       
       setSkgbRecords(result.records);
       setTotalRecords(result.total);
-    } catch (error) {
-      console.error('Error fetching SKGB records:', error);
+    } catch {
       setSkgbRecords([]);
       setTotalRecords(0);
       toast.error('Gagal memuat data SKGB');
@@ -194,11 +193,9 @@ export function SkgbManageSampleModal({
           } else {
             toast.error("Gagal mengupdate data");
           }
+        }        } catch {
+          toast.error("Terjadi kesalahan saat mengupdate data");
         }
-      } catch (error) {
-        console.error("Error updating SKGB:", error);
-        toast.error("Terjadi kesalahan saat mengupdate data");
-      }
     });
   };
 
