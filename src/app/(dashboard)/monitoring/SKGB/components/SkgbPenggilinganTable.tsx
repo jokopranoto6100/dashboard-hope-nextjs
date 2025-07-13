@@ -6,11 +6,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowUpDown, Eye, EyeOff } from "lucide-react";
+import { ArrowUpDown, Eye, EyeOff, Settings } from "lucide-react";
 import { getPercentageBadgeVariant, capitalizeWords } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { type Kegiatan } from '@/app/(dashboard)/jadwal/jadwal.config';
 import { Clock } from "lucide-react";
+import { SkgbManageSampleModal } from './SkgbEditForm';
 
 import {
   ColumnDef,
@@ -45,6 +46,8 @@ interface SkgbPenggilinganTableProps {
   isLoading: boolean;
   lastUpdated?: string | null;
   jadwal?: Kegiatan;
+  userRole?: string | null;
+  userSatkerId?: string | null;
 }
 
 const TableSkeleton = ({ columns }: { columns: ColumnDef<SkgbPenggilinganDistrictData, unknown>[] }) => (
@@ -74,10 +77,11 @@ const TableSkeleton = ({ columns }: { columns: ColumnDef<SkgbPenggilinganDistric
   </div>
 );
 
-export function SkgbPenggilinganTable({ title, description, data, totals, onRowClick, isLoading, lastUpdated, jadwal }: SkgbPenggilinganTableProps) {
+export function SkgbPenggilinganTable({ title, description, data, totals, onRowClick, isLoading, lastUpdated, jadwal, userRole, userSatkerId }: SkgbPenggilinganTableProps) {
   const isMobile = useIsMobile();
   const [showAllColumns, setShowAllColumns] = useState(false);
   const [sorting, setSorting] = useState<SortingState>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Helper function untuk menghitung selisih hari
   const getDiffInDays = (d1: Date, d2: Date): number => {
@@ -271,12 +275,27 @@ export function SkgbPenggilinganTable({ title, description, data, totals, onRowC
             <CardTitle>{title}</CardTitle>
           </div>
           
-          {countdownStatus && !isLoading && (
-            <div className={`flex items-center text-xs p-2 rounded-md border bg-gray-50 dark:bg-gray-800 w-full sm:w-auto`}>
-              <Clock className={`h-4 w-4 mr-2 flex-shrink-0 ${countdownStatus.color}`} />
-              <span className={`font-medium whitespace-nowrap ${countdownStatus.color}`}>{countdownStatus.text}</span>
-            </div>
-          )}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            {/* Kelola Sampel Button */}
+            {userSatkerId && (
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => setIsModalOpen(true)}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Kelola Sampel
+              </Button>
+            )}
+            
+            {countdownStatus && !isLoading && (
+              <div className={`flex items-center text-xs p-2 rounded-md border bg-gray-50 dark:bg-gray-800 w-full sm:w-auto`}>
+                <Clock className={`h-4 w-4 mr-2 flex-shrink-0 ${countdownStatus.color}`} />
+                <span className={`font-medium whitespace-nowrap ${countdownStatus.color}`}>{countdownStatus.text}</span>
+              </div>
+            )}
+          </div>
         </div>
         
         <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-2 pt-2">
@@ -376,6 +395,18 @@ export function SkgbPenggilinganTable({ title, description, data, totals, onRowC
           </Table>
         </div>
       </CardContent>
+      
+      {/* Kelola Sampel Modal */}
+      <SkgbManageSampleModal
+        isOpen={isModalOpen}
+        setIsOpen={setIsModalOpen}
+        skgbType="penggilingan"
+        userSatkerId={userSatkerId || null}
+        userRole={userRole}
+        onSuccess={() => {
+          // Optionally refresh main table data here
+        }}
+      />
     </Card>
   );
 }

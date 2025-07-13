@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useJadwalData } from '@/hooks/useJadwalData';
 import { useYear } from '@/context/YearContext';
+import { useAuth } from '@/context/AuthContext';
 
 // Import swipe gesture hooks
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
@@ -28,6 +29,7 @@ type SkgbType = 'pengeringan' | 'penggilingan';
 export default function SkgbPage() {
   const { selectedYear } = useYear();
   const isMobile = useIsMobile();
+  const { userRole, userSatkerId } = useAuth();
   const [activeTab, setActiveTab] = useState<SkgbType>('pengeringan');
   
   // Pengeringan data and state
@@ -421,6 +423,8 @@ export default function SkgbPage() {
                 isLoading={isPengeringanLoading}
                 lastUpdated={pengeringanLastUpdated}
                 jadwal={skgbJadwal}
+                userRole={userRole}
+                userSatkerId={userSatkerId}
               />
             )}
           </TabsContent>
@@ -549,6 +553,8 @@ export default function SkgbPage() {
                 isLoading={isPenggilinganLoading}
                 lastUpdated={penggilinganLastUpdated}
                 jadwal={skgbJadwal}
+                userRole={userRole}
+                userSatkerId={userSatkerId}
               />
             )}
           </TabsContent>
