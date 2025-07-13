@@ -403,6 +403,7 @@ export default function SkgbPage() {
             )}
 
             {/* Data Table for Pengeringan */}
+            <div className={!isMobile ? "mt-6" : "mt-4"}>
             {selectedPengeringanKabupaten ? (
               <SkgbPengeringanDetailTable
                 kabupatenName={selectedPengeringanKabupaten.kabupaten}
@@ -427,6 +428,7 @@ export default function SkgbPage() {
                 userSatkerId={userSatkerId}
               />
             )}
+            </div>
           </TabsContent>
           
           <TabsContent value="penggilingan" className="mt-4">
@@ -533,6 +535,7 @@ export default function SkgbPage() {
             )}
 
             {/* Data Table for Penggilingan */}
+            <div className={!isMobile ? "mt-6" : "mt-4"}>
             {selectedPenggilinganKabupaten ? (
               <SkgbPenggilinganDetailTable
                 kabupatenName={selectedPenggilinganKabupaten.kabupaten}
@@ -557,6 +560,7 @@ export default function SkgbPage() {
                 userSatkerId={userSatkerId}
               />
             )}
+            </div>
           </TabsContent>
         </Tabs>
       </div>

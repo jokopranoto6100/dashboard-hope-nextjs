@@ -12,7 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Users, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, Users, ChevronLeft, ChevronRight, Search, Filter } from "lucide-react";
+import { useDebounce } from "@/hooks/useDebounce";
 import { 
   updateSkgbPengeringan, 
   updateSkgbPenggilingan,
@@ -64,6 +65,11 @@ export function SkgbManageSampleModal({
   const [totalRecords, setTotalRecords] = useState(0);
   const recordsPerPage = 50; // Show 50 records per page
   const totalPages = Math.ceil(totalRecords / recordsPerPage);
+  
+  // Filter and search state
+  const [flagSampelFilter, setFlagSampelFilter] = useState<string>('U'); // Default to 'U' for faster loading
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 500); // 500ms debounce
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -103,12 +109,17 @@ export function SkgbManageSampleModal({
     }
   }, [isOpen, userSatkerId, userRole]);
 
-  // Load SKGB records when modal opens or page changes
+  // Load SKGB records when modal opens, page changes, or filters change
   useEffect(() => {
     if (isOpen && userSatkerId) {
       fetchSkgbRecords();
     }
-  }, [isOpen, userSatkerId, skgbType, currentPage]);
+  }, [isOpen, userSatkerId, skgbType, currentPage, flagSampelFilter, debouncedSearchTerm]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [flagSampelFilter, debouncedSearchTerm]);
 
   const fetchSkgbRecords = async () => {
     if (!userSatkerId) return;
@@ -121,7 +132,9 @@ export function SkgbManageSampleModal({
         skgbType, 
         satkerId, 
         currentPage, 
-        recordsPerPage
+        recordsPerPage,
+        flagSampelFilter,
+        debouncedSearchTerm
       );
       
       setSkgbRecords(result.records);
@@ -224,6 +237,34 @@ export function SkgbManageSampleModal({
             </DialogDescription>
           </DialogHeader>
           
+          {/* Filter and Search Controls */}
+          <div className="flex flex-col sm:flex-row gap-4 mb-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  placeholder={`Cari ${skgbType === 'pengeringan' ? 'kabupaten, kecamatan, lokasi, atau petugas' : 'kabupaten, kecamatan, desa, nama usaha, atau petugas'}...`}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            <div className="flex-shrink-0">
+              <Select value={flagSampelFilter} onValueChange={setFlagSampelFilter}>
+                <SelectTrigger className="w-[160px]">
+                  <Filter className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Flag Sampel" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="U">Flag U (Utama)</SelectItem>
+                  <SelectItem value="C">Flag C (Cadangan)</SelectItem>
+                  <SelectItem value="ALL">Semua Flag</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
           <div className="max-h-[60vh] overflow-auto">
             {isLoadingRecords ? (
               <div className="flex justify-center py-8">
@@ -295,12 +336,24 @@ export function SkgbManageSampleModal({
                   </Table>
                 </div>
                 
-                {/* Pagination Controls */}
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-between mt-4 px-2">
-                    <div className="text-sm text-muted-foreground">
+                {/* Results Info and Pagination Controls */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-4 px-2 gap-2">
+                  <div className="text-sm text-muted-foreground">
+                    <div>
                       Menampilkan {((currentPage - 1) * recordsPerPage) + 1} - {Math.min(currentPage * recordsPerPage, totalRecords)} dari {totalRecords} data
                     </div>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge variant="outline" className="text-xs">
+                        Flag: {flagSampelFilter === 'ALL' ? 'Semua' : flagSampelFilter}
+                      </Badge>
+                      {debouncedSearchTerm && (
+                        <Badge variant="secondary" className="text-xs">
+                          Pencarian: "{debouncedSearchTerm}"
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  {totalPages > 1 && (
                     <div className="flex items-center space-x-2">
                       <Button
                         variant="outline"
@@ -337,8 +390,8 @@ export function SkgbManageSampleModal({
                         <ChevronRight className="h-4 w-4" />
                       </Button>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </>
             ) : (
               <div className="border rounded p-8 bg-muted/50 text-center">

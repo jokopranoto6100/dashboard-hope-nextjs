@@ -457,17 +457,22 @@ export async function fetchSkgbRecordsWithPagination(
   skgbType: 'pengeringan' | 'penggilingan',
   satkerId?: string,
   page: number = 1,
-  limit: number = 50
+  limit: number = 50,
+  flagSampel: string = 'U',
+  searchTerm?: string
 ): Promise<{ records: (SkgbPengeringanRecord | SkgbPenggilinganRecord)[], total: number }> {
-  console.log(`fetchSkgbRecordsWithPagination called with: ${skgbType}, satkerId: ${satkerId}, page: ${page}, limit: ${limit}`)
+  console.log(`fetchSkgbRecordsWithPagination called with: ${skgbType}, satkerId: ${satkerId}, page: ${page}, limit: ${limit}, flagSampel: ${flagSampel}, searchTerm: ${searchTerm}`)
   
   const offset = (page - 1) * limit
   
   try {
     if (skgbType === 'pengeringan') {
+      // Use RPC function with filters for pengeringan
       const { data, error } = await supabaseServer
-        .rpc('get_skgb_pengeringan_records', { 
+        .rpc('get_skgb_pengeringan_records', {
           p_kdkab: satkerId || null,
+          p_flag_sampel: flagSampel,
+          p_search_term: searchTerm || null,
           p_limit: limit,
           p_offset: offset
         })
@@ -477,27 +482,29 @@ export async function fetchSkgbRecordsWithPagination(
         throw new Error('Failed to fetch SKGB Pengeringan records')
       }
 
-      // Get total count for pagination
-      let count = 0
-      if (satkerId) {
-        const { count: totalCount } = await supabaseServer
-          .from('skgb_pengeringan')
-          .select('*', { count: 'exact', head: true })
-          .eq('kdkab', satkerId)
-        count = totalCount || 0
-      } else {
-        const { count: totalCount } = await supabaseServer
-          .from('skgb_pengeringan')
-          .select('*', { count: 'exact', head: true })
-        count = totalCount || 0
+      // Get total count with same filters
+      const { data: countData, error: countError } = await supabaseServer
+        .rpc('get_skgb_pengeringan_count', {
+          p_kdkab: satkerId || null,
+          p_flag_sampel: flagSampel,
+          p_search_term: searchTerm || null
+        })
+
+      if (countError) {
+        console.error('Error fetching SKGB Pengeringan count:', countError)
+        throw new Error('Failed to fetch SKGB Pengeringan count')
       }
 
-      console.log(`Found ${count} total pengeringan records`)
-      return { records: data || [], total: count }
+      const totalCount = countData || 0
+      console.log(`Found ${totalCount} total pengeringan records`)
+      return { records: data || [], total: totalCount }
     } else {
+      // Use RPC function with filters for penggilingan
       const { data, error } = await supabaseServer
-        .rpc('get_skgb_penggilingan_records', { 
+        .rpc('get_skgb_penggilingan_records', {
           p_kdkab: satkerId || null,
+          p_flag_sampel: flagSampel,
+          p_search_term: searchTerm || null,
           p_limit: limit,
           p_offset: offset
         })
@@ -507,23 +514,22 @@ export async function fetchSkgbRecordsWithPagination(
         throw new Error('Failed to fetch SKGB Penggilingan records')
       }
 
-      // Get total count for pagination
-      let count = 0
-      if (satkerId) {
-        const { count: totalCount } = await supabaseServer
-          .from('skgb_penggilingan')
-          .select('*', { count: 'exact', head: true })
-          .eq('kdkab', satkerId)
-        count = totalCount || 0
-      } else {
-        const { count: totalCount } = await supabaseServer
-          .from('skgb_penggilingan')
-          .select('*', { count: 'exact', head: true })
-        count = totalCount || 0
+      // Get total count with same filters
+      const { data: countData, error: countError } = await supabaseServer
+        .rpc('get_skgb_penggilingan_count', {
+          p_kdkab: satkerId || null,
+          p_flag_sampel: flagSampel,
+          p_search_term: searchTerm || null
+        })
+
+      if (countError) {
+        console.error('Error fetching SKGB Penggilingan count:', countError)
+        throw new Error('Failed to fetch SKGB Penggilingan count')
       }
 
-      console.log(`Found ${count} total penggilingan records`)
-      return { records: data || [], total: count }
+      const totalCount = countData || 0
+      console.log(`Found ${totalCount} total penggilingan records`)
+      return { records: data || [], total: totalCount }
     }
   } catch (err) {
     console.error('Exception in fetchSkgbRecordsWithPagination:', err)
