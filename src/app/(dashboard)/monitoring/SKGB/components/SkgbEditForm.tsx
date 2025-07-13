@@ -228,10 +228,6 @@ export function SkgbManageSampleModal({
               <Users className="h-5 w-5" />
               Kelola Sampel SKGB {skgbType === 'pengeringan' ? 'Pengeringan' : 'Penggilingan'}
             </DialogTitle>
-            <DialogDescription>
-              Mengelola data sampel SKGB untuk satker Anda
-              {userRole === 'super_admin' && ' (Super Admin - dapat mengelola semua data)'}
-            </DialogDescription>
           </DialogHeader>
           
           {/* Filter and Search Controls */}
@@ -254,9 +250,9 @@ export function SkgbManageSampleModal({
                   <SelectValue placeholder="Flag Sampel" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="U">Flag U (Utama)</SelectItem>
-                  <SelectItem value="C">Flag C (Cadangan)</SelectItem>
-                  <SelectItem value="ALL">Semua Flag</SelectItem>
+                  <SelectItem value="U">Utama</SelectItem>
+                  <SelectItem value="C">Cadangan</SelectItem>
+                  <SelectItem value="ALL">Semua</SelectItem>
                 </SelectContent>
               </Select>
             </div>
