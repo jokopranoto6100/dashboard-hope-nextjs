@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useYear } from '@/context/YearContext';
+import { PerformanceMonitor } from '@/lib/performance';
 
 export interface SkgbPengeringanData {
   id: number;
@@ -86,7 +87,45 @@ export interface SkgbMonitoringHookResult {
   refetch: () => Promise<void>;
 }
 
-export function useSkgbData(): SkgbMonitoringHookResult {
+// Retry mechanism with exponential backoff
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+const withRetry = async <T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3,
+  baseDelay: number = 1000
+): Promise<T> => {
+  let lastError: Error;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error as Error;
+      
+      // Don't retry on certain types of errors
+      if (error instanceof Error) {
+        if (error.message.includes('permission') || 
+            error.message.includes('unauthorized') ||
+            error.message.includes('forbidden')) {
+          throw error; // Don't retry permission errors
+        }
+      }
+      
+      if (attempt === maxRetries) {
+        throw lastError;
+      }
+      
+      // Exponential backoff with jitter
+      const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 1000;
+      await sleep(delay);
+    }
+  }
+  
+  throw lastError!;
+};
+
+export function useSkgbData(enabled: boolean = true): SkgbMonitoringHookResult {
   const { supabase } = useAuth();
   const { selectedYear } = useYear();
   
@@ -116,13 +155,19 @@ export function useSkgbData(): SkgbMonitoringHookResult {
   };
 
   const fetchData = useCallback(async () => {
+    // Performance optimization: Skip fetch if not enabled
+    if (!enabled) {
+      setIsLoading(false);
+      return;
+    }
+
     try {
       setIsLoading(true);
       setError(null);
       setKegiatanId(null); // Reset kegiatan ID
 
       if (!supabase) {
-        throw new Error('Supabase client not available');
+        throw new Error('Sistem tidak tersedia. Silakan refresh halaman.');
       }
 
       // Use hardcoded SKGB kegiatan ID (like ubinan monitoring pattern)
@@ -132,14 +177,31 @@ export function useSkgbData(): SkgbMonitoringHookResult {
       // Note: Using hardcoded ID because SKGB kegiatan might not exist in database yet
       // or has different naming convention
 
-      // Menggunakan RPC function untuk mendapatkan data SKGB yang sudah diproses
-      const { data: rpcData, error: rpcError } = await supabase.rpc('get_skgb_monitoring_data', {
-        p_tahun: selectedYear
+      // Menggunakan RPC function untuk mendapatkan data SKGB yang sudah diproses dengan retry dan performance monitoring
+      const rpcResult = await PerformanceMonitor.measure('SKGB-Data-Fetch', async () => {
+        return withRetry(async () => {
+          const result = await supabase.rpc('get_skgb_monitoring_data', {
+            p_tahun: selectedYear
+          });
+          
+          if (result.error) {
+            // Enhanced error handling with user-friendly messages
+            let errorMessage = 'Gagal mengambil data SKGB';
+            if (result.error.message?.includes('network')) {
+              errorMessage = 'Koneksi bermasalah. Periksa jaringan internet Anda.';
+            } else if (result.error.message?.includes('permission')) {
+              errorMessage = 'Anda tidak memiliki akses untuk melihat data ini.';
+            } else if (result.error.message?.includes('timeout')) {
+              errorMessage = 'Permintaan timeout. Silakan coba lagi.';
+            }
+            throw new Error(errorMessage);
+          }
+          
+          return result;
+        });
       });
 
-      if (rpcError) {
-        throw rpcError;
-      }
+      const { data: rpcData } = rpcResult;
 
       if (rpcData && rpcData.length > 0) {
         // Data dari RPC sudah dalam format yang diinginkan
@@ -190,14 +252,15 @@ export function useSkgbData(): SkgbMonitoringHookResult {
       
     } catch (err) {
       console.error('Error fetching SKGB data:', err);
-      setError(err instanceof Error ? err.message : 'Unknown error occurred');
+      const errorMessage = err instanceof Error ? err.message : 'Terjadi kesalahan yang tidak diketahui';
+      setError(errorMessage);
       // Set empty data on error
       setDistrictData([]);
       setTotals(null);
     } finally {
       setIsLoading(false);
     }
-  }, [supabase, selectedYear]);
+  }, [supabase, selectedYear, enabled]);
 
   useEffect(() => {
     fetchData();
@@ -239,13 +302,23 @@ export function useSkgbDetailData(kodeKab: string | null) {
       });
 
       if (rpcError) {
-        throw rpcError;
+        // Enhanced error handling with user-friendly messages
+        let errorMessage = 'Gagal mengambil detail data SKGB';
+        if (rpcError.message?.includes('network')) {
+          errorMessage = 'Koneksi bermasalah. Periksa jaringan internet Anda.';
+        } else if (rpcError.message?.includes('permission')) {
+          errorMessage = 'Anda tidak memiliki akses untuk melihat data ini.';
+        } else if (rpcError.message?.includes('timeout')) {
+          errorMessage = 'Permintaan timeout. Silakan coba lagi.';
+        }
+        throw new Error(errorMessage);
       }
 
       setDetailData(rpcData || []);
     } catch (err) {
       console.error('Error fetching SKGB detail data:', err);
-      setError(err instanceof Error ? err.message : 'Unknown error occurred');
+      const errorMessage = err instanceof Error ? err.message : 'Terjadi kesalahan yang tidak diketahui';
+      setError(errorMessage);
       setDetailData([]);
     } finally {
       setIsLoading(false);
@@ -319,7 +392,14 @@ export function useSkgbSummaryByKabupaten(kodeKab: string | null) {
         }
         
         if (rpcError) {
-          throw rpcError;
+          // Enhanced error handling
+          let errorMessage = 'Gagal mengambil ringkasan data SKGB';
+          if (rpcError.message?.includes('network')) {
+            errorMessage = 'Koneksi bermasalah. Periksa jaringan internet Anda.';
+          } else if (rpcError.message?.includes('permission')) {
+            errorMessage = 'Anda tidak memiliki akses untuk melihat data ini.';
+          }
+          throw new Error(errorMessage);
         }
       } catch {
         // Fallback: Use direct query instead of RPC
@@ -403,7 +483,8 @@ export function useSkgbSummaryByKabupaten(kodeKab: string | null) {
       }
     } catch (err) {
       console.error('🔧 SKGB Summary - Error fetching SKGB summary data:', err);
-      setError(err instanceof Error ? err.message : 'Unknown error occurred');
+      const errorMessage = err instanceof Error ? err.message : 'Terjadi kesalahan yang tidak diketahui';
+      setError(errorMessage);
       setSummaryData(null);
     } finally {
       setIsLoading(false);

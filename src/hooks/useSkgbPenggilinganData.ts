@@ -92,7 +92,7 @@ export interface SkgbPenggilinganMonitoringHookResult {
   refetch: () => Promise<void>;
 }
 
-export function useSkgbPenggilinganData(): SkgbPenggilinganMonitoringHookResult {
+export function useSkgbPenggilinganData(enabled: boolean = true): SkgbPenggilinganMonitoringHookResult {
   const { supabase } = useAuth();
   const { selectedYear } = useYear();
   
@@ -104,13 +104,19 @@ export function useSkgbPenggilinganData(): SkgbPenggilinganMonitoringHookResult 
   const [kegiatanId, setKegiatanId] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
+    // Performance optimization: Skip fetch if not enabled
+    if (!enabled) {
+      setIsLoading(false);
+      return;
+    }
+
     try {
       setIsLoading(true);
       setError(null);
       setKegiatanId(null);
 
       if (!supabase) {
-        throw new Error('Supabase client not available');
+        throw new Error('Sistem tidak tersedia. Silakan refresh halaman.');
       }
 
       // Use same kegiatan ID as pengeringan (as per specification)
@@ -123,7 +129,16 @@ export function useSkgbPenggilinganData(): SkgbPenggilinganMonitoringHookResult 
       });
 
       if (rpcError) {
-        throw rpcError;
+        // Enhanced error handling with user-friendly messages
+        let errorMessage = 'Gagal mengambil data SKGB Penggilingan';
+        if (rpcError.message?.includes('network')) {
+          errorMessage = 'Koneksi bermasalah. Periksa jaringan internet Anda.';
+        } else if (rpcError.message?.includes('permission')) {
+          errorMessage = 'Anda tidak memiliki akses untuk melihat data ini.';
+        } else if (rpcError.message?.includes('timeout')) {
+          errorMessage = 'Permintaan timeout. Silakan coba lagi.';
+        }
+        throw new Error(errorMessage);
       }
 
       if (rpcData && rpcData.length > 0) {
@@ -175,14 +190,15 @@ export function useSkgbPenggilinganData(): SkgbPenggilinganMonitoringHookResult 
       
     } catch (err) {
       console.error('Error fetching SKGB Penggilingan data:', err);
-      setError(err instanceof Error ? err.message : 'Unknown error occurred');
+      const errorMessage = err instanceof Error ? err.message : 'Terjadi kesalahan yang tidak diketahui';
+      setError(errorMessage);
       // Set empty data on error
       setDistrictData([]);
       setTotals(null);
     } finally {
       setIsLoading(false);
     }
-  }, [supabase, selectedYear]);
+  }, [supabase, selectedYear, enabled]);
 
   useEffect(() => {
     fetchData();
@@ -226,13 +242,23 @@ export function useSkgbPenggilinganDetailData(kodeKab: string | null) {
       });
 
       if (rpcError) {
-        throw rpcError;
+        // Enhanced error handling with user-friendly messages
+        let errorMessage = 'Gagal mengambil detail data SKGB Penggilingan';
+        if (rpcError.message?.includes('network')) {
+          errorMessage = 'Koneksi bermasalah. Periksa jaringan internet Anda.';
+        } else if (rpcError.message?.includes('permission')) {
+          errorMessage = 'Anda tidak memiliki akses untuk melihat data ini.';
+        } else if (rpcError.message?.includes('timeout')) {
+          errorMessage = 'Permintaan timeout. Silakan coba lagi.';
+        }
+        throw new Error(errorMessage);
       }
 
       setDetailData(rpcData || []);
     } catch (err) {
       console.error('Error fetching SKGB Penggilingan detail data:', err);
-      setError(err instanceof Error ? err.message : 'Unknown error occurred');
+      const errorMessage = err instanceof Error ? err.message : 'Terjadi kesalahan yang tidak diketahui';
+      setError(errorMessage);
       setDetailData([]);
     } finally {
       setIsLoading(false);
@@ -288,7 +314,14 @@ export function useSkgbPenggilinganSummaryByKabupaten(kodeKab: string | null) {
         }
         
         if (rpcError) {
-          throw rpcError;
+          // Enhanced error handling
+          let errorMessage = 'Gagal mengambil ringkasan data SKGB Penggilingan';
+          if (rpcError.message?.includes('network')) {
+            errorMessage = 'Koneksi bermasalah. Periksa jaringan internet Anda.';
+          } else if (rpcError.message?.includes('permission')) {
+            errorMessage = 'Anda tidak memiliki akses untuk melihat data ini.';
+          }
+          throw new Error(errorMessage);
         }
       } catch {
         // Fallback: Use direct query instead of RPC
@@ -360,7 +393,8 @@ export function useSkgbPenggilinganSummaryByKabupaten(kodeKab: string | null) {
       }
     } catch (err) {
       console.error('🔧 SKGB Penggilingan Summary - Error fetching SKGB summary data:', err);
-      setError(err instanceof Error ? err.message : 'Unknown error occurred');
+      const errorMessage = err instanceof Error ? err.message : 'Terjadi kesalahan yang tidak diketahui';
+      setError(errorMessage);
       setSummaryData(null);
     } finally {
       setIsLoading(false);

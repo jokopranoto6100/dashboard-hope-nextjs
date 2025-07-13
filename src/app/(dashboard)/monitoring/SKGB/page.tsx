@@ -5,10 +5,12 @@ import { MapPin, TrendingUp, Minus, Users } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useJadwalData } from '@/hooks/useJadwalData';
 import { useYear } from '@/context/YearContext';
 import { useAuth } from '@/context/AuthContext';
+import { useConnectionStatus } from '@/hooks/useConnectionStatus';
 
 // Import swipe gesture hooks
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
@@ -30,14 +32,32 @@ export default function SkgbPage() {
   const { selectedYear } = useYear();
   const isMobile = useIsMobile();
   const { userRole, userSatkerId } = useAuth();
+  const { isOnline, isReconnecting } = useConnectionStatus();
   const [activeTab, setActiveTab] = useState<SkgbType>('pengeringan');
   
+  // Performance Optimization: Lazy load data based on active tab
+  const pengeringanHookResult = useSkgbData(activeTab === 'pengeringan');
+  const penggilinganHookResult = useSkgbPenggilinganData(activeTab === 'penggilingan');
+  
   // Pengeringan data and state
-  const { districtData: pengeringanData, totals: pengeringanTotals, isLoading: isPengeringanLoading, error: pengeringanError, lastUpdated: pengeringanLastUpdated, kegiatanId } = useSkgbData();
+  const { 
+    districtData: pengeringanData, 
+    totals: pengeringanTotals, 
+    isLoading: isPengeringanLoading, 
+    error: pengeringanError, 
+    lastUpdated: pengeringanLastUpdated, 
+    kegiatanId 
+  } = pengeringanHookResult;
   const [selectedPengeringanKabupaten, setSelectedPengeringanKabupaten] = useState<SkgbDistrictData | null>(null);
   
   // Penggilingan data and state
-  const { districtData: penggilinganData, totals: penggilinganTotals, isLoading: isPenggilinganLoading, error: penggilinganError, lastUpdated: penggilinganLastUpdated } = useSkgbPenggilinganData();
+  const { 
+    districtData: penggilinganData, 
+    totals: penggilinganTotals, 
+    isLoading: isPenggilinganLoading, 
+    error: penggilinganError, 
+    lastUpdated: penggilinganLastUpdated 
+  } = penggilinganHookResult;
   const [selectedPenggilinganKabupaten, setSelectedPenggilinganKabupaten] = useState<SkgbPenggilinganDistrictData | null>(null);
   
   // Use kegiatanId from the hook instead of hardcoding
@@ -115,31 +135,47 @@ export default function SkgbPage() {
     }
   }, [bindToElement, isMobile]);
 
-  // Pengeringan detail data
+  // Optimized detail data fetching - only fetch when kabupaten is selected
   const { 
     detailData: pengeringanDetailData, 
     isLoading: isPengeringanDetailLoading, 
     error: pengeringanDetailError 
-  } = useSkgbDetailData(selectedPengeringanKabupaten?.kode_kab || null);
+  } = useSkgbDetailData(
+    activeTab === 'pengeringan' && selectedPengeringanKabupaten?.kode_kab 
+      ? selectedPengeringanKabupaten.kode_kab 
+      : null
+  );
 
-  // Pengeringan summary data
+  // Optimized summary data fetching - only fetch when kabupaten is selected
   const {
     summaryData: pengeringanKabupatenSummary,
     isLoading: isPengeringanSummaryLoading
-  } = useSkgbSummaryByKabupaten(selectedPengeringanKabupaten?.kode_kab || null);
+  } = useSkgbSummaryByKabupaten(
+    activeTab === 'pengeringan' && selectedPengeringanKabupaten?.kode_kab 
+      ? selectedPengeringanKabupaten.kode_kab 
+      : null
+  );
 
-  // Penggilingan detail data
+  // Optimized penggilingan detail data
   const { 
     detailData: penggilinganDetailData, 
     isLoading: isPenggilinganDetailLoading, 
     error: penggilinganDetailError 
-  } = useSkgbPenggilinganDetailData(selectedPenggilinganKabupaten?.kode_kab || null);
+  } = useSkgbPenggilinganDetailData(
+    activeTab === 'penggilingan' && selectedPenggilinganKabupaten?.kode_kab 
+      ? selectedPenggilinganKabupaten.kode_kab 
+      : null
+  );
 
-  // Penggilingan summary data
+  // Optimized penggilingan summary data
   const {
     summaryData: penggilinganKabupatenSummary,
     isLoading: isPenggilinganSummaryLoading
-  } = useSkgbPenggilinganSummaryByKabupaten(selectedPenggilinganKabupaten?.kode_kab || null);
+  } = useSkgbPenggilinganSummaryByKabupaten(
+    activeTab === 'penggilingan' && selectedPenggilinganKabupaten?.kode_kab 
+      ? selectedPenggilinganKabupaten.kode_kab 
+      : null
+  );
   
   // Get current tab data based on active tab
   const getCurrentTabData = useCallback(() => {
@@ -178,14 +214,14 @@ export default function SkgbPage() {
     isPenggilinganDetailLoading, penggilinganDetailError
   ]);
 
-  // Create summary for the header cards based on active tab
+  // Create summary for the header cards based on active tab (memoized for performance)
   const summary = useMemo(() => {
     const currentData = getCurrentTabData();
     const { districtData, totals, selectedKabupaten, kabupatenSummary } = currentData;
     
     // If we're viewing detail for a specific kabupaten, use kabupaten summary
     if (selectedKabupaten && kabupatenSummary) {
-      const result = {
+      return {
         totalKabupaten: kabupatenSummary.total_kecamatan_u, // Kecamatan count U for the selected kabupaten
         totalDesa: kabupatenSummary.total_desa_u, // Desa count U for the selected kabupaten  
         totalDesaC: kabupatenSummary.total_desa_c, // Desa count C for the selected kabupaten
@@ -196,13 +232,12 @@ export default function SkgbPage() {
         overallPersentase: kabupatenSummary.persentase,
         totalPetugas: kabupatenSummary.total_petugas
       };
-      return result;
     }
     
     // Otherwise use the overall summary
     if (!districtData?.length || !totals) return null;
     
-    const result = {
+    return {
       totalKabupaten: districtData.length,
       totalDesa: null, // Not available in district summary
       totalDesaC: null, // Not available in district summary
@@ -211,10 +246,9 @@ export default function SkgbPage() {
       totalCadangan: totals.cadangan,
       totalRealisasi: totals.realisasi,
       overallPersentase: totals.persentase,
-      totalPetugas: districtData.reduce((sum: number, item: SkgbDistrictData) => sum + item.jumlah_petugas, 0)
+      totalPetugas: districtData.reduce((sum: number, item: SkgbDistrictData | SkgbPenggilinganDistrictData) => sum + item.jumlah_petugas, 0)
     };
-    return result;
-  }, [activeTab, getCurrentTabData]);
+  }, [getCurrentTabData]);
 
   // Calculate detail totals when showing detail view
   const detailTotals = useMemo(() => {
@@ -258,7 +292,7 @@ export default function SkgbPage() {
     }
   }, [activeTab]);
 
-  // Handle back to main view (tab-specific)
+  // Handle back to main view (tab-specific) with cleanup
   const handleBack = useCallback(() => {
     if (activeTab === 'pengeringan') {
       setSelectedPengeringanKabupaten(null);
@@ -267,18 +301,62 @@ export default function SkgbPage() {
     }
   }, [activeTab]);
 
+  // Performance: Clear selections when switching tabs
+  useEffect(() => {
+    setSelectedPengeringanKabupaten(null);
+    setSelectedPenggilinganKabupaten(null);
+  }, [activeTab]);
+
   // Get current tab data for rendering
   const currentTabData = getCurrentTabData();
 
-  if (currentTabData.error || currentTabData.detailError) {
-    return (
-      <div className="flex h-[calc(100vh-10rem)] w-full items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold text-destructive">Error loading SKGB data</h2>
-          <p className="text-muted-foreground mt-2">{currentTabData.error || currentTabData.detailError}</p>
+  // Enhanced error handling component with connection status
+  const renderErrorState = (error: string) => (
+    <div className="flex h-[calc(100vh-10rem)] w-full items-center justify-center">
+      <div className="text-center max-w-md mx-auto p-6">
+        <div className="mb-4">
+          <div className="w-16 h-16 mx-auto mb-4 bg-destructive/10 rounded-full flex items-center justify-center">
+            <svg className="w-8 h-8 text-destructive" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 19.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
         </div>
+        <h2 className="text-xl font-semibold text-destructive mb-2">Gagal Memuat Data SKGB</h2>
+        <p className="text-muted-foreground mb-4">{error}</p>
+        {!isOnline && (
+          <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+            <div className="flex items-center gap-2 text-orange-800">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 19.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+              <span className="text-sm">Tidak ada koneksi internet</span>
+            </div>
+          </div>
+        )}
+        {isReconnecting && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center gap-2 text-blue-800">
+              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              <span className="text-sm">Mencoba menyambung ulang...</span>
+            </div>
+          </div>
+        )}
+        <Button 
+          onClick={() => window.location.reload()} 
+          variant="outline"
+          className="w-full"
+          disabled={!isOnline}
+        >
+          {isOnline ? 'Refresh Halaman' : 'Menunggu Koneksi...'}
+        </Button>
       </div>
-    );
+    </div>
+  );
+
+  if (currentTabData.error || currentTabData.detailError) {
+    return renderErrorState(currentTabData.error || currentTabData.detailError || 'Terjadi kesalahan yang tidak diketahui');
   }
 
   return (
@@ -416,8 +494,8 @@ export default function SkgbPage() {
               />
             ) : (
               <SkgbPengeringanTable
-                title="Monitoring SKGB Pengeringan per Kabupaten"
-                description="Klik pada baris untuk melihat detail kecamatan dan lokasi."
+                title="Monitoring SKGB Pengeringan"
+                description="Klik baris untuk melihat detail."
                 data={pengeringanData}
                 totals={pengeringanTotals}
                 onRowClick={handleRowClick}
@@ -548,8 +626,8 @@ export default function SkgbPage() {
               />
             ) : (
               <SkgbPenggilinganTable
-                title="Monitoring SKGB Penggilingan per Kabupaten"
-                description="Klik pada baris untuk melihat detail kecamatan dan desa."
+                title="Monitoring SKGB Penggilingan"
+                description="Klik baris untuk melihat detail."
                 data={penggilinganData}
                 totals={penggilinganTotals}
                 onRowClick={handleRowClick}

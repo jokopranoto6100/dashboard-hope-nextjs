@@ -138,7 +138,7 @@ export function SkgbPengeringanTable({ title, description, data, totals, onRowCl
         </div>
       ),
       cell: ({ row }) => (
-        <div className="font-medium text-left pl-2">
+        <div className="font-medium text-left p-1">
           {capitalizeWords(row.getValue('kabupaten'))}
         </div>
       ),
@@ -282,7 +282,7 @@ export function SkgbPengeringanTable({ title, description, data, totals, onRowCl
                 variant="default"
                 size="sm"
                 onClick={() => setIsModalOpen(true)}
-                className="bg-blue-600 hover:bg-blue-700"
+                className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 text-white"
               >
                 <Settings className="h-4 w-4 mr-2" />
                 Kelola Sampel
