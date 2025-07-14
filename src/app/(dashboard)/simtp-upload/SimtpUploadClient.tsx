@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, UploadCloud } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UploadHistory } from "./UploadHistory";
+import { BulkDownload } from "./BulkDownload";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CustomFileInput } from "@/components/ui/CustomFileInput";
 
@@ -30,7 +31,7 @@ interface SimtpUploadClientProps {
 export function SimtpUploadClient({ allSatkers, isAdmin }: SimtpUploadClientProps) {
   const [isPending, startTransition] = useTransition();
   const { selectedYear } = useYear();
-  const { userData } = useAuth();
+  const { userData, userRole } = useAuth();
   
   const [selectedSatker, setSelectedSatker] = useState<string | undefined>(undefined);
 
@@ -179,6 +180,11 @@ export function SimtpUploadClient({ allSatkers, isAdmin }: SimtpUploadClientProp
           </form>
         </CardContent>
       </Card>
+
+      {/* Bulk Download untuk Super Admin */}
+      {userRole === 'super_admin' && (
+        <BulkDownload year={selectedYear} userRole={userRole} />
+      )}
 
       {selectedSatker && <UploadHistory year={selectedYear} satkerId={selectedSatker} />}
     </>

@@ -203,3 +203,180 @@ export async function downloadSimtpFileAction(storagePath: string) {
     return { success: false, error: errorMessage };
   }
 }
+
+// --- ACTION UNTUK BULK DOWNLOAD FILES (Super Admin Only) ---
+export async function bulkDownloadSimtpFilesAction({
+  year,
+  satkerId,
+  fileTypes
+}: {
+  year: number;
+  satkerId?: string; // Jika kosong, download semua satker
+  fileTypes?: string[]; // Jika kosong, download semua jenis file
+}) {
+  try {
+    const { supabase, user } = await getSupabaseClientWithAuthenticatedUser();
+
+    const userRole = user.user_metadata?.role;
+    if (userRole !== 'super_admin') {
+      return { success: false, error: "Hanya super admin yang dapat melakukan bulk download." };
+    }
+
+    const bucketName = 'simtp-uploads';
+    
+    // Build query untuk mendapatkan daftar file (ambil yang terbaru berdasarkan uploaded_at)
+    let query = supabase
+      .from('simtp_uploads')
+      .select('id, file_name, storage_path, kabupaten_kode, file_type, uploaded_at')
+      .eq('year', year)
+      .not('storage_path', 'is', null) // Hanya file yang ada storage_path
+      .order('uploaded_at', { ascending: false }); // Yang terbaru dulu
+
+    if (satkerId) {
+      query = query.eq('kabupaten_kode', satkerId);
+    }
+
+    if (fileTypes && fileTypes.length > 0) {
+      query = query.in('file_type', fileTypes);
+    }
+
+    const { data: allFiles, error: queryError } = await query;
+
+    if (queryError) {
+      throw new Error(`Gagal mengambil daftar file: ${queryError.message}`);
+    }
+
+    if (!allFiles || allFiles.length === 0) {
+      return { success: false, error: "Tidak ada file yang ditemukan untuk kriteria yang dipilih." };
+    }
+
+    // Filter untuk ambil hanya 1 file per kombinasi satker + file_type (yang terbaru)
+    const uniqueFiles: typeof allFiles = [];
+    const seenCombinations = new Set<string>();
+
+    for (const file of allFiles) {
+      const combination = `${file.kabupaten_kode}_${file.file_type}`;
+      if (!seenCombinations.has(combination)) {
+        seenCombinations.add(combination);
+        uniqueFiles.push(file);
+      }
+    }
+
+    // Download semua file
+    const downloadResults = [];
+    const errors = [];
+
+    for (const file of uniqueFiles) {
+      try {
+        const { data, error } = await supabase.storage
+          .from(bucketName)
+          .download(file.storage_path);
+
+        if (error) {
+          errors.push(`${file.file_name}: ${error.message}`);
+          continue;
+        }
+
+        const arrayBuffer = await data.arrayBuffer();
+        downloadResults.push({
+          filename: file.file_name,
+          kabupaten_kode: file.kabupaten_kode,
+          file_type: file.file_type,
+          buffer: Array.from(new Uint8Array(arrayBuffer))
+        });
+      } catch (error) {
+        errors.push(`${file.file_name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    }
+
+    return {
+      success: true,
+      data: {
+        files: downloadResults,
+        totalFiles: uniqueFiles.length,
+        successCount: downloadResults.length,
+        errorCount: errors.length,
+        errors: errors
+      }
+    };
+
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Terjadi kesalahan yang tidak diketahui.";
+    return { success: false, error: errorMessage };
+  }
+}
+
+// --- ACTION UNTUK MENDAPATKAN DAFTAR SATKER YANG ADA FILE ---
+export async function getSatkerWithFilesAction(year: number) {
+  try {
+    const { supabase, user } = await getSupabaseClientWithAuthenticatedUser();
+
+    const userRole = user.user_metadata?.role;
+    if (userRole !== 'super_admin') {
+      return { success: false, error: "Hanya super admin yang dapat mengakses data ini." };
+    }
+
+    // Ambil data unique berdasarkan storage_path (karena file di-replace, 1 storage_path = 1 file)
+    const { data, error } = await supabase
+      .from('simtp_uploads')
+      .select('kabupaten_kode, file_type, storage_path')
+      .eq('year', year)
+      .not('storage_path', 'is', null)
+      .order('kabupaten_kode');
+
+    if (error) throw error;
+
+    // Group by kabupaten_kode dan hitung unique storage_path per file_type
+    type GroupedData = {
+      [key: string]: {
+        kabupaten_kode: string;
+        file_types: { [fileType: string]: number };
+        total_files: number;
+      };
+    };
+
+    type DataItem = {
+      kabupaten_kode: string;
+      file_type: string;
+      storage_path: string;
+    };
+
+    // Buat set untuk tracking unique storage_path per kabupaten per file_type
+    const uniqueFiles = new Set<string>();
+    const groupedData = data.reduce((acc: GroupedData, item: DataItem) => {
+      const { kabupaten_kode, file_type } = item;
+      
+      // Key unik untuk kombinasi kabupaten + file_type
+      const uniqueKey = `${kabupaten_kode}_${file_type}`;
+      
+      // Skip jika kombinasi ini sudah ada (karena sistem replace, cuma 1 file per kombinasi)
+      if (uniqueFiles.has(uniqueKey)) {
+        return acc;
+      }
+      
+      uniqueFiles.add(uniqueKey);
+      
+      if (!acc[kabupaten_kode]) {
+        acc[kabupaten_kode] = {
+          kabupaten_kode,
+          file_types: {},
+          total_files: 0
+        };
+      }
+      
+      // Set ke 1 karena maksimal cuma 1 file per jenis per satker
+      acc[kabupaten_kode].file_types[file_type] = 1;
+      acc[kabupaten_kode].total_files++;
+      
+      return acc;
+    }, {});
+
+    return { 
+      success: true, 
+      data: Object.values(groupedData)
+    };
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Terjadi kesalahan yang tidak diketahui.";
+    return { success: false, error: errorMessage };
+  }
+}
