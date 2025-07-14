@@ -79,6 +79,11 @@ export interface UserData {
             url: "/monitoring/ksa",
             isActive: (currentPath) => currentPath === "/monitoring/ksa",
           },
+           {
+            title: "SKGB",
+            url: "/monitoring/skgb",
+            isActive: (currentPath) => currentPath === "/monitoring/skgb",
+          },
           {
             title: "SIMTP",
             url: "/monitoring/simtp",
