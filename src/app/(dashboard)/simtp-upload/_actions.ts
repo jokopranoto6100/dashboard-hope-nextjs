@@ -2,10 +2,8 @@
 
 import { createSupabaseServerClientWithUserContext } from '@/lib/supabase-server'; 
 import { cookies } from 'next/headers';
-import { google } from 'googleapis';
-import { Readable } from 'stream';
 
-// Helper Function untuk otentikasi (tidak berubah)
+// Helper Function untuk otentikasi
 async function getSupabaseClientWithAuthenticatedUser() {
   const cookieStore = await cookies();
   const supabase = await createSupabaseServerClientWithUserContext(cookieStore);
@@ -15,20 +13,6 @@ async function getSupabaseClientWithAuthenticatedUser() {
     throw new Error("Akses ditolak: Anda harus login untuk melakukan aksi ini.");
   }
   return { supabase, user };
-}
-
-// Fungsi untuk client Google Drive (tidak berubah)
-function getDriveClient() {
-  const decodedServiceAccount = Buffer.from(
-    process.env.GOOGLE_SERVICE_ACCOUNT_BASE64!,
-    'base64'
-  ).toString('utf-8');
-  const credentials = JSON.parse(decodedServiceAccount);
-  const auth = new google.auth.GoogleAuth({
-    credentials,
-    scopes: ['https://www.googleapis.com/auth/drive'],
-  });
-  return google.drive({ version: 'v3', auth });
 }
 
 export async function uploadSimtpAction(formData: FormData) {
@@ -65,9 +49,8 @@ export async function uploadSimtpAction(formData: FormData) {
 
     
     const uploadDetails: string[] = [];
-    const drive = getDriveClient();
-    const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID!;
     const currentUploadYear = parseInt(yearString, 10);
+    const bucketName = 'simtp-uploads';
 
     const filesToUpload = [
       { key: 'stp_bulanan', type: 'STP_BULANAN', prefix: 'STP' },
@@ -87,44 +70,54 @@ export async function uploadSimtpAction(formData: FormData) {
       }
 
       const fileName = `${fileInfo.prefix}_${yearForData}_${kodeKabupaten}.mdb`;
-      const existingFiles = await drive.files.list({
-        q: `name='${fileName}' and '${folderId}' in parents and trashed=false`,
-        fields: 'files(id)',
-        spaces: 'drive',
-      });
-
-      const fileMetadata = { name: fileName, parents: [folderId] };
-      const media = {
-        mimeType: 'application/vnd.ms-access',
-        body: Readable.from(Buffer.from(await file.arrayBuffer())),
-      };
+      const filePath = `${kodeKabupaten}/${yearForData}/${fileName}`;
       
-      let uploadedFile;
-      const isUpdating = existingFiles.data.files && existingFiles.data.files.length > 0;
+      // Cek apakah file sudah ada di Supabase Storage
+      const { data: existingFile } = await supabase.storage
+        .from(bucketName)
+        .list(`${kodeKabupaten}/${yearForData}`, {
+          search: fileName
+        });
+
+      const isUpdating = existingFile && existingFile.length > 0;
+      
+      // Convert file to buffer
+      const fileBuffer = await file.arrayBuffer();
+      
+      let uploadResult;
       if (isUpdating) {
-        const fileId = existingFiles.data.files![0].id!;
-        uploadedFile = await drive.files.update({ fileId, media, fields: 'id' });
+        // Update existing file
+        uploadResult = await supabase.storage
+          .from(bucketName)
+          .update(filePath, fileBuffer, {
+            contentType: 'application/vnd.ms-access',
+            upsert: true
+          });
       } else {
-        uploadedFile = await drive.files.create({ requestBody: fileMetadata, media, fields: 'id' });
+        // Upload new file
+        uploadResult = await supabase.storage
+          .from(bucketName)
+          .upload(filePath, fileBuffer, {
+            contentType: 'application/vnd.ms-access'
+          });
       }
       
-      const gdriveFileId = uploadedFile.data.id;
-      if (!gdriveFileId) {
-        throw new Error(`Gagal mendapatkan ID file dari Google Drive untuk ${fileName}`);
+      if (uploadResult.error) {
+        throw new Error(`Gagal mengupload ${fileName}: ${uploadResult.error.message}`);
       }
 
       const currentMonth = new Date().getMonth() + 1;
       
-      // ✅ DIUBAH: Tambahkan 'kegiatan_id' ke dalam data yang di-insert
+      // ✅ DIUBAH: Simpan ke database dengan storage_path sebagai pengganti gdrive_file_id
       const { error: logError } = await supabase.from('simtp_uploads').insert({
         uploader_id: user.id,
         file_type: fileInfo.type,
         file_name: fileName,
-        gdrive_file_id: gdriveFileId,
+        storage_path: filePath, // Menggunakan storage_path instead of gdrive_file_id
         year: yearForData,
         month: currentMonth,
         kabupaten_kode: kodeKabupaten,
-        kegiatan_id: simtpKegiatanId, // <-- INI DIA
+        kegiatan_id: simtpKegiatanId,
       });
 
       if (logError) {
@@ -162,7 +155,7 @@ export async function getUploadHistoryAction({ year, satkerId }: { year: number;
 
     const { data, error } = await supabase
       .from('simtp_uploads')
-      .select('id, uploaded_at, file_type, file_name')
+      .select('id, uploaded_at, file_type, file_name, storage_path')
       .eq('year', year)
       .eq('kabupaten_kode', satkerId)
       .order('uploaded_at', { ascending: false });
@@ -173,5 +166,40 @@ export async function getUploadHistoryAction({ year, satkerId }: { year: number;
   } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Terjadi kesalahan yang tidak diketahui.";
       return { success: false, error: errorMessage };
+  }
+}
+
+// --- ACTION UNTUK DOWNLOAD FILE ---
+export async function downloadSimtpFileAction(storagePath: string) {
+  try {
+    const { supabase } = await getSupabaseClientWithAuthenticatedUser();
+
+    const bucketName = 'simtp-uploads';
+    
+    // Download file dari Supabase Storage
+    const { data, error } = await supabase.storage
+      .from(bucketName)
+      .download(storagePath);
+
+    if (error) {
+      throw new Error(`Gagal mendownload file: ${error.message}`);
+    }
+
+    // Convert blob to buffer
+    const arrayBuffer = await data.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    return {
+      success: true,
+      data: {
+        buffer: Array.from(buffer), // Convert buffer to array for JSON serialization
+        filename: storagePath.split('/').pop() || 'download.mdb',
+        contentType: 'application/vnd.ms-access'
+      }
+    };
+
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Terjadi kesalahan yang tidak diketahui.";
+    return { success: false, error: errorMessage };
   }
 }

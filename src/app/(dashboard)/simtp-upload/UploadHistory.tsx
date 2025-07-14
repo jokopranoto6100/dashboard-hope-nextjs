@@ -2,11 +2,13 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { getUploadHistoryAction } from "./_actions";
+import { getUploadHistoryAction, downloadSimtpFileAction } from "./_actions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Download } from "lucide-react";
 import { toast } from "sonner";
 
 interface UploadHistoryProps {
@@ -19,11 +21,53 @@ type UploadLog = {
   uploaded_at: string;
   file_type: string;
   file_name: string;
+  storage_path?: string; // Add storage_path for download functionality
 };
 
 export function UploadHistory({ year, satkerId }: UploadHistoryProps) {
   const [history, setHistory] = useState<UploadLog[]>([]);
   const [isPending, startTransition] = useTransition();
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  const handleDownload = async (log: UploadLog) => {
+    if (!log.storage_path) {
+      toast.error("File tidak dapat didownload", { 
+        description: "Path file tidak ditemukan. File mungkin berasal dari sistem lama." 
+      });
+      return;
+    }
+
+    setDownloadingId(log.id);
+    try {
+      const result = await downloadSimtpFileAction(log.storage_path);
+      if (result.success && result.data) {
+        // Create blob from buffer array
+        const buffer = new Uint8Array(result.data.buffer);
+        const blob = new Blob([buffer], { type: result.data.contentType });
+        
+        // Create download link
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = result.data.filename;
+        document.body.appendChild(a);
+        a.click();
+        
+        // Cleanup
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        
+        toast.success("File berhasil didownload");
+      } else {
+        toast.error("Gagal download file", { description: result.error });
+      }
+    } catch (error) {
+      toast.error("Terjadi kesalahan saat download file");
+      console.error("Download error:", error);
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   useEffect(() => {
     if (year && satkerId) {
@@ -83,6 +127,7 @@ export function UploadHistory({ year, satkerId }: UploadHistoryProps) {
                   <TableHead>Waktu Upload</TableHead>
                   <TableHead>Jenis File</TableHead>
                   <TableHead>Nama File</TableHead>
+                  <TableHead className="w-[120px]">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -93,6 +138,21 @@ export function UploadHistory({ year, satkerId }: UploadHistoryProps) {
                     </TableCell>
                     <TableCell><Badge variant="secondary">{log.file_type}</Badge></TableCell>
                     <TableCell className="font-mono">{log.file_name}</TableCell>
+                    <TableCell>
+                      {log.storage_path ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDownload(log)}
+                          disabled={downloadingId === log.id}
+                        >
+                          <Download className="h-4 w-4 mr-1" />
+                          {downloadingId === log.id ? "..." : "Download"}
+                        </Button>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Tidak tersedia</span>
+                      )}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
