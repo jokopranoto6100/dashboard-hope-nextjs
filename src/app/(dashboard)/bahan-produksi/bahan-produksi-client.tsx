@@ -3,7 +3,7 @@
 import { useState, useCallback, useMemo } from "react";
 import { useBahanProduksiData } from "@/hooks/useBahanProduksiData";
 import { BahanProduksiSkeleton } from "./bahan-produksi-skeleton";
-import { motion, AnimatePresence, Variants } from "framer-motion";
+import { motion, Variants } from "framer-motion";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,24 +18,34 @@ interface BahanProduksiClientProps {
   // ✅ REMOVED: isAdmin prop karena sekarang dihandle di client-side
 }
 
-// ✅ Pre-defined animation variants untuk performance
+// ✅ OPTIMIZED animation variants untuk smooth performance
 const cardVariants: Variants = {
   front: { 
     rotateY: 0,
-    transition: { duration: 0.6, ease: "easeInOut" }
+    transition: { 
+      duration: 0.4, // ✅ Reduced from 0.6s untuk lebih snappy
+      ease: [0.22, 1, 0.36, 1] // ✅ Custom cubic-bezier untuk smoother easing
+    }
   },
   back: { 
     rotateY: 180,
-    transition: { duration: 0.6, ease: "easeInOut" }
+    transition: { 
+      duration: 0.4, // ✅ Reduced from 0.6s
+      ease: [0.22, 1, 0.36, 1] // ✅ Custom cubic-bezier
+    }
   }
 };
 
 const linkVariants: Variants = {
-  hidden: { opacity: 0, x: -20 },
+  hidden: { opacity: 0, y: 10 }, // ✅ Changed from x to y untuk less jarring
   visible: (index: number) => ({
     opacity: 1,
-    x: 0,
-    transition: { delay: index * 0.1, duration: 0.3 }
+    y: 0,
+    transition: { 
+      delay: index * 0.05, // ✅ Reduced delay from 0.1 to 0.05
+      duration: 0.2, // ✅ Reduced from 0.3
+      ease: "easeOut"
+    }
   })
 };
 
@@ -53,31 +63,29 @@ const LinksSection = ({ links, isVisible }: { links: BahanProduksiLink[], isVisi
 
   return (
     <div className="flex flex-col gap-2 overflow-y-auto pr-1 text-white scrollbar-thin scrollbar-thumb-white/20">
-      <AnimatePresence mode="wait">
-        {linksWithIcons.map((link, index) => (
-          <motion.div
-            key={link.id}
-            variants={linkVariants}
-            initial="hidden"
-            animate="visible"
-            custom={index}
-            exit="hidden"
+      {/* ✅ OPTIMIZED: Removed AnimatePresence untuk mengurangi complexity */}
+      {linksWithIcons.map((link, index) => (
+        <motion.div
+          key={link.id}
+          variants={linkVariants}
+          initial="hidden"
+          animate="visible"
+          custom={index}
+        >
+          <Link 
+            href={link.href || '#'} 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="group block"
           >
-            <Link 
-              href={link.href || '#'} 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="group block"
-            >
-              <div className="flex items-center gap-3 rounded-md p-2 text-left transition-colors hover:bg-white/20">
-                <link.LinkIcon className="h-5 w-5 flex-shrink-0 opacity-80"/>
-                <span className="text-sm font-medium">{link.label}</span>
-                <ArrowUpRight className="ml-auto h-4 w-4 opacity-70 transition-opacity group-hover:opacity-100"/>
-              </div>
-            </Link>
-          </motion.div>
-        ))}
-      </AnimatePresence>
+            <div className="flex items-center gap-3 rounded-md p-2 text-left transition-colors hover:bg-white/20">
+              <link.LinkIcon className="h-5 w-5 flex-shrink-0 opacity-80"/>
+              <span className="text-sm font-medium">{link.label}</span>
+              <ArrowUpRight className="ml-auto h-4 w-4 opacity-70 transition-opacity group-hover:opacity-100"/>
+            </div>
+          </Link>
+        </motion.div>
+      ))}
       {linksWithIcons.length === 0 && (
         <motion.p 
           className="text-sm text-center text-muted-foreground/80"
@@ -116,18 +124,26 @@ const SektorCard = ({ sektor, flippedCardId, onFlip, onReset }: {
   return (
     <div className="perspective-1000">
       <motion.div
-        className="relative h-80 w-full hardware-accelerated"
-        style={{ transformStyle: "preserve-3d" }}
+        className="relative h-80 w-full"
+        style={{ 
+          transformStyle: "preserve-3d",
+          willChange: "transform" // ✅ GPU optimization hint
+        }}
         animate={isFlipped ? "back" : "front"}
         variants={cardVariants}
         layout={false}
+        // ✅ PERFORMANCE: Disable transform origin untuk smoother animation
+        transformTemplate={({ rotateY }) => `rotateY(${rotateY})`}
       >
         {/* --- SISI DEPAN KARTU --- */}
         <motion.div
           role="button"
           tabIndex={0}
-          className="absolute inset-0 flex h-full w-full cursor-pointer flex-col items-center justify-center rounded-2xl p-6 text-center shadow-lg bg-white/10 backdrop-blur-sm border border-white/20 hardware-accelerated"
-          style={{ backfaceVisibility: "hidden" }}
+          className="absolute inset-0 flex h-full w-full cursor-pointer flex-col items-center justify-center rounded-2xl p-6 text-center shadow-lg bg-gradient-to-br from-white/20 to-white/10 border border-white/30"
+          style={{ 
+            backfaceVisibility: "hidden",
+            WebkitBackfaceVisibility: "hidden" // ✅ Safari compatibility
+          }}
           onClick={handleCardClick}
           onKeyDown={handleKeyDown}
         >
@@ -138,8 +154,12 @@ const SektorCard = ({ sektor, flippedCardId, onFlip, onReset }: {
 
         {/* --- SISI BELAKANG KARTU --- */}
         <motion.div
-          className="absolute inset-0 flex h-full w-full flex-col rounded-2xl p-4 shadow-lg bg-white/10 backdrop-blur-sm border border-white/20 hardware-accelerated"
-          style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
+          className="absolute inset-0 flex h-full w-full flex-col rounded-2xl p-4 shadow-lg bg-gradient-to-br from-white/20 to-white/10 border border-white/30"
+          style={{ 
+            backfaceVisibility: "hidden", 
+            WebkitBackfaceVisibility: "hidden", // ✅ Safari compatibility
+            transform: "rotateY(180deg)" 
+          }}
         >
           <div className="flex items-center justify-between border-b border-white/20 pb-2 mb-2 text-white">
             <h3 className="font-bold">{sektor.nama}</h3>
