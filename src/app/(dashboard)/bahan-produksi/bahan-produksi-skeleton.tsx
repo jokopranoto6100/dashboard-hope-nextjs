@@ -10,10 +10,10 @@ export function BahanProduksiSkeleton() {
         <CardHeader>
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <Skeleton className="h-8 w-8 rounded bg-gray-200 dark:bg-gray-700" />
+              <Skeleton className="h-8 w-8 rounded" />
               <div>
-                <Skeleton className="h-8 w-80 rounded bg-gray-200 dark:bg-gray-700" />
-                <Skeleton className="h-5 w-96 rounded bg-gray-200 dark:bg-gray-700 mt-2" />
+                <Skeleton className="h-6 sm:h-8 w-48 sm:w-80 rounded" />
+                <Skeleton className="h-4 sm:h-5 w-56 sm:w-96 rounded mt-2" />
               </div>
             </div>
           </div>
@@ -21,7 +21,7 @@ export function BahanProduksiSkeleton() {
         <CardContent>
           <div className="flex flex-col gap-4">
             <div className="mx-auto">
-              <Skeleton className="h-10 w-56 rounded bg-gray-200 dark:bg-gray-700" />
+              <Skeleton className="h-8 sm:h-10 w-40 sm:w-56 rounded" />
             </div>
           </div>
         </CardContent>
@@ -32,30 +32,32 @@ export function BahanProduksiSkeleton() {
         <CardHeader className="text-white">
           <div className="flex justify-between items-start">
             <div>
-              <Skeleton className="h-8 w-80 rounded-lg bg-white/20" />
-              <Skeleton className="h-5 w-72 rounded-lg bg-white/20 mt-2" />
+              <Skeleton className="h-6 sm:h-8 w-48 sm:w-80 rounded-lg bg-white/20" />
+              <Skeleton className="h-4 sm:h-5 w-40 sm:w-72 rounded-lg bg-white/20 mt-2" />
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="relative mx-auto">
-            <div className="flex -ml-4">
+          <div className="relative">
+            {/* Grid responsive untuk mobile-first */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {[...Array(4)].map((_, i) => (
-                <div key={i} className="pl-4 md:basis-1/2 lg:basis-1/3 xl:basis-1/4">
-                  <div className="perspective-1000">
-                    <div className="relative h-80 w-full">
-                      <div className="absolute inset-0 flex h-full w-full flex-col items-center justify-center rounded-2xl p-6 text-center shadow-lg bg-gradient-to-br from-white/20 to-white/10 dark:from-white/10 dark:to-white/5 border border-white/30 dark:border-white/20">
-                        <Skeleton className="h-20 w-20 rounded-full bg-white/20 mb-4" />
-                        <Skeleton className="h-8 w-28 rounded bg-white/20" />
-                        <Skeleton className="h-4 w-32 rounded bg-white/20 mt-2" />
-                      </div>
+                <div key={i} className="perspective-1000">
+                  <div className="relative h-64 sm:h-72 lg:h-80 w-full">
+                    <div className="absolute inset-0 flex h-full w-full flex-col items-center justify-center rounded-2xl p-4 sm:p-6 text-center shadow-lg bg-gradient-to-br from-white/20 to-white/10 dark:from-white/10 dark:to-white/5 border border-white/30 dark:border-white/20">
+                      <Skeleton className="h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-white/20 mb-3 sm:mb-4" />
+                      <Skeleton className="h-6 sm:h-8 w-24 sm:w-28 rounded bg-white/20" />
+                      <Skeleton className="h-3 sm:h-4 w-28 sm:w-32 rounded bg-white/20 mt-2" />
                     </div>
                   </div>
                 </div>
               ))}
             </div>
-            <Skeleton className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-md bg-white/10" />
-            <Skeleton className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-md bg-white/10" />
+            {/* Navigation arrows - disembunyikan di mobile */}
+            <div className="hidden sm:block">
+              <Skeleton className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-md bg-white/10" />
+              <Skeleton className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-md bg-white/10" />
+            </div>
           </div>
         </CardContent>
       </Card>

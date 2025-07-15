@@ -13,10 +13,6 @@ import { BahanProduksiLink, BahanProduksiSektor } from "@/lib/types";
 import { ContentManagementDialog } from "./content-management-dialog";
 import { useAuth } from "@/context/AuthContext";
 
-interface BahanProduksiClientProps {
-  // ✅ REMOVED: isAdmin prop karena sekarang dihandle di client-side
-}
-
 // ✅ OPTIMIZED animation variants untuk smooth performance
 const cardVariants: Variants = {
   front: { 
