@@ -49,7 +49,7 @@ export function useBahanProduksiData() {
     fetchData();
   }, [fetchData, refreshKey]); // ✅ Include refreshKey untuk trigger refresh
 
-  // ✅ TAMBAHKAN: Real-time subscription (opsional untuk auto-sync)
+  // ✅ PERFORMANCE: Real-time subscription untuk auto-sync (enabled karena full client-side)
   useEffect(() => {
     if (!supabase) return;
 

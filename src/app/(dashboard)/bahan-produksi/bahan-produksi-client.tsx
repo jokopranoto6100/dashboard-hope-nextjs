@@ -12,9 +12,10 @@ import Link from "next/link";
 import { getIcon } from "@/lib/icon-map";
 import { BahanProduksiLink, BahanProduksiSektor } from "@/lib/types";
 import { ContentManagementDialog } from "./content-management-dialog";
+import { useAuth } from "@/context/AuthContext";
 
 interface BahanProduksiClientProps {
-  isAdmin: boolean;
+  // ✅ REMOVED: isAdmin prop karena sekarang dihandle di client-side
 }
 
 // ✅ Pre-defined animation variants untuk performance
@@ -163,9 +164,13 @@ const SektorCard = ({ sektor, flippedCardId, onFlip, onReset }: {
   );
 };
 
-export function BahanProduksiClient({ isAdmin }: BahanProduksiClientProps) {
-  const { data: dataSektor, isLoading, error, refresh } = useBahanProduksiData(); // ✅ Add refresh
+export function BahanProduksiClient() {
+  const { userRole } = useAuth(); // ✅ FIXED: Gunakan userRole dari AuthContext seperti halaman jadwal
+  const { data: dataSektor, isLoading, error, refresh } = useBahanProduksiData();
   const [flippedCardId, setFlippedCardId] = useState<string | null>(null);
+
+  // ✅ SIMPLIFIED: Tidak perlu useEffect untuk auth check, langsung gunakan userRole
+  const isAdmin = userRole === 'super_admin';
 
   // ✅ Handler untuk refresh data dari dialog
   const handleDataChange = useCallback(() => {
