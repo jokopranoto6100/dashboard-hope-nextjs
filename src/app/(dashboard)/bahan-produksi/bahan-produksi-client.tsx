@@ -8,7 +8,6 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowUpRight, Undo2 } from "lucide-react";
-import Link from "next/link";
 import { getIcon } from "@/lib/icon-map";
 import { BahanProduksiLink, BahanProduksiSektor } from "@/lib/types";
 import { ContentManagementDialog } from "./content-management-dialog";
@@ -72,18 +71,23 @@ const LinksSection = ({ links, isVisible }: { links: BahanProduksiLink[], isVisi
           animate="visible"
           custom={index}
         >
-          <Link 
+          {/* ✅ SIMPLE: Native <a> tag tanpa animasi berlebihan */}
+          <a 
             href={link.href || '#'} 
             target="_blank" 
             rel="noopener noreferrer" 
             className="group block"
+            style={{
+              WebkitTapHighlightColor: 'rgba(0,0,0,0)',
+              outline: 'none'
+            }}
           >
-            <div className="flex items-center gap-3 rounded-md p-2 text-left transition-colors hover:bg-white/20">
+            <div className="flex items-center gap-3 rounded-md p-2 text-left transition-colors hover:bg-white/20 dark:hover:bg-white/10">
               <link.LinkIcon className="h-5 w-5 flex-shrink-0 opacity-80"/>
               <span className="text-sm font-medium">{link.label}</span>
               <ArrowUpRight className="ml-auto h-4 w-4 opacity-70 transition-opacity group-hover:opacity-100"/>
             </div>
-          </Link>
+          </a>
         </motion.div>
       ))}
       {linksWithIcons.length === 0 && (
@@ -139,7 +143,7 @@ const SektorCard = ({ sektor, flippedCardId, onFlip, onReset }: {
         <motion.div
           role="button"
           tabIndex={0}
-          className="absolute inset-0 flex h-full w-full cursor-pointer flex-col items-center justify-center rounded-2xl p-6 text-center shadow-lg bg-gradient-to-br from-white/20 to-white/10 border border-white/30"
+          className="absolute inset-0 flex h-full w-full cursor-pointer flex-col items-center justify-center rounded-2xl p-6 text-center shadow-lg bg-gradient-to-br from-white/20 to-white/10 dark:from-white/10 dark:to-white/5 border border-white/30 dark:border-white/20"
           style={{ 
             backfaceVisibility: "hidden",
             WebkitBackfaceVisibility: "hidden" // ✅ Safari compatibility
@@ -149,24 +153,24 @@ const SektorCard = ({ sektor, flippedCardId, onFlip, onReset }: {
         >
           <SektorIcon className="mb-4 h-20 w-20 text-white/90" />
           <h2 className="text-2xl font-bold text-white">{sektor.nama}</h2>
-          <p className="mt-2 text-sm text-purple-200">Klik untuk lihat detail</p>
+          <p className="mt-2 text-sm text-purple-200 dark:text-purple-300">Klik untuk lihat detail</p>
         </motion.div>
 
         {/* --- SISI BELAKANG KARTU --- */}
         <motion.div
-          className="absolute inset-0 flex h-full w-full flex-col rounded-2xl p-4 shadow-lg bg-gradient-to-br from-white/20 to-white/10 border border-white/30"
+          className="absolute inset-0 flex h-full w-full flex-col rounded-2xl p-4 shadow-lg bg-gradient-to-br from-white/20 to-white/10 dark:from-white/10 dark:to-white/5 border border-white/30 dark:border-white/20"
           style={{ 
             backfaceVisibility: "hidden", 
             WebkitBackfaceVisibility: "hidden", // ✅ Safari compatibility
             transform: "rotateY(180deg)" 
           }}
         >
-          <div className="flex items-center justify-between border-b border-white/20 pb-2 mb-2 text-white">
+          <div className="flex items-center justify-between border-b border-white/20 dark:border-white/10 pb-2 mb-2 text-white">
             <h3 className="font-bold">{sektor.nama}</h3>
             <Button 
               variant="ghost" 
               size="icon" 
-              className="h-8 w-8 rounded-full hover:bg-white/20" 
+              className="h-8 w-8 rounded-full hover:bg-white/20 dark:hover:bg-white/15" 
               onClick={onReset}
             >
               <Undo2 className="h-4 w-4"/>
@@ -220,15 +224,15 @@ export function BahanProduksiClient() {
 
   if (error) {
     return (
-      <Card className="relative w-full overflow-hidden bg-red-500/20 shadow-2xl">
-        <CardHeader className="text-red-700">
+      <Card className="relative w-full overflow-hidden bg-red-500/20 dark:bg-red-900/30 shadow-2xl">
+        <CardHeader className="text-red-700 dark:text-red-400">
           <CardTitle>Terjadi Kesalahan</CardTitle>
-          <CardDescription className="text-red-600">
+          <CardDescription className="text-red-600 dark:text-red-500">
             Tidak dapat memuat data bahan produksi. Coba lagi nanti.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-red-700">{error}</p>
+          <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
           <Button 
             variant="outline" 
             onClick={() => refresh()} // ✅ Gunakan refresh function
@@ -243,10 +247,10 @@ export function BahanProduksiClient() {
 
   if (!dataSektor || dataSektor.length === 0) {
     return (
-      <Card className="relative w-full overflow-hidden bg-gray-500/20 shadow-2xl">
+      <Card className="relative w-full overflow-hidden bg-gray-500/20 dark:bg-gray-700/30 shadow-2xl">
         <CardHeader>
-          <CardTitle>Tidak Ada Data</CardTitle>
-          <CardDescription>
+          <CardTitle className="dark:text-gray-100">Tidak Ada Data</CardTitle>
+          <CardDescription className="dark:text-gray-300">
             Belum ada sektor yang tersedia saat ini.
           </CardDescription>
         </CardHeader>
@@ -255,12 +259,12 @@ export function BahanProduksiClient() {
   }
 
   return (
-    <Card className="relative w-full overflow-hidden bg-gradient-to-br from-purple-600 to-indigo-700 shadow-2xl">
+    <Card className="relative w-full overflow-hidden bg-gradient-to-br from-purple-600 to-indigo-700 dark:from-purple-800 dark:to-indigo-900 shadow-2xl">
       <CardHeader className="text-white">
         <div className="flex justify-between items-start">
           <div>
             <CardTitle className="text-2xl">Portal Bahan Fungsi Produksi</CardTitle>
-            <CardDescription className="text-purple-200">
+            <CardDescription className="text-purple-200 dark:text-purple-300">
               Pilih subsektor untuk melihat file-file terkait.
             </CardDescription>
           </div>
@@ -291,8 +295,8 @@ export function BahanProduksiClient() {
             ))}
           </CarouselContent>
           
-          <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2 text-white bg-white/10 hover:bg-white/20 border-white/20" />
-          <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2 text-white bg-white/10 hover:bg-white/20 border-white/20" />
+          <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2 text-white bg-white/10 hover:bg-white/20 dark:bg-white/5 dark:hover:bg-white/15 border-white/20 dark:border-white/10" />
+          <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2 text-white bg-white/10 hover:bg-white/20 dark:bg-white/5 dark:hover:bg-white/15 border-white/20 dark:border-white/10" />
         </Carousel>
       </CardContent>
     </Card>

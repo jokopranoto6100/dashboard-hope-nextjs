@@ -196,3 +196,46 @@ const isAdmin = userRole === 'super_admin';
 - ❌ `performance-config.ts` - DELETED
 - ❌ `bahan-produksi-client-lite.tsx` - DELETED
 - ✅ `bahan-produksi-client.tsx` - OPTIMIZED dengan full client-side
+
+## 🚀 Mobile Anti-Flicker Optimizations (LATEST)
+
+### ❗ Problem: Google Drive Link Flicker
+Saat user mengklik link Google Drive di mobile, browser menampilkan animasi transisi sebelum modal "Select an account" muncul, menyebabkan visual flicker yang mengganggu UX.
+
+### ✅ Solutions Implemented:
+
+#### 1. **CSS Hardware Acceleration**
+File: `mobile-anti-flicker.css`
+- Added `transform: translateZ(0)` untuk force GPU layer
+- Added `will-change: opacity` untuk preload optimizations  
+- Added `backface-visibility: hidden` untuk smooth transitions
+- Added `contain: layout style paint` untuk Google Drive links
+
+#### 2. **Smart Visual Feedback**
+File: `materi-pedoman-card.tsx` & `bahan-produksi-client.tsx`
+- **Google Drive Detection**: Auto-detect Google Drive/Docs URLs
+- **Immediate Feedback**: Opacity change (1.0 → 0.7) pada click
+- **Button Animation**: Scale transform (1.0 → 0.98) untuk subtle feedback
+- **Auto Reset**: Reset setelah 1000ms untuk handle cancelled modals
+
+#### 3. **Enhanced Touch Handling**
+- **Disable Pointer Events**: Temporarily disable selama transition
+- **No Double-Tap Zoom**: `touch-action: manipulation`
+- **No Text Selection**: Complete user-select disabled
+- **No Callouts**: Webkit callouts disabled
+
+### 📱 Mobile-Specific Optimizations:
+```css
+@media (hover: none) and (pointer: coarse) {
+  .no-touch-highlight[target="_blank"] {
+    will-change: opacity;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+  }
+}
+```
+
+### ⚡ Performance Impact:
+- **Before**: Jarring flicker pada Google Drive modal
+- **After**: Smooth opacity transition dengan minimal perceived delay
+- **Note**: Browser-level flicker cannot be 100% eliminated, tapi sudah significant reduction

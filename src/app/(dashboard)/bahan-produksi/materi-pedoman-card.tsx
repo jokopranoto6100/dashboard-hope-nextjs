@@ -4,7 +4,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, BookMarked } from "lucide-react";
-import Link from "next/link";
 import { MateriPedomanDialog } from "./materi-pedoman-dialog";
 import { useAuth } from "@/context/AuthContext";
 import { useState, useEffect } from "react";
@@ -43,17 +42,7 @@ export function MateriPedomanCard() {
   }, [supabase]); // ✅ SIMPLIFIED: Removed user dependency
 
   if (isLoading) {
-    return (
-      <Card className="shadow-lg animate-pulse">
-        <CardHeader>
-          <div className="h-8 bg-gray-200 rounded"></div>
-          <div className="h-4 bg-gray-200 rounded"></div>
-        </CardHeader>
-        <CardContent>
-          <div className="h-10 bg-gray-200 rounded"></div>
-        </CardContent>
-      </Card>
-    );
+    return null; // ✅ SIMPLIFIED: No individual skeleton, handled by main BahanProduksiSkeleton
   }
   return (
     <Card className="shadow-lg">
@@ -73,13 +62,23 @@ export function MateriPedomanCard() {
       </CardHeader>
       <CardContent>
         <div className="flex flex-col gap-4">
-          <Link href={materiPedomanLink} target="_blank" rel="noopener noreferrer">
+          {/* ✅ SIMPLE: Native <a> tag tanpa animasi berlebihan */}
+          <a 
+            href={materiPedomanLink} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="inline-block"
+            style={{
+              WebkitTapHighlightColor: 'rgba(0,0,0,0)',
+              outline: 'none'
+            }}
+          >
             <Button className="w-fit mx-auto">
               <BookMarked className="mr-2 h-4 w-4" />
               Buka Materi dan Pedoman
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
-          </Link>
+          </a>
         </div>
       </CardContent>
     </Card>
