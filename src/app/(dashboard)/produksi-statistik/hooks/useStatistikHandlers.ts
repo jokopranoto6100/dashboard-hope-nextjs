@@ -96,8 +96,8 @@ export const useStatistikHandlers = ({
         throw new Error(`Gagal menyimpan ke database: ${error.message}`);
       }
 
-      // Refresh annotations setelah berhasil
-      mutateAnnotations();
+      // Force refresh annotations dengan revalidation
+      await mutateAnnotations();
     } catch (error) {
       console.error("Error menambahkan anotasi:", error);
       throw error;

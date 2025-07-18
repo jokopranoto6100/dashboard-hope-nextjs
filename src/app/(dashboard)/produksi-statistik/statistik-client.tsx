@@ -222,9 +222,13 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
       <AnnotationSheet 
         isOpen={state.isAnnotationSheetOpen} 
         onOpenChange={() => actions.toggleAnnotationSheet()} 
-        annotations={state.selectedAnnotationPoint?.annotations || []} 
+        annotations={annotations || []} 
         title={`Diskusi: ${state.filters.indikatorNama} - ${state.selectedAnnotationPoint?.name || ''} ${selectedYear}`} 
-        onSubmit={handleAnnotationSubmitWrapper} 
+        onSubmit={handleAnnotationSubmitWrapper}
+        selectedPoint={{
+          bulan: typeof state.selectedAnnotationPoint?.bulan === 'number' ? state.selectedAnnotationPoint.bulan : null,
+          kode_wilayah: typeof state.selectedAnnotationPoint?.kode_wilayah === 'string' ? state.selectedAnnotationPoint.kode_wilayah : null
+        }}
       />
     </div>
   );

@@ -97,12 +97,11 @@ export const useStatistikData = ({ filters, selectedKabupaten }: UseStatistikDat
         return []; 
       }
       
-      console.log('Fetched annotations via RPC:', data);
       return data || [];
     },
     {
       revalidateOnFocus: false,
-      dedupingInterval: 60000, // Cache annotations for 1 minute
+      dedupingInterval: 5000, // Reduced cache time to 5 seconds for more real-time updates
     }
   );
 
