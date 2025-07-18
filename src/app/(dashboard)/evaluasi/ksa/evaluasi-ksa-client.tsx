@@ -240,11 +240,11 @@ export function EvaluasiKsaClient() {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-wrap items-end gap-4">
-                <div>
+            <div className="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-end gap-4">
+                <div className="w-full sm:w-auto">
                     <Label htmlFor="filter-ksa-type" className="text-xs font-medium">Jenis Survei</Label>
                     <Select value={selectedKsaType} onValueChange={(v) => setSelectedKsaType(v as 'Padi' | 'Jagung')}>
-                        <SelectTrigger id="filter-ksa-type" className="mt-1">
+                        <SelectTrigger id="filter-ksa-type" className="mt-1 w-full sm:w-[160px]">
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -253,11 +253,11 @@ export function EvaluasiKsaClient() {
                         </SelectContent>
                     </Select>
                 </div>
-                <div>
+                <div className="w-full sm:w-auto">
                     <Label htmlFor="filter-kabupaten" className="text-xs font-medium">Wilayah</Label>
-                    {isLoadingFilters ? <Skeleton className="h-10 w-48 mt-1" /> : (
+                    {isLoadingFilters ? <Skeleton className="h-10 w-full sm:w-48 mt-1" /> : (
                         <Select value={selectedKabupaten} onValueChange={setSelectedKabupaten} disabled={isLoadingFilters}>
-                            <SelectTrigger id="filter-kabupaten" className="mt-1 min-w-[180px]">
+                            <SelectTrigger id="filter-kabupaten" className="mt-1 w-full sm:min-w-[180px]">
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>

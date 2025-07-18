@@ -26,18 +26,22 @@ export const MemoizedAreaChart = React.memo(({ data, keys, colors, monthNames, d
   }) : data;
 
   return (
-    <ResponsiveContainer width="100%" height={300}>
-      <AreaChart data={filteredData} stackOffset="expand" margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+    <ResponsiveContainer width="100%" height={400}>
+      <AreaChart data={filteredData} stackOffset="expand" margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis 
           dataKey="bulan" 
           tickFormatter={(tick) => monthNames[tick - 1]} 
-          fontSize={12} 
+          fontSize={11} 
+          interval={0}
+          angle={-45}
+          textAnchor="end"
+          height={60}
         />
         <YAxis 
           tickFormatter={(tick) => `${(tick * 100).toFixed(0)}%`} 
-          fontSize={12} 
-          width={45}
+          fontSize={11} 
+          width={40}
         />
         <Tooltip 
           formatter={(value: number, name: string, props) => {
@@ -49,7 +53,7 @@ export const MemoizedAreaChart = React.memo(({ data, keys, colors, monthNames, d
             return [`${percentage.toFixed(2)}%`, name];
           }} 
         />
-        <Legend wrapperStyle={{ fontSize: '12px' }} />
+        <Legend wrapperStyle={{ fontSize: '10px' }} />
         {keys.map((key, index) => (
           <Area
             key={key}
@@ -83,21 +87,25 @@ export const MemoizedLineChart = React.memo(({ data, dynamicXAxis = false, fullM
   const filteredData = shouldFilter ? data.filter((item, index) => index <= currentMonth) : data;
 
   return (
-    <ResponsiveContainer width="100%" height={300}>
-      <LineChart data={filteredData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+    <ResponsiveContainer width="100%" height={350}>
+      <LineChart data={filteredData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis 
           dataKey="name" 
-          fontSize={12}
+          fontSize={11}
+          angle={-45}
+          textAnchor="end"
+          height={60}
+          interval={0}
           tickFormatter={(value) => {
             if (fullMonthNames) {
               const monthIndex = monthNames.indexOf(value);
-              return monthIndex !== -1 ? fullMonthNames[monthIndex] : value;
+              return monthIndex !== -1 ? fullMonthNames[monthIndex].substring(0, 3) : value;
             }
             return value;
           }}
         />
-        <YAxis fontSize={12} width={45} />
+        <YAxis fontSize={11} width={40} />
         <Tooltip 
           labelFormatter={(value) => {
             if (fullMonthNames) {
@@ -107,7 +115,7 @@ export const MemoizedLineChart = React.memo(({ data, dynamicXAxis = false, fullM
             return value;
           }}
         />
-        <Legend wrapperStyle={{ fontSize: '12px' }} />
+        <Legend wrapperStyle={{ fontSize: '10px' }} />
         <Line 
           type="monotone" 
           name="Tanam" 

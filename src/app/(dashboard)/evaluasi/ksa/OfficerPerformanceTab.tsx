@@ -275,26 +275,35 @@ export function OfficerPerformanceTab() {
                     </Select>
                   </div>
               </CardHeader>
-              <CardContent className="pl-2 flex-1">
+              <CardContent className="pl-2">
                   {isChartLoading ? (
-                      <Skeleton className="h-[280px] w-full" />
+                      <Skeleton className="h-[360px] w-full" />
                   ) : chartError ? (
                       <p className="text-red-500 text-center py-8">{chartError}</p>
                   ) : (
-                      <ResponsiveContainer width="100%" height={280}>
-                          <BarChart data={dailyData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+                      <ResponsiveContainer width="100%" height={360}>
+                          <BarChart data={dailyData} margin={{ top: 5, right: 15, left: -10, bottom: 5 }}>
                               <CartesianGrid strokeDasharray="3 3" />
                               <XAxis 
                                 dataKey="tanggal_amatan" 
-                                tickFormatter={(dateStr) => new Date(dateStr).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} 
-                                fontSize={12}
+                                tickFormatter={(dateStr) => {
+                                  const date = new Date(dateStr);
+                                  return window.innerWidth < 768 
+                                    ? date.getDate().toString() 
+                                    : date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+                                }}
+                                fontSize={11}
+                                angle={-45}
+                                textAnchor="end"
+                                height={50}
+                                interval={0}
                               />
-                              <YAxis fontSize={12} />
+                              <YAxis fontSize={11} width={35} />
                               <RechartsTooltip 
                                   labelFormatter={(label) => new Date(label).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' })} 
                                   formatter={(value) => [`${value} entri`, "Jumlah"]}
                               />
-                              <Legend verticalAlign="top" wrapperStyle={{ paddingBottom: '10px' }} />
+                              <Legend verticalAlign="top" wrapperStyle={{ paddingBottom: '10px', fontSize: '10px' }} />
                               <Bar dataKey="jumlah_entri" name="Jumlah Submit" fill="#8884d8" radius={[4, 4, 0, 0]} />
                           </BarChart>
                       </ResponsiveContainer>
