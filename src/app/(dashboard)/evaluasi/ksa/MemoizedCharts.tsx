@@ -17,6 +17,18 @@ export const MemoizedAreaChart = React.memo(({ data, keys, colors, monthNames, d
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth();
   
+  // Mapping fase ke label yang lebih deskriptif
+  const phaseLabels: Record<string, string> = {
+    'Fase 1': 'V1',
+    'Fase 2': 'V2', 
+    'Fase 3': 'Generatif',
+    'Fase 4': 'Panen',
+    'Fase 5': 'Persiapan Lahan',
+    'Fase 6': 'Puso',
+    'Fase 7': 'Sawah Bukan Padi',
+    'Fase 8': 'Bukan Sawah'
+  };
+  
   // Only apply dynamic filtering if it's enabled AND we're viewing the current year
   const shouldFilter = dynamicXAxis && selectedYear === currentYear;
   
@@ -50,10 +62,18 @@ export const MemoizedAreaChart = React.memo(({ data, keys, colors, monthNames, d
               .filter(key => key !== 'bulan')
               .reduce((sum, key) => sum + (payload[key] || 0), 0);
             const percentage = total > 0 ? (value / total) * 100 : 0;
-            return [`${percentage.toFixed(2)}%`, name];
+            const displayName = phaseLabels[name] || name;
+            return [
+              `${value.toLocaleString('id-ID')} (${percentage.toFixed(1)}%)`, 
+              displayName
+            ];
           }} 
+          labelFormatter={(label) => `Bulan ${monthNames[label - 1]}`}
         />
-        <Legend wrapperStyle={{ fontSize: '10px' }} />
+        <Legend 
+          wrapperStyle={{ fontSize: '10px' }} 
+          formatter={(value) => phaseLabels[value] || value}
+        />
         {keys.map((key, index) => (
           <Area
             key={key}

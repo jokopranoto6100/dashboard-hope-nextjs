@@ -236,7 +236,7 @@ export function EvaluasiKsaClient() {
             });
     }, [areaChartData]);
 
-    const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#dd4b39', '#4285F4', '#FBBC05'];
+    const COLORS = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#17becf'];
 
     return (
         <div className="space-y-6">
