@@ -125,9 +125,9 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
   } = useStatistikHandlers({
     selectedYear,
     filters: {
-      ...state.filters,
-      idIndikator: state.filters.idIndikator!,
-      level: state.filters.level as 'provinsi' | 'kabupaten'
+      ...debouncedFilters,
+      idIndikator: debouncedFilters.idIndikator!,
+      level: debouncedFilters.level as 'provinsi' | 'kabupaten'
     },
     selectedKabupaten: state.selectedKabupaten,
     supabase,

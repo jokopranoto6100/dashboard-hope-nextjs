@@ -42,14 +42,14 @@ export function FilterSection({
   };
 
   return (
-    <div className="p-4 border rounded-lg bg-slate-50 dark:bg-slate-800/50">
-      <div className="grid max-w-4xl grid-cols-1 gap-4 mx-auto sm:grid-cols-2 lg:grid-cols-4 lg:items-end">
-        <div>
+    <div className="p-3 sm:p-4 border rounded-lg bg-slate-50 dark:bg-slate-800/50">
+      <div className="grid max-w-5xl grid-cols-1 gap-3 mx-auto sm:grid-cols-2 lg:grid-cols-4 sm:gap-4 lg:items-end">
+        <div className="w-full">
           <Label htmlFor="filter-bulan" className="mb-1.5 block text-xs font-medium text-muted-foreground">
             Periode Bulan
           </Label>
           <Select value={filters.bulan} onValueChange={(v) => onFilterChange('bulan', v)}>
-            <SelectTrigger id="filter-bulan" className="w-full">
+            <SelectTrigger id="filter-bulan" className="w-full h-9 sm:h-10">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -62,28 +62,30 @@ export function FilterSection({
           </Select>
         </div>
         
-        <div>
+        <div className="w-full">
           <Label htmlFor="filter-indikator" className="mb-1.5 block text-xs font-medium text-muted-foreground">
             Indikator
           </Label>
           <Select value={filters.indikatorNama} onValueChange={handleIndicatorChange}>
-            <SelectTrigger id="filter-indikator" className="w-full">
+            <SelectTrigger id="filter-indikator" className="w-full h-9 sm:h-10">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {availableIndicators.map(i => (
-                <SelectItem key={i.id} value={i.nama_resmi}>{i.nama_resmi}</SelectItem>
+                <SelectItem key={i.id} value={i.nama_resmi}>
+                  <span className="truncate">{i.nama_resmi}</span>
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
         
-        <div>
+        <div className="w-full">
           <Label htmlFor="filter-level" className="mb-1.5 block text-xs font-medium text-muted-foreground">
             Level Wilayah
           </Label>
           <Select value={filters.level} onValueChange={(v) => onFilterChange('level', v as 'provinsi' | 'kabupaten')}>
-            <SelectTrigger id="filter-level" className="w-full">
+            <SelectTrigger id="filter-level" className="w-full h-9 sm:h-10">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -93,12 +95,12 @@ export function FilterSection({
           </Select>
         </div>
         
-        <div>
+        <div className="w-full">
           <Label htmlFor="filter-tahun-pembanding" className="mb-1.5 block text-xs font-medium text-muted-foreground">
             Bandingkan Dengan Tahun
           </Label>
           <Select value={filters.tahunPembanding} onValueChange={(v) => onFilterChange('tahunPembanding', v)}>
-            <SelectTrigger id="filter-tahun-pembanding" className="w-full">
+            <SelectTrigger id="filter-tahun-pembanding" className="w-full h-9 sm:h-10">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

@@ -73,43 +73,43 @@ export function AnnotationSheet({ isOpen, onOpenChange, annotations, title, onSu
 
   return (
     <Sheet open={isOpen} onOpenChange={handleOpenChange}>
-      <SheetContent className="flex w-full flex-col sm:max-w-md h-full">
+      <SheetContent className="flex w-full flex-col sm:max-w-md md:max-w-lg h-full p-4 sm:p-6">
         <SheetHeader className="flex-shrink-0">
-          <SheetTitle>{title}</SheetTitle>
-          <SheetDescription>
+          <SheetTitle className="text-base sm:text-lg leading-tight">{title}</SheetTitle>
+          <SheetDescription className="text-sm">
             Diskusi dan fenomena yang tercatat untuk titik data ini. Tambahkan komentar Anda di bawah.
           </SheetDescription>
         </SheetHeader>
         
         <Separator className="flex-shrink-0" />
         
-        {/* ✅ PERBAIKI: Container scrollable dengan height yang tepat */}
+        {/* Container scrollable dengan height yang tepat */}
         <div className="flex-1 flex flex-col min-h-0">
-          <ScrollArea className="flex-1 pr-4">
-            <div className="space-y-4 py-4">
+          <ScrollArea className="flex-1 pr-2 sm:pr-4">
+            <div className="space-y-3 sm:space-y-4 py-4">
               {annotations && annotations.length > 0 ? (
                 annotations
                   .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
                   .map((anno) => (
-                  <div key={anno.id} className="flex items-start gap-3">
-                    <Avatar className="h-8 w-8 border flex-shrink-0">
+                  <div key={anno.id} className="flex items-start gap-2 sm:gap-3">
+                    <Avatar className="h-7 w-7 sm:h-8 sm:w-8 border flex-shrink-0">
                       <AvatarFallback className="text-xs">
                         {anno.user_fullname?.charAt(0).toUpperCase() || 'U'}
                       </AvatarFallback>
                     </Avatar>
                     <div className="text-sm flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <p className="font-semibold text-sm truncate">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1">
+                        <p className="font-semibold text-xs sm:text-sm truncate">
                           {anno.user_fullname || 'Pengguna Anonim'}
                         </p>
                         <p className="text-xs text-muted-foreground flex-shrink-0">
                           {formatDate(anno.created_at)}
                         </p>
                       </div>
-                      <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">
+                      <p className="whitespace-pre-wrap break-words text-xs sm:text-sm leading-relaxed">
                         {anno.komentar}
                       </p>
-                      {/* ✅ Type-safe check untuk temporary annotations */}
+                      {/* Type-safe check untuk temporary annotations */}
                       {typeof anno.id === 'string' && anno.id.startsWith('temp-') && (
                         <span className="text-xs text-blue-500 italic mt-1 block">• Mengirim...</span>
                       )}
@@ -118,7 +118,7 @@ export function AnnotationSheet({ isOpen, onOpenChange, annotations, title, onSu
                 ))
               ) : (
                 <div className="flex items-center justify-center h-32">
-                  <p className="text-sm text-center text-muted-foreground">
+                  <p className="text-xs sm:text-sm text-center text-muted-foreground">
                     Belum ada anotasi untuk titik data ini.
                   </p>
                 </div>
@@ -126,18 +126,18 @@ export function AnnotationSheet({ isOpen, onOpenChange, annotations, title, onSu
             </div>
           </ScrollArea>
           
-          {/* ✅ PERBAIKI: Form tetap di bawah, tidak terdorong */}
+          {/* Form tetap di bawah, tidak terdorong */}
           {user && (
-            <div className="flex-shrink-0 pt-4 border-t bg-background">
-              <div className="space-y-3">
+            <div className="flex-shrink-0 pt-3 sm:pt-4 border-t bg-background">
+              <div className="space-y-2 sm:space-y-3">
                 <Textarea
                   placeholder="Tambahkan komentar Anda... (Ctrl/Cmd + Enter untuk kirim)"
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                   onKeyDown={handleKeyDown}
                   disabled={isSubmitting}
-                  rows={3}
-                  className="resize-none"
+                  rows={2}
+                  className="resize-none text-sm"
                 />
                 <Button 
                   onClick={handleSubmit} 

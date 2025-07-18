@@ -3,6 +3,7 @@ import { useCallback } from 'react';
 import { ChartDataPoint, AugmentedAtapDataPoint } from '@/lib/types';
 import { User } from '@supabase/supabase-js';
 import { SupabaseClient } from '@supabase/supabase-js';
+import { MONTH_NAMES } from '@/lib/utils';
 
 interface UseStatistikHandlersProps {
   selectedYear: number;
@@ -55,27 +56,50 @@ export const useStatistikHandlers = ({
     selectedAnnotationPoint: ChartDataPoint | null, 
     comment: string
   ): Promise<void> => {
-    if (!selectedAnnotationPoint || !supabase || !authUser) return;
+    if (!selectedAnnotationPoint || !supabase || !authUser) {
+      throw new Error("Data tidak lengkap untuk menyimpan anotasi");
+    }
+
+    // Konversi bulan: ambil dari titik data yang diklik pada grafik trend
+    let bulanAngka: number | null = null;
+    
+    // Cek apakah ada properti bulan eksplisit dari line chart data
+    if ('bulan' in selectedAnnotationPoint && typeof selectedAnnotationPoint.bulan === 'number') {
+      bulanAngka = selectedAnnotationPoint.bulan;
+    } else {
+      // Fallback: parse dari nama bulan jika diperlukan
+      const monthName = selectedAnnotationPoint.name;
+      
+      // Cari nomor bulan berdasarkan nama (contoh: "Jan" -> 1, "Feb" -> 2, dst)
+      const monthEntry = Object.entries(MONTH_NAMES).find(([, name]) => name === monthName);
+      if (monthEntry) {
+        bulanAngka = parseInt(monthEntry[0]);
+      }
+    }
+
+    const insertData = {
+      user_id: authUser.id,
+      komentar: comment,
+      id_indikator: filters.idIndikator,
+      tahun: selectedYear,
+      bulan: bulanAngka,
+      kode_wilayah: selectedAnnotationPoint.kode_wilayah || null
+    };
 
     try {
-      const { error } = await supabase.from('annotations').insert({
-        tahun: selectedYear,
-        id_indikator: filters.idIndikator,
-        bulan: filters.bulan === 'tahunan' ? null : parseInt(filters.bulan),
-        kode_wilayah: selectedAnnotationPoint.kode_wilayah,
-        comment,
-        user_id: authUser.id,
-        created_at: new Date().toISOString()
-      });
+      const { error } = await supabase
+        .from('fenomena_anotasi')
+        .insert(insertData);
 
       if (error) {
-        console.error("Error menambahkan anotasi:", error);
-        throw error;
+        console.error("Database error:", error);
+        throw new Error(`Gagal menyimpan ke database: ${error.message}`);
       }
 
+      // Refresh annotations setelah berhasil
       mutateAnnotations();
     } catch (error) {
-      console.error("Gagal menambahkan anotasi:", error);
+      console.error("Error menambahkan anotasi:", error);
       throw error;
     }
   }, [selectedYear, filters.idIndikator, filters.bulan, supabase, authUser, mutateAnnotations]);

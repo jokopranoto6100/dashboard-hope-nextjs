@@ -104,6 +104,7 @@ export const useChartDataProcessor = ({
       
       return {
         name: MONTH_NAMES[monthStr],
+        bulan: monthNum, // ✅ Tambahkan properti bulan eksplisit
         [selectedYear.toString()]: (mainDataPoint?.nilai ?? null) as number | null,
         ...(filters.tahunPembanding !== 'tidak' && { 
           [filters.tahunPembanding]: (compareDataPoint?.nilai ?? null) as number | null 

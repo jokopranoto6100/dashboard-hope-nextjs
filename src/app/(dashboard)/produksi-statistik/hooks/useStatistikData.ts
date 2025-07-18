@@ -86,6 +86,7 @@ export const useStatistikData = ({ filters, selectedKabupaten }: UseStatistikDat
     async () => {
       if (!supabase || !filters.idIndikator) return [];
 
+      // Using RPC function that's properly implemented
       const { data, error } = await supabase.rpc('get_annotations_with_user_details', { 
         p_id_indikator: filters.idIndikator, 
         p_tahun: selectedYear 
@@ -96,6 +97,7 @@ export const useStatistikData = ({ filters, selectedKabupaten }: UseStatistikDat
         return []; 
       }
       
+      console.log('Fetched annotations via RPC:', data);
       return data || [];
     },
     {
