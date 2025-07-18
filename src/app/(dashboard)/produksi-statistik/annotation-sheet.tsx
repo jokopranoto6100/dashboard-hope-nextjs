@@ -155,7 +155,7 @@ export function AnnotationSheet({ isOpen, onOpenChange, annotations, title, onSu
 
   return (
     <Sheet open={isOpen} onOpenChange={handleOpenChange}>
-      <SheetContent className="flex w-full flex-col sm:max-w-md md:max-w-lg h-full p-4 sm:p-6">
+      <SheetContent className="flex w-full flex-col sm:max-w-md md:max-w-lg h-full max-h-screen p-4 sm:p-6 overflow-hidden">
         <SheetHeader className="flex-shrink-0">
           <SheetTitle className="text-base sm:text-lg leading-tight">{title}</SheetTitle>
           <SheetDescription className="text-sm">
@@ -166,9 +166,9 @@ export function AnnotationSheet({ isOpen, onOpenChange, annotations, title, onSu
         <Separator className="flex-shrink-0" />
         
         {/* Container scrollable dengan height yang tepat */}
-        <div className="flex-1 flex flex-col min-h-0">
-          <ScrollArea className="flex-1 pr-2 sm:pr-4">
-            <div className="space-y-3 sm:space-y-4 py-4">
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          <ScrollArea className="flex-1 pr-2 sm:pr-4 h-full max-h-full overflow-y-auto min-h-[200px]">
+            <div className="space-y-3 sm:space-y-4 py-4 min-h-fit pb-6">
               {displayAnnotations && displayAnnotations.length > 0 ? (
                 displayAnnotations
                   .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
@@ -199,9 +199,10 @@ export function AnnotationSheet({ isOpen, onOpenChange, annotations, title, onSu
                   </div>
                 ))
               ) : (
-                <div className="flex items-center justify-center h-32">
-                  <p className="text-xs sm:text-sm text-center text-muted-foreground">
-                    Belum ada anotasi untuk titik data ini.
+                <div className="flex items-center justify-center min-h-[200px] h-full">
+                  <p className="text-xs sm:text-sm text-center text-muted-foreground px-4">
+                    Belum ada anotasi untuk titik data ini.<br/>
+                    <span className="text-xs opacity-75">Mulai diskusi dengan menambahkan komentar pertama.</span>
                   </p>
                 </div>
               )}
@@ -210,7 +211,7 @@ export function AnnotationSheet({ isOpen, onOpenChange, annotations, title, onSu
           
           {/* Form tetap di bawah, tidak terdorong */}
           {user && (
-            <div className="flex-shrink-0 pt-3 sm:pt-4 border-t bg-background">
+            <div className="flex-shrink-0 pt-3 sm:pt-4 mt-auto border-t bg-background/95 backdrop-blur-sm sticky bottom-0">
               <div className="space-y-2 sm:space-y-3">
                 <Textarea
                   placeholder="Tambahkan komentar Anda... (Ctrl/Cmd + Enter untuk kirim)"
