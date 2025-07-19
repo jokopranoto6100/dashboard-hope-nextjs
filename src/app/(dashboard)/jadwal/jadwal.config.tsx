@@ -7,7 +7,7 @@ export interface JadwalItem {
   keterangan: string;
   startDate: string;   // Format 'YYYY-MM-DD'
   endDate: string;
-  warna: 'blue' | 'green' | 'amber' | 'sky' | 'slate';
+  warna: 'blue' | 'green' | 'amber' | 'sky' | 'slate' | 'mint' | 'coral' | 'lavender' | 'peach';
 }
 
 export interface Kegiatan {

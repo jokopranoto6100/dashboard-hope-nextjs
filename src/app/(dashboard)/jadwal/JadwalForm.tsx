@@ -26,7 +26,7 @@ const formSchema = z.object({
     from: z.date({ required_error: "Tanggal mulai harus diisi." }),
     to: z.date({ required_error: "Tanggal selesai harus diisi." }),
   }),
-  warna: z.enum(['blue', 'green', 'amber', 'sky', 'slate'], { required_error: "Warna harus dipilih."}),
+  warna: z.enum(['blue', 'green', 'amber', 'sky', 'slate', 'mint', 'coral', 'lavender', 'peach'], { required_error: "Warna harus dipilih."}),
 });
 
 interface JadwalFormProps {
@@ -170,7 +170,15 @@ export function JadwalForm({ isOpen, setIsOpen, kegiatanList, onSuccess, jadwalI
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl><SelectTrigger><SelectValue placeholder="Pilih warna..." /></SelectTrigger></FormControl>
                     <SelectContent>
-                      <SelectItem value="sky">Biru Langit</SelectItem><SelectItem value="green">Hijau</SelectItem><SelectItem value="amber">Kuning</SelectItem><SelectItem value="blue">Biru Tua</SelectItem><SelectItem value="slate">Abu-abu</SelectItem>
+                      <SelectItem value="sky">🔵 Biru Langit</SelectItem>
+                      <SelectItem value="blue">🌊 Biru Tua</SelectItem>
+                      <SelectItem value="green">🌿 Hijau</SelectItem>
+                      <SelectItem value="mint">🌱 Mint</SelectItem>
+                      <SelectItem value="amber">🟡 Kuning</SelectItem>
+                      <SelectItem value="peach">🍑 Peach</SelectItem>
+                      <SelectItem value="coral">🪸 Coral</SelectItem>
+                      <SelectItem value="lavender">💜 Lavender</SelectItem>
+                      <SelectItem value="slate">⚫ Abu-abu</SelectItem>
                     </SelectContent>
                   </Select><FormMessage />
                 </FormItem>

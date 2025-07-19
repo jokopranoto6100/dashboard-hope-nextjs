@@ -17,10 +17,18 @@ export const getDurationInDays = (start: Date, end: Date): number => {
     return Math.floor(diff / oneDay) + 1;
 };
 
+// Enhanced color palette with better contrast and accessibility
 export const colorVariants: { [key: string]: string } = {
-  blue: 'bg-blue-500 hover:bg-blue-600 border-blue-700',
-  green: 'bg-green-500 hover:bg-green-600 border-green-700',
-  amber: 'bg-amber-500 hover:bg-amber-600 border-amber-700',
-  sky: 'bg-sky-500 hover:bg-sky-600 border-sky-700',
-  slate: 'bg-slate-400 hover:bg-slate-500 border-slate-600',
+  // Core colors with better accessibility
+  blue: 'bg-blue-500 hover:bg-blue-600 border-blue-700 shadow-blue-200/50',
+  green: 'bg-green-500 hover:bg-green-600 border-green-700 shadow-green-200/50',
+  amber: 'bg-amber-500 hover:bg-amber-600 border-amber-700 shadow-amber-200/50',
+  sky: 'bg-sky-500 hover:bg-sky-600 border-sky-700 shadow-sky-200/50',
+  slate: 'bg-slate-400 hover:bg-slate-500 border-slate-600 shadow-slate-200/50',
+  
+  // Extended colors for better categorization
+  mint: 'bg-emerald-500 hover:bg-emerald-600 border-emerald-700 shadow-emerald-200/50',
+  coral: 'bg-rose-500 hover:bg-rose-600 border-rose-700 shadow-rose-200/50',
+  lavender: 'bg-purple-500 hover:bg-purple-600 border-purple-700 shadow-purple-200/50',
+  peach: 'bg-orange-500 hover:bg-orange-600 border-orange-700 shadow-orange-200/50',
 };

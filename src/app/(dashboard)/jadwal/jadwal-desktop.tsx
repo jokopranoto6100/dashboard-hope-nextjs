@@ -118,7 +118,7 @@ function JadwalRow({
                 <TooltipTrigger asChild>
                   <div
                     onClick={() => onBlockClick(item)}
-                    className={`absolute h-3/4 top-1/2 -translate-y-1/2 rounded-md text-white text-xs px-2 flex items-center cursor-pointer transition-all border ${colorVariants[item.warna]} ${hasSub ? 'opacity-100' : 'opacity-80'}`}
+                    className={`absolute h-3/4 top-1/2 -translate-y-1/2 rounded-md text-white text-xs px-2 flex items-center cursor-pointer border ${colorVariants[item.warna]} ${hasSub ? 'opacity-95 shadow-lg' : 'opacity-85'}`}
                     style={{ left, width, minWidth: '1px' }}
                   >
                     {(!hasSub || viewMode === 'bulanan') && <p className='truncate'>{item.nama}</p>}
@@ -195,8 +195,7 @@ export function JadwalDesktop({ data, tahun, onBlockClick, userRole, onDeleteKeg
     return (
       <div className="flex sticky top-0 z-20">
         <div className="sticky left-0 z-30 flex flex-col border-r bg-background text-sm font-semibold" style={{ width: '250px', minWidth: '250px' }}>
-          <div className="h-8 flex items-center p-2 border-b">Kegiatan</div>
-          <div className="h-8 border-b sticky top-8 z-20 bg-background" />
+          <div className="h-16 flex items-center p-2 border-b">Kegiatan</div>
         </div>
         <div className="relative flex flex-1">
           {months.map((monthData, i) => (
@@ -226,19 +225,37 @@ export function JadwalDesktop({ data, tahun, onBlockClick, userRole, onDeleteKeg
   };
 
   return (
-    <Card>
-      <CardHeader className="flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className='flex items-center gap-2'>
-          <ToggleGroup type="single" value={viewMode} onValueChange={(value) => { if (value) setViewMode(value as 'harian' | 'bulanan'); }} variant="outline">
-            <ToggleGroupItem value="harian">Harian</ToggleGroupItem>
-            <ToggleGroupItem value="bulanan">Bulanan</ToggleGroupItem>
-          </ToggleGroup>
-          {viewMode === 'harian' && isTodayVisible && (
-              <Button variant="outline" size="sm" onClick={scrollToToday}>
-                  <LocateFixed className="h-4 w-4 mr-2" />
-                  Hari Ini
-              </Button>
-          )}
+    <Card className="shadow-lg border-0 overflow-hidden">
+      <CardHeader className="border-b">
+        <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <svg className="h-5 w-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-foreground">Mode Tampilan</h3>
+              <p className="text-sm text-muted-foreground">Pilih cara melihat timeline jadwal</p>
+            </div>
+          </div>
+          <div className='flex items-center gap-3'>
+            {viewMode === 'harian' && isTodayVisible && (
+                <Button variant="outline" size="sm" onClick={scrollToToday} className="shadow-sm hover:shadow-md transition-all">
+                    <LocateFixed className="h-4 w-4 mr-2" />
+                    Hari Ini
+                </Button>
+            )}
+            <ToggleGroup type="single" value={viewMode} onValueChange={(value) => { if (value) setViewMode(value as 'harian' | 'bulanan'); }} variant="outline">
+              <ToggleGroupItem value="harian" className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
+                Harian
+              </ToggleGroupItem>
+              <ToggleGroupItem value="bulanan" className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
+                Bulanan
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="p-0">

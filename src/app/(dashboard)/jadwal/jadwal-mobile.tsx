@@ -26,6 +26,10 @@ const colorMap: Record<JadwalItem['warna'], string> = {
   amber: '#f59e0b',
   sky: '#0ea5e9',
   slate: '#64748b',
+  mint: '#10b981',
+  coral: '#f43f5e',
+  lavender: '#a855f7',
+  peach: '#f97316',
 };
 
 // --- OPTIMALISASI: Helper function diekstrak agar bisa dipakai ulang ---
@@ -124,18 +128,21 @@ export function GanttMiniMobile({ data, tahun, onBlockClick }: GanttMiniProps) {
     monthRefs.current[currentMonthKey]?.scrollIntoView({ behavior: 'smooth' });
   };
   
-  // --- PENINGKATAN UX: Tampilan "Empty State" jika tidak ada jadwal ---
+  // --- PENINGKATAN UX: Tampilan "Empty State" dengan design yang lebih menarik ---
   if (months.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center p-8 text-center text-muted-foreground min-h-[400px]">
-        <div className="bg-muted/50 rounded-full p-6 mb-6">
-          <CalendarClock className="w-16 h-16 opacity-50" />
+        <div className="bg-gradient-to-br from-muted/30 to-muted/60 rounded-full p-8 mb-6 shadow-lg">
+          <CalendarClock className="w-20 h-20 opacity-60" />
         </div>
-        <h3 className="text-xl font-semibold text-foreground mb-2">Tidak Ada Jadwal</h3>
-        <p className="text-sm max-w-sm leading-relaxed">
+        <h3 className="text-2xl font-semibold text-foreground mb-3">Tidak Ada Jadwal</h3>
+        <p className="text-sm max-w-sm leading-relaxed mb-4">
           Tidak ditemukan jadwal kegiatan untuk tahun {tahun}. 
-          Jadwal yang sudah berakhir tidak ditampilkan.
+          Jadwal yang sudah berakhir tidak ditampilkan di sini.
         </p>
+        <div className="text-xs bg-muted/50 px-3 py-2 rounded-full">
+          Tahun aktif: {tahun}
+        </div>
       </div>
     );
   }
@@ -154,15 +161,22 @@ export function GanttMiniMobile({ data, tahun, onBlockClick }: GanttMiniProps) {
           return (
             <div key={month} className="mb-12">
               <div className="sticky top-0 z-20 mb-6">
-                <h2 
-                  ref={el => { monthRefs.current[month] = el; }} 
-                  className="text-xl font-bold text-foreground bg-gradient-to-r from-background via-background to-background/80 backdrop-blur-md py-3 px-1 border-b border-border/50 shadow-sm"
-                >
-                  {month}
-                  <span className="ml-3 text-sm font-normal text-muted-foreground">
-                    {groupedData[month].length} kegiatan
-                  </span>
-                </h2>
+                <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/50 dark:to-purple-950/50 rounded-xl p-4 border border-border/30 shadow-lg backdrop-blur-md">
+                  <h2 
+                    ref={el => { monthRefs.current[month] = el; }} 
+                    className="text-2xl font-bold text-foreground flex items-center justify-between"
+                  >
+                    <span className="flex items-center gap-3">
+                      <div className="w-2 h-8 bg-gradient-to-b from-blue-500 to-purple-500 rounded-full" />
+                      <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                        {month}
+                      </span>
+                      <span className="text-sm font-medium text-muted-foreground bg-white/60 dark:bg-slate-800/60 px-3 py-1 rounded-full shadow-sm">
+                        {groupedData[month].length} kegiatan
+                      </span>
+                    </span>
+                  </h2>
+                </div>
               </div>
 
               {groupedData[month].map((item, idx) => {
@@ -180,31 +194,49 @@ export function GanttMiniMobile({ data, tahun, onBlockClick }: GanttMiniProps) {
                   <Card 
                     key={idx} 
                     onClick={() => onBlockClick(item)} 
-                    className={`mb-6 cursor-pointer hover:bg-muted/50 hover:shadow-md transition-all duration-200 active:scale-[0.98] ${
-                      status?.priority === "high" ? "ring-2 ring-red-200 border-red-200" : 
-                      status?.priority === "medium" ? "ring-1 ring-amber-200 border-amber-200" : ""
-                    }`}
+                    className={`mb-6 cursor-pointer active:scale-[0.98] relative overflow-hidden ${
+                      status?.priority === "high" ? "ring-2 ring-red-200 border-red-200 shadow-red-100/50" : 
+                      status?.priority === "medium" ? "ring-1 ring-amber-200 border-amber-200 shadow-amber-100/50" : 
+                      "border-border/50"
+                    } bg-gradient-to-br from-background to-muted/30`}
                     style={{ minHeight: "44px" }} // Ensure minimum touch target
                   >
-                    <CardContent className="p-4 space-y-3">
+                    {/* Decorative gradient bar */}
+                    <div 
+                      className="absolute top-0 left-0 right-0 h-1 opacity-80"
+                      style={{ 
+                        background: `linear-gradient(90deg, ${colorMap[item.warna]}, ${colorMap[item.warna]}88)` 
+                      }}
+                    />
+                    <CardContent className="p-5 space-y-4 relative">
                       <div className="flex justify-between items-start gap-3">
-                        <h3 className="font-semibold text-base flex-1 leading-tight">{item.nama}</h3>
+                        <div className="flex items-start gap-3 flex-1">
+                          <div 
+                            className="w-3 h-3 rounded-full mt-1.5 shadow-sm"
+                            style={{ backgroundColor: colorMap[item.warna] }}
+                          />
+                          <h3 className="font-semibold text-base flex-1 leading-tight">
+                            {item.nama}
+                          </h3>
+                        </div>
                         {status && (
-                          <Badge className={`flex-shrink-0 flex items-center gap-1 ${badgeColorVariants[status.color as keyof typeof badgeColorVariants]}`}>
+                          <Badge className={`flex-shrink-0 flex items-center gap-1 shadow-sm ${badgeColorVariants[status.color as keyof typeof badgeColorVariants]}`}>
                             <status.icon className="h-3 w-3" />
                             {status.text}
                           </Badge>
                         )}
                       </div>
-                      <Badge variant="outline" className="text-xs font-normal text-muted-foreground">
-                        {item.subKegiatan ? `${item.parentKegiatan} › ${item.subKegiatan}` : item.parentKegiatan}
+                      <Badge variant="outline" className="text-xs font-normal text-muted-foreground bg-muted/50">
+                        {item.subKegiatan ? `📁 ${item.parentKegiatan} › ${item.subKegiatan}` : `📋 ${item.parentKegiatan}`}
                       </Badge>
-                      <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                        <CalendarClock className="h-4 w-4 flex-shrink-0" />
-                        <span>
-                          {start.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} – {end.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
-                        </span>
-                        <span className="text-xs bg-muted px-2 py-1 rounded-full">
+                      <div className="flex items-center justify-between gap-2 text-muted-foreground text-sm bg-muted/30 rounded-lg p-3">
+                        <div className="flex items-center gap-2">
+                          <CalendarClock className="h-4 w-4 flex-shrink-0 text-primary" />
+                          <span className="font-medium">
+                            {start.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} – {end.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </span>
+                        </div>
+                        <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full font-medium">
                           {duration} hari
                         </span>
                       </div>
@@ -243,10 +275,10 @@ export function GanttMiniMobile({ data, tahun, onBlockClick }: GanttMiniProps) {
                                           : 'rgba(148, 163, 184, 0.25)',
                                     }}
                                   >
-                                    {/* Today Marker Enhanced */}
+                                    {/* Today Marker Enhanced with better visibility */}
                                     {isToday && (
-                                      <div className="absolute -top-1 -bottom-1 left-1/2 w-[3px] bg-red-500 rounded-full -translate-x-1/2 shadow-sm" title="Hari Ini">
-                                        <div className="absolute top-[-2px] left-1/2 w-1 h-1 bg-red-500 rounded-full -translate-x-1/2"></div>
+                                      <div className="absolute -top-1 -bottom-1 left-1/2 w-[4px] bg-red-500 rounded-full -translate-x-1/2 shadow-lg animate-pulse" title="Hari Ini">
+                                        <div className="absolute top-[-3px] left-1/2 w-2 h-2 bg-red-500 rounded-full -translate-x-1/2 border border-white"></div>
                                       </div>
                                     )}
                                     {/* Start/End markers */}
@@ -292,11 +324,11 @@ export function GanttMiniMobile({ data, tahun, onBlockClick }: GanttMiniProps) {
           <div className="fixed bottom-6 right-6 z-50">
             <Button 
               size="lg" 
-              className="rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 bg-primary hover:bg-primary/90 text-primary-foreground border-2 border-background/20 backdrop-blur-sm" 
+              className="rounded-full shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground border-2 border-background/20 backdrop-blur-sm active:scale-95" 
               onClick={scrollToNow}
-              style={{ minHeight: "56px", minWidth: "56px" }} // Ensure good touch target
+              style={{ minHeight: "60px", minWidth: "60px" }} // Better touch target
             >
-              <CalendarClock className="h-5 w-5 mr-2" /> 
+              <CalendarClock className="h-6 w-6 mr-2" /> 
               <span className="font-medium">Bulan Ini</span>
             </Button>
           </div>

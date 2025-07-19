@@ -97,22 +97,59 @@ export function JadwalClient({ data, tahun, refreshJadwal }: JadwalClientProps) 
 
   return (
     <TooltipProvider delayDuration={200}>
-      <div className="space-y-4">
-        <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center">
-          <div>
-            <h1 className="text-2xl font-bold">Jadwal Kegiatan</h1>
-            <p className="text-muted-foreground">Timeline kegiatan survei fungsi produksi tahun {tahun}.</p>
-          </div>
-          {userRole === 'super_admin' && (
-            <div className="flex flex-shrink-0 gap-2">
-              <Button variant="outline" onClick={() => setIsKegiatanFormOpen(true)}>
-                <FolderPlus className="mr-2 h-4 w-4" /> Buat Kegiatan
-              </Button>
-              <Button onClick={handleOpenAddForm}>
-                <PlusCircle className="mr-2 h-4 w-4" /> Tambah Jadwal
-              </Button>
+      <div className="space-y-6">
+        {/* Enhanced Header dengan desain modern dan dark mode adaptif */}
+        <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-600 via-purple-600 to-blue-800 dark:from-blue-800 dark:via-purple-800 dark:to-blue-900 p-6 text-white shadow-xl">
+          {/* Background pattern dengan dark mode adaptif */}
+          <div className="absolute inset-0 bg-black/10 dark:bg-black/20" />
+          <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent dark:from-white/3 dark:to-transparent" />
+          
+          {/* Decorative circles dengan dark mode adaptif */}
+          <div className="absolute -top-4 -right-4 h-24 w-24 rounded-full bg-white/10 dark:bg-white/5 blur-xl" />
+          <div className="absolute -bottom-6 -left-6 h-32 w-32 rounded-full bg-white/5 dark:bg-white/3 blur-2xl" />
+          
+          <div className="relative flex flex-col gap-6 sm:flex-row sm:justify-between sm:items-center">
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-white/20 dark:bg-white/10 rounded-xl backdrop-blur-sm border border-white/10">
+                  <svg className="h-8 w-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold tracking-tight text-white">📅 Jadwal Kegiatan</h1>
+                  <div className="flex items-center gap-2 mt-1">
+                    <div className="h-1 w-12 bg-white/60 dark:bg-white/50 rounded-full" />
+                    <div className="h-1 w-8 bg-white/40 dark:bg-white/30 rounded-full" />
+                    <div className="h-1 w-4 bg-white/20 dark:bg-white/15 rounded-full" />
+                  </div>
+                </div>
+              </div>
+              <p className="text-white/90 dark:text-white/85 text-lg font-medium flex items-center gap-2">
+                <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                Timeline kegiatan survei fungsi produksi tahun <span className="font-bold bg-white/20 dark:bg-white/15 px-2 py-1 rounded-lg text-white">{tahun}</span>
+              </p>
             </div>
-          )}
+            {userRole === 'super_admin' && (
+              <div className="flex flex-shrink-0 gap-3">
+                <Button 
+                  variant="secondary" 
+                  onClick={() => setIsKegiatanFormOpen(true)}
+                  className="bg-white/20 hover:bg-white/30 dark:bg-white/10 dark:hover:bg-white/20 text-white border-white/30 dark:border-white/20 backdrop-blur-sm transition-all duration-200"
+                >
+                  <FolderPlus className="mr-2 h-4 w-4" /> Buat Kegiatan
+                </Button>
+                <Button 
+                  onClick={handleOpenAddForm}
+                  className="bg-white hover:bg-white/90 text-blue-600 dark:text-blue-700 font-semibold transition-all duration-200 shadow-lg"
+                >
+                  <PlusCircle className="mr-2 h-4 w-4" /> Tambah Jadwal
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
 
         {isMobile ? (
