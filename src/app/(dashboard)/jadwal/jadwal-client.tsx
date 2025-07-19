@@ -98,8 +98,13 @@ export function JadwalClient({ data, tahun, refreshJadwal }: JadwalClientProps) 
   return (
     <TooltipProvider delayDuration={200}>
       <div className="space-y-6">
-        {/* Enhanced Header dengan desain modern dan dark mode adaptif */}
-        <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-600 via-purple-600 to-blue-800 dark:from-blue-800 dark:via-purple-800 dark:to-blue-900 p-6 text-white shadow-xl">
+        {/* Enhanced Header dengan desain modern dan konsisten dengan halaman produksi-statistik */}
+        <div 
+          className="relative overflow-hidden rounded-xl p-6 text-white shadow-xl"
+          style={{
+            background: 'linear-gradient(135deg, rgb(137, 132, 216) 0%, rgb(120, 115, 200) 50%, rgb(100, 95, 180) 100%)'
+          }}
+        >
           {/* Background pattern dengan dark mode adaptif */}
           <div className="absolute inset-0 bg-black/10 dark:bg-black/20" />
           <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent dark:from-white/3 dark:to-transparent" />
@@ -117,7 +122,7 @@ export function JadwalClient({ data, tahun, refreshJadwal }: JadwalClientProps) 
                   </svg>
                 </div>
                 <div>
-                  <h1 className="text-3xl font-bold tracking-tight text-white">📅 Jadwal Kegiatan</h1>
+                  <h1 className="text-3xl font-bold tracking-tight text-white">Jadwal Kegiatan</h1>
                   <div className="flex items-center gap-2 mt-1">
                     <div className="h-1 w-12 bg-white/60 dark:bg-white/50 rounded-full" />
                     <div className="h-1 w-8 bg-white/40 dark:bg-white/30 rounded-full" />
@@ -127,7 +132,7 @@ export function JadwalClient({ data, tahun, refreshJadwal }: JadwalClientProps) 
               </div>
               <p className="text-white/90 dark:text-white/85 text-lg font-medium flex items-center gap-2">
                 <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 Timeline kegiatan survei fungsi produksi tahun <span className="font-bold bg-white/20 dark:bg-white/15 px-2 py-1 rounded-lg text-white">{tahun}</span>
               </p>

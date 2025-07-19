@@ -3,7 +3,7 @@
 
 import { ColumnDef } from "@tanstack/react-table"
 import { Badge } from "@/components/ui/badge"
-import { ArrowUpDown, TrendingUp, TrendingDown } from "lucide-react"
+import { ArrowUpDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 import { AugmentedAtapDataPoint } from "@/lib/types";
@@ -23,7 +23,7 @@ export const getColumns = (
       accessorKey: "nama_wilayah",
       header: "Kabupaten/Kota",
       cell: ({ row }) => <div className="font-medium">{row.getValue("nama_wilayah")}</div>,
-      footer: () => <div className="text-left font-bold">Total</div>,
+      footer: () => <div className="text-left font-bold">Kalimantan Barat</div>,
     },
     {
       accessorKey: "nilai",
@@ -85,9 +85,8 @@ export const getColumns = (
         }
         return (
           <div className="flex justify-center">
-            <Badge variant={pertumbuhan >= 0 ? "success" : "destructive"} className="flex items-center gap-1 text-xs">
-              {pertumbuhan >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-              <span>{pertumbuhan.toFixed(2)}%</span>
+            <Badge variant={pertumbuhan >= 0 ? "success" : "destructive"} className="text-xs">
+              {pertumbuhan.toFixed(2)}%
             </Badge>
           </div>
         )

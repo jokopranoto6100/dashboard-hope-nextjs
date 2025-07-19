@@ -185,34 +185,48 @@ export default function HomePage() {
 
   // Bagian 3: Rendering
   return (
-    <>
-      {/* Header berwarna dengan flat color design dan dark mode support */}
+    <div className="space-y-6">
+      {/* Enhanced Header dengan desain modern dan konsisten dengan halaman lainnya */}
       <div 
-        className="text-white p-4 md:p-6 rounded-xl mb-6 shadow-2xl relative overflow-hidden transition-all duration-300"
+        className="relative overflow-hidden rounded-xl p-6 text-white shadow-xl"
         style={{
-          backgroundColor: '#8e97fe', // Flat color instead of gradient
+          background: 'linear-gradient(135deg, rgb(137, 132, 216) 0%, rgb(120, 115, 200) 50%, rgb(100, 95, 180) 100%)'
         }}
       >
-        {/* Dark mode overlay */}
-        <div className="absolute inset-0 bg-black/20 dark:bg-black/40 rounded-xl" />
+        {/* Background pattern dengan dark mode adaptif */}
+        <div className="absolute inset-0 bg-black/10 dark:bg-black/20" />
+        <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent dark:from-white/3 dark:to-transparent" />
         
-        {/* Subtle pattern overlay */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute inset-0 bg-white/10" />
-        </div>
+        {/* Decorative circles dengan dark mode adaptif */}
+        <div className="absolute -top-4 -right-4 h-24 w-24 rounded-full bg-white/10 dark:bg-white/5 blur-xl" />
+        <div className="absolute -bottom-6 -left-6 h-32 w-32 rounded-full bg-white/5 dark:bg-white/3 blur-2xl" />
         
-        <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex-1">
-            <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold tracking-tight">🌾 Dashboard Statistik Pertanian</h1>
-            <p className="text-white/90 mt-2 text-sm sm:text-base md:text-lg">
-              Monitoring kegiatan survei tahun {selectedYear}
+        <div className="relative flex flex-col gap-6 sm:flex-row sm:justify-between sm:items-center">
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white/20 dark:bg-white/10 rounded-xl backdrop-blur-sm border border-white/10">
+                <svg className="h-8 w-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5v4" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v4" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 5v4" />
+                </svg>
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight text-white">Dashboard Statistik Produksi</h1>
+                <div className="flex items-center gap-2 mt-1">
+                  <div className="h-1 w-12 bg-white/60 dark:bg-white/50 rounded-full" />
+                  <div className="h-1 w-8 bg-white/40 dark:bg-white/30 rounded-full" />
+                  <div className="h-1 w-4 bg-white/20 dark:bg-white/15 rounded-full" />
+                </div>
+              </div>
+            </div>
+            <p className="text-white/90 dark:text-white/85 text-lg font-medium flex items-center gap-2">
+              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Monitoring kegiatan survei fungsi produksi tahun <span className="font-bold bg-white/20 dark:bg-white/15 px-2 py-1 rounded-lg text-white">{selectedYear}</span>
             </p>
-          </div>
-          <div 
-            className="hidden sm:block rounded-full p-3 md:p-4 backdrop-blur-sm"
-            style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
-          >
-            <CheckCircle className="w-8 h-8 md:w-10 md:h-10 text-white" />
           </div>
         </div>
       </div>
@@ -256,6 +270,6 @@ export default function HomePage() {
           Membangun pertanian Indonesia yang lebih baik
         </p>
       </div>
-    </>
+    </div>
   );
 }

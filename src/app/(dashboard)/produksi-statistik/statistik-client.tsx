@@ -219,15 +219,23 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
       
       {isLoading ? (
         <div className="space-y-4">
-          <div className="grid md:grid-cols-3 gap-4">
+          {/* Skeleton untuk KPI Cards - sesuai dengan kondisi tahunPembanding */}
+          <div className={`grid gap-4 md:grid-cols-2 ${state.filters.tahunPembanding !== 'tidak' ? 'lg:grid-cols-2' : 'lg:grid-cols-3'}`}>
+            {/* Total Card - selalu ada */}
             <Skeleton className="h-24" />
-            <Skeleton className="h-24" />
+            {/* Tertinggi & Terendah Card - hanya jika tidak ada tahun pembanding */}
+            {state.filters.tahunPembanding === 'tidak' && (
+              <Skeleton className="h-24" />
+            )}
+            {/* Subround Card - selalu ada */}
             <Skeleton className="h-24" />
           </div>
+          {/* Skeleton untuk Chart Section */}
           <div className="grid lg:grid-cols-3 gap-6">
             <Skeleton className="h-[350px] lg:col-span-2" />
             <Skeleton className="h-[350px]" />
           </div>
+          {/* Skeleton untuk Data Table */}
           <Skeleton className="h-96" />
         </div>
       ) : (
