@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronRight, CheckCircle2, Eye, EyeOff, Clock } from "lucide-react";
+import { ChevronRight, CheckCircle2, Eye, EyeOff, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { getPercentageBadgeVariant } from "@/lib/utils";
 import {
@@ -157,7 +157,7 @@ export function PalawijaMonitoringTable({ data, totals, isLoading, error, lastUp
               
               {(!isMobile || showAllColumns) && (
                 <Button variant="outline" size="sm" onClick={() => setIsRealisasiExpanded(!isRealisasiExpanded)}>
-                  {isRealisasiExpanded ? <ChevronDown className="mr-2 h-4 w-4" /> : <ChevronRight className="mr-2 h-4" />}
+                  <ChevronRight className={`mr-2 h-4 w-4 transition-transform duration-200 ease-in-out ${isRealisasiExpanded ? 'rotate-90' : ''}`} />
                   {isRealisasiExpanded ? "Ringkas Realisasi" : "Detail Realisasi"}
                 </Button>
               )}

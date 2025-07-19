@@ -40,6 +40,18 @@ interface NavMainHopeProps {
 export const NavMainHope = React.memo(function NavMainHope({ items, onNavigate }: NavMainHopeProps) {
   const pathname = usePathname();
   const { open } = useSidebar();
+  
+  // State to track which collapsible menus are open
+  const [openStates, setOpenStates] = React.useState<Record<string, boolean>>(() => {
+    // Initialize based on current pathname
+    const initialStates: Record<string, boolean> = {};
+    items.forEach(item => {
+      if (item.items && item.items.length > 0) {
+        initialStates[item.title] = item.isActive ? item.isActive(pathname) : false;
+      }
+    });
+    return initialStates;
+  });
 
   // ✅ OPTIMALISASI: Memoize click handler untuk mengurangi re-render
   const handleNavigate = React.useCallback(() => {
@@ -62,8 +74,15 @@ export const NavMainHope = React.memo(function NavMainHope({ items, onNavigate }
 
         // Logika untuk menu GRUP/COLLAPSIBLE
         if (item.items && item.items.length > 0) {
+          const isMenuOpen = openStates[item.title] || false;
+          
           return (
-            <Collapsible key={item.title} defaultOpen={itemIsActive} disabled={item.disabled}>
+            <Collapsible 
+              key={item.title} 
+              open={isMenuOpen}
+              onOpenChange={(open) => setOpenStates(prev => ({ ...prev, [item.title]: open }))}
+              disabled={item.disabled}
+            >
               <SidebarMenuItem className={cn(!open && 'flex justify-center')}>
                 <TooltipProvider delayDuration={100}>
                   <Tooltip>
@@ -84,7 +103,8 @@ export const NavMainHope = React.memo(function NavMainHope({ items, onNavigate }
                             <ChevronRight
                               className={cn(
                                 'h-4 w-4 shrink-0',
-                                'group-data-[state=open]:rotate-90',
+                                'transition-transform duration-300 ease-in-out',
+                                isMenuOpen && 'rotate-90',
                               )}
                             />
                           )}
