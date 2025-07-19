@@ -188,7 +188,7 @@ export default function HomePage() {
     <div className="space-y-6">
       {/* Enhanced Header dengan desain modern dan konsisten dengan halaman lainnya */}
       <div 
-        className="relative overflow-hidden rounded-xl p-6 text-white shadow-xl"
+        className="relative overflow-hidden rounded-xl p-4 sm:p-6 text-white shadow-xl"
         style={{
           background: 'linear-gradient(135deg, rgb(137, 132, 216) 0%, rgb(120, 115, 200) 50%, rgb(100, 95, 180) 100%)'
         }}
@@ -201,11 +201,11 @@ export default function HomePage() {
         <div className="absolute -top-4 -right-4 h-24 w-24 rounded-full bg-white/10 dark:bg-white/5 blur-xl" />
         <div className="absolute -bottom-6 -left-6 h-32 w-32 rounded-full bg-white/5 dark:bg-white/3 blur-2xl" />
         
-        <div className="relative flex flex-col gap-6 sm:flex-row sm:justify-between sm:items-center">
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-white/20 dark:bg-white/10 rounded-xl backdrop-blur-sm border border-white/10">
-                <svg className="h-8 w-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="relative flex flex-col gap-4 sm:gap-6 sm:flex-row sm:justify-between sm:items-center">
+          <div className="space-y-2 sm:space-y-3">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-2 sm:p-3 bg-white/20 dark:bg-white/10 rounded-xl backdrop-blur-sm border border-white/10">
+                <svg className="h-6 w-6 sm:h-8 sm:w-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5v4" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v4" />
@@ -213,19 +213,20 @@ export default function HomePage() {
                 </svg>
               </div>
               <div>
-                <h1 className="text-3xl font-bold tracking-tight text-white">Dashboard Statistik Produksi</h1>
-                <div className="flex items-center gap-2 mt-1">
-                  <div className="h-1 w-12 bg-white/60 dark:bg-white/50 rounded-full" />
-                  <div className="h-1 w-8 bg-white/40 dark:bg-white/30 rounded-full" />
-                  <div className="h-1 w-4 bg-white/20 dark:bg-white/15 rounded-full" />
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-white">Dashboard Statistik Produksi</h1>
+                <div className="flex items-center gap-1 sm:gap-2 mt-1">
+                  <div className="h-0.5 sm:h-1 w-8 sm:w-12 bg-white/60 dark:bg-white/50 rounded-full" />
+                  <div className="h-0.5 sm:h-1 w-6 sm:w-8 bg-white/40 dark:bg-white/30 rounded-full" />
+                  <div className="h-0.5 sm:h-1 w-3 sm:w-4 bg-white/20 dark:bg-white/15 rounded-full" />
                 </div>
               </div>
             </div>
-            <p className="text-white/90 dark:text-white/85 text-lg font-medium flex items-center gap-2">
-              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <p className="text-white/90 dark:text-white/85 text-sm sm:text-base lg:text-lg font-medium flex items-center gap-2">
+              <svg className="h-4 w-4 sm:h-5 sm:w-5 text-white flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              Monitoring kegiatan survei fungsi produksi tahun <span className="font-bold bg-white/20 dark:bg-white/15 px-2 py-1 rounded-lg text-white">{selectedYear}</span>
+              <span>Monitoring kegiatan fungsi produksi</span>
+              <span className="font-bold bg-white/20 dark:bg-white/15 px-2 py-1 rounded-lg text-white text-sm sm:text-base">{selectedYear}</span>
             </p>
           </div>
         </div>

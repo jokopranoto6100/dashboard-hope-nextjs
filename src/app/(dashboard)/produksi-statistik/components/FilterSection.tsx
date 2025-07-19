@@ -110,7 +110,7 @@ export function FilterSection({
                 <SelectValue placeholder="Bandingkan dengan tahun..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="tidak">Tidak ada perbandingan</SelectItem>
+                <SelectItem value="tidak">-Bandingkan dengan Tahun-</SelectItem>
                 <Separator className="my-1"/>
                 {generateYears().filter(y => y !== selectedYear.toString()).map(y => (
                   <SelectItem key={y} value={y}>{y}</SelectItem>

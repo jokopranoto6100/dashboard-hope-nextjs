@@ -100,7 +100,7 @@ export function JadwalClient({ data, tahun, refreshJadwal }: JadwalClientProps) 
       <div className="space-y-6">
         {/* Enhanced Header dengan desain modern dan konsisten dengan halaman produksi-statistik */}
         <div 
-          className="relative overflow-hidden rounded-xl p-6 text-white shadow-xl"
+          className="relative overflow-hidden rounded-xl p-4 sm:p-6 text-white shadow-xl"
           style={{
             background: 'linear-gradient(135deg, rgb(137, 132, 216) 0%, rgb(120, 115, 200) 50%, rgb(100, 95, 180) 100%)'
           }}
@@ -113,42 +113,43 @@ export function JadwalClient({ data, tahun, refreshJadwal }: JadwalClientProps) 
           <div className="absolute -top-4 -right-4 h-24 w-24 rounded-full bg-white/10 dark:bg-white/5 blur-xl" />
           <div className="absolute -bottom-6 -left-6 h-32 w-32 rounded-full bg-white/5 dark:bg-white/3 blur-2xl" />
           
-          <div className="relative flex flex-col gap-6 sm:flex-row sm:justify-between sm:items-center">
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-white/20 dark:bg-white/10 rounded-xl backdrop-blur-sm border border-white/10">
-                  <svg className="h-8 w-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="relative flex flex-col gap-4 sm:gap-6 sm:flex-row sm:justify-between sm:items-center">
+            <div className="space-y-2 sm:space-y-3">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-2 sm:p-3 bg-white/20 dark:bg-white/10 rounded-xl backdrop-blur-sm border border-white/10">
+                  <svg className="h-6 w-6 sm:h-8 sm:w-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                 </div>
                 <div>
-                  <h1 className="text-3xl font-bold tracking-tight text-white">Jadwal Kegiatan</h1>
-                  <div className="flex items-center gap-2 mt-1">
-                    <div className="h-1 w-12 bg-white/60 dark:bg-white/50 rounded-full" />
-                    <div className="h-1 w-8 bg-white/40 dark:bg-white/30 rounded-full" />
-                    <div className="h-1 w-4 bg-white/20 dark:bg-white/15 rounded-full" />
+                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-white">Jadwal Kegiatan</h1>
+                  <div className="flex items-center gap-1 sm:gap-2 mt-1">
+                    <div className="h-0.5 sm:h-1 w-8 sm:w-12 bg-white/60 dark:bg-white/50 rounded-full" />
+                    <div className="h-0.5 sm:h-1 w-6 sm:w-8 bg-white/40 dark:bg-white/30 rounded-full" />
+                    <div className="h-0.5 sm:h-1 w-3 sm:w-4 bg-white/20 dark:bg-white/15 rounded-full" />
                   </div>
                 </div>
               </div>
-              <p className="text-white/90 dark:text-white/85 text-lg font-medium flex items-center gap-2">
-                <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <p className="text-white/90 dark:text-white/85 text-sm sm:text-base lg:text-lg font-medium flex items-center gap-2">
+                <svg className="h-4 w-4 sm:h-5 sm:w-5 text-white flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                Timeline kegiatan survei fungsi produksi tahun <span className="font-bold bg-white/20 dark:bg-white/15 px-2 py-1 rounded-lg text-white">{tahun}</span>
+                <span>Timeline kegiatan fungsi produksi</span>
+                <span className="font-bold bg-white/20 dark:bg-white/15 px-2 py-1 rounded-lg text-white text-sm sm:text-base">{tahun}</span>
               </p>
             </div>
             {userRole === 'super_admin' && (
-              <div className="flex flex-shrink-0 gap-3">
+              <div className="flex flex-shrink-0 gap-2 sm:gap-3">
                 <Button 
                   variant="secondary" 
                   onClick={() => setIsKegiatanFormOpen(true)}
-                  className="bg-white/20 hover:bg-white/30 dark:bg-white/10 dark:hover:bg-white/20 text-white border-white/30 dark:border-white/20 backdrop-blur-sm transition-all duration-200"
+                  className="bg-white/20 hover:bg-white/30 dark:bg-white/10 dark:hover:bg-white/20 text-white border-white/30 dark:border-white/20 backdrop-blur-sm transition-all duration-200 text-sm"
                 >
                   <FolderPlus className="mr-2 h-4 w-4" /> Buat Kegiatan
                 </Button>
                 <Button 
                   onClick={handleOpenAddForm}
-                  className="bg-white hover:bg-white/90 text-blue-600 dark:text-blue-700 font-semibold transition-all duration-200 shadow-lg"
+                  className="bg-white hover:bg-white/90 text-blue-600 dark:text-blue-700 font-semibold transition-all duration-200 shadow-lg text-sm"
                 >
                   <PlusCircle className="mr-2 h-4 w-4" /> Tambah Jadwal
                 </Button>
