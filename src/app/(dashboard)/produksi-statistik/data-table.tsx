@@ -21,7 +21,6 @@ import {
   TableRow,
   TableFooter,
 } from "@/components/ui/table"
-import { Input } from "@/components/ui/input"
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -51,16 +50,6 @@ export function DataTable<TData, TValue>({
 
   return (
     <div>
-      <div className="flex items-center justify-between py-4 gap-2">
-          <Input
-            placeholder="Cari berdasarkan nama wilayah..."
-            value={(table.getColumn("nama_wilayah")?.getFilterValue() as string) ?? ""}
-            onChange={(event) =>
-                table.getColumn("nama_wilayah")?.setFilterValue(event.target.value)
-            }
-            className="max-w-sm"
-          />
-      </div>
       <div className="relative w-full overflow-x-auto rounded-md border">
         <Table className="min-w-full table-auto">
           <TableHeader>
@@ -68,7 +57,7 @@ export function DataTable<TData, TValue>({
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead key={header.id} className="whitespace-nowrap text-xs">
+                    <TableHead key={header.id} className="whitespace-nowrap text-sm font-semibold">
                       {header.isPlaceholder
                         ? null
                         : flexRender(

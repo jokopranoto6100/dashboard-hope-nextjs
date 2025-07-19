@@ -29,7 +29,10 @@ export const getColumns = (
       accessorKey: "nilai",
       header: ({ column }) => (
         <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="w-full justify-center px-0 hover:bg-transparent">
-          Nilai ({selectedYear})
+          <div className="text-center">
+            <div className="font-semibold">Nilai</div>
+            <div className="text-xs text-muted-foreground">({selectedYear})</div>
+          </div>
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       ),
@@ -38,7 +41,12 @@ export const getColumns = (
     },
     {
       accessorKey: "kontribusi",
-      header: () => <div className="text-center">Kontribusi (%)</div>,
+      header: () => (
+        <div className="text-center">
+          <div className="font-semibold">Kontribusi</div>
+          <div className="text-xs text-muted-foreground">(%)</div>
+        </div>
+      ),
       cell: ({ row }) => {
         const kontribusi = row.getValue("kontribusi") as number | undefined;
         return <div className="text-center text-muted-foreground font-mono">{kontribusi?.toFixed(2) || '0.00'}%</div>
@@ -50,7 +58,12 @@ export const getColumns = (
   const perbandinganColumns: ColumnDef<AugmentedAtapDataPoint>[] = [
     {
       id: "nilaiTahunLalu",
-      header: () => <div className="text-center">Nilai ({tahunPembanding})</div>,
+      header: () => (
+        <div className="text-center">
+          <div className="font-semibold">Nilai</div>
+          <div className="text-xs text-muted-foreground">({tahunPembanding})</div>
+        </div>
+      ),
       cell: ({ row }) => {
         const nilai = row.original.nilaiTahunLalu;
         return <div className="text-center font-mono text-muted-foreground">{nilai ? formatNumber(nilai) : '-'}</div>
@@ -59,7 +72,12 @@ export const getColumns = (
     },
     {
       id: "pertumbuhan",
-      header: () => <div className="text-center">Pertumbuhan (%)</div>,
+      header: () => (
+        <div className="text-center">
+          <div className="font-semibold">Pertumbuhan</div>
+          <div className="text-xs text-muted-foreground">(%)</div>
+        </div>
+      ),
       cell: ({ row }) => {
         const pertumbuhan = row.original.pertumbuhan;
         if (pertumbuhan === null || pertumbuhan === undefined || !isFinite(pertumbuhan)) {
@@ -67,7 +85,7 @@ export const getColumns = (
         }
         return (
           <div className="flex justify-center">
-            <Badge variant={pertumbuhan >= 0 ? "default" : "destructive"} className="flex items-center gap-1 text-xs">
+            <Badge variant={pertumbuhan >= 0 ? "success" : "destructive"} className="flex items-center gap-1 text-xs">
               {pertumbuhan >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
               <span>{pertumbuhan.toFixed(2)}%</span>
             </Badge>

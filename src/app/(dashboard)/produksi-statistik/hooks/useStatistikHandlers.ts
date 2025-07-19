@@ -4,6 +4,8 @@ import { ChartDataPoint, AugmentedAtapDataPoint } from '@/lib/types';
 import { User } from '@supabase/supabase-js';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { MONTH_NAMES } from '@/lib/utils';
+import * as XLSX from 'xlsx';
+import { toast } from 'sonner';
 
 interface UseStatistikHandlersProps {
   selectedYear: number;
@@ -124,44 +126,32 @@ export const useStatistikHandlers = ({
   }, [filters.indikatorNama, selectedYear]);
 
   const handleExportData = useCallback((data: AugmentedAtapDataPoint[]) => {
-    if (!data || data.length === 0) return;
+    if (!data || data.length === 0) {
+      toast.error("Tidak ada data untuk diekspor.");
+      return;
+    }
 
-    const headers = [
-      'Wilayah',
-      'Kode Wilayah', 
-      'Nilai',
-      'Satuan',
-      'Kontribusi (%)',
-      ...(filters.tahunPembanding !== 'tidak' ? [
-        `Nilai ${filters.tahunPembanding}`,
-        'Pertumbuhan (%)'
-      ] : [])
-    ];
+    // Prepare data untuk Excel dengan format yang konsisten dengan evaluasi/ksa
+    const dataToExport = data.map(row => ({
+      "Wilayah": row.nama_wilayah,
+      "Kode Wilayah": row.kode_wilayah,
+      "Nilai": row.nilai || 0,
+      "Satuan": row.satuan || '',
+      "Kontribusi (%)": (row.kontribusi || 0).toFixed(2),
+      ...(filters.tahunPembanding !== 'tidak' && {
+        [`Nilai ${filters.tahunPembanding}`]: row.nilaiTahunLalu || 0,
+        "Pertumbuhan (%)": (row.pertumbuhan !== null && row.pertumbuhan !== undefined) ? row.pertumbuhan.toFixed(2) : 'N/A'
+      })
+    }));
 
-    const csvContent = [
-      headers.join(','),
-      ...data.map(row => [
-        `"${row.nama_wilayah}"`,
-        row.kode_wilayah,
-        row.nilai || 0,
-        `"${row.satuan || ''}"`,
-        (row.kontribusi || 0).toFixed(2),
-        ...(filters.tahunPembanding !== 'tidak' ? [
-          row.nilaiTahunLalu || 0,
-          (row.pertumbuhan !== null && row.pertumbuhan !== undefined) ? row.pertumbuhan.toFixed(2) : 'N/A'
-        ] : [])
-      ].join(','))
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `data_${filters.indikatorNama.replace(/\s+/g, '_')}_${selectedYear}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // Export ke Excel menggunakan metode yang konsisten dengan evaluasi/ksa
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Data Statistik');
+    
+    const fileName = `data_${filters.indikatorNama.replace(/\s+/g, '_')}_${selectedYear}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+    toast.success("Data berhasil diekspor ke Excel!");
   }, [filters.indikatorNama, filters.tahunPembanding, selectedYear]);
 
   return {

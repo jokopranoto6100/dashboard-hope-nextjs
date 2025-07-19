@@ -54,7 +54,7 @@ export function KpiCards({
           </p>
           {kpiData.percentageChange !== null && isFinite(kpiData.percentageChange) && (
             <Badge 
-              variant={kpiData.percentageChange >= 0 ? 'default' : 'destructive'} 
+              variant={kpiData.percentageChange >= 0 ? 'success' : 'destructive'} 
               className="flex items-center gap-1 text-xs mt-2 w-fit"
             >
               {kpiData.percentageChange >= 0 ? 
@@ -124,7 +124,7 @@ export function KpiCards({
                   </p>
                   {subround.change !== null && isFinite(subround.change) && (
                     <Badge 
-                      variant={subround.change >= 0 ? 'default' : 'destructive'} 
+                      variant={subround.change >= 0 ? 'success' : 'destructive'} 
                       className="flex items-center gap-1 text-xs w-fit"
                     >
                       {subround.change >= 0 ? 

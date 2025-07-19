@@ -59,7 +59,7 @@ export default function LineChartWrapper({ data, dataKey1, dataKey2, onPointClic
             type="monotone" 
             dataKey={dataKey1} 
             stroke="#8884d8" 
-            
+            strokeWidth={3}
             name={`Tahun ${dataKey1}`} 
             connectNulls 
             dot={false}
@@ -75,7 +75,7 @@ export default function LineChartWrapper({ data, dataKey1, dataKey2, onPointClic
                 type="monotone" 
                 dataKey={dataKey2} 
                 stroke="#82ca9d" 
-                
+                strokeWidth={3}
                 name={`Tahun ${dataKey2}`} 
                 connectNulls 
                 dot={false}

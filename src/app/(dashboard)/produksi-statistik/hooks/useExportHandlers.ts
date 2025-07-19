@@ -2,10 +2,10 @@
 import { useCallback } from 'react';
 import { AugmentedAtapDataPoint } from '@/lib/types';
 import { FULL_MONTH_NAMES } from '@/lib/utils';
-import { unparse } from 'papaparse';
 import { saveAs } from 'file-saver';
 import { toPng } from 'html-to-image';
 import { toast } from 'sonner';
+import * as XLSX from 'xlsx';
 
 interface UseExportHandlersProps {
   selectedYear: number;
@@ -85,11 +85,14 @@ export const useExportHandlers = ({ selectedYear, filters }: UseExportHandlersPr
       "Satuan"
     ] as const;
 
-    const csv = unparse(dataToExport, { columns: Array.from(columns) as string[] });
-    saveAs(
-      new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' }),
-      `data_rinci_${filters.indikatorNama}_${selectedYear}.csv`
-    );
+    // Export ke Excel (XLSX) - konsisten dengan halaman evaluasi/ksa
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport, { header: Array.from(columns) });
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Data Statistik');
+    
+    const fileName = `data_rinci_${filters.indikatorNama}_${selectedYear}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+    toast.success("Data berhasil diekspor ke Excel!");
   }, [selectedYear, filters.indikatorNama, filters.tahunPembanding]);
 
   return {

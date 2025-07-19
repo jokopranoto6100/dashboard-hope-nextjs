@@ -184,7 +184,7 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
                 </svg>
               </div>
               <div>
-                <h1 className="text-3xl font-bold tracking-tight text-white">📊 Statistik Produksi</h1>
+                <h1 className="text-3xl font-bold tracking-tight text-white">Statistik Produksi</h1>
                 <div className="flex items-center gap-2 mt-1">
                   <div className="h-1 w-12 bg-white/60 dark:bg-white/50 rounded-full" />
                   <div className="h-1 w-8 bg-white/40 dark:bg-white/30 rounded-full" />
@@ -196,7 +196,7 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
               <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
               </svg>
-              Analisis dan visualisasi data produksi <span className="font-bold bg-white/20 dark:bg-white/15 px-2 py-1 rounded-lg text-white">tahun {selectedYear}</span>
+              Analisis dan visualisasi data produksi <span className="font-bold bg-white/20 dark:bg-white/15 px-2 py-1 rounded-lg text-white">{selectedYear}</span>
             </p>
           </div>
           <div className="flex items-center gap-2">
