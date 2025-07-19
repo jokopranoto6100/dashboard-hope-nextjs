@@ -1,18 +1,18 @@
 "use client";
 
-import { useEffect, useTransition, useState } from "react";
+import { useTransition, useState, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { z } from "zod";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Users, ChevronLeft, ChevronRight, Search, Filter } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Search, Loader2, Users, Filter, ChevronLeft, ChevronRight } from "lucide-react";
+import { toast } from "sonner";
 import { useDebounce } from "@/hooks/useDebounce";
 import { 
   updateSkgbPengeringan, 
@@ -25,15 +25,45 @@ import {
   type PetugasRecord
 } from "../_actions";
 
-const formSchema = z.object({
-  petugas: z.string().min(1, "Petugas harus dipilih"),
-  email_petugas: z.string().email("Email petugas tidak valid"),
-  status_pendataan: z.enum(["Belum Didata", "Selesai Didata"], {
-    errorMap: () => ({ message: "Status pendataan tidak valid" })
-  }),
-});
+// Status pendataan options untuk Penggilingan
+const PENGGILINGAN_STATUS_OPTIONS = [
+  "Belum Didata",
+  "1. Berhasil diwawancarai",
+  "2. Tidak bersedia diwawancarai", 
+  "3. Tidak dapat diwawancarai sampai dengan batas akhir pencacahan",
+  "4. Belum berproduksi atau tidak melakukan penggilingan gabah",
+  "5. Bukan perusahaan/usaha penggilingan (termasuk yang ganda)",
+  "6. Pindah ke luar kabupaten/kota atau tidak ditemukan",
+  "7. Tutup"
+] as const;
 
-type FormData = z.infer<typeof formSchema>;
+// Status pendataan options untuk Pengeringan
+const PENGERINGAN_STATUS_OPTIONS = [
+  "Belum Didata",
+  "1. Berhasil diwawancarai",
+  "2. Tidak bersedia diwawancarai",
+  "3. Tidak dapat diwawancarai sampai batas akhir pencacahan", 
+  "4. Belum panen sampai batas waktu pendataan",
+  "5. Lewat panen",
+  "6. Gagal panen",
+  "7. Tidak diwawancarai dengan alasan lainnya"
+] as const;
+
+// Create dynamic schema based on SKGB type
+const createFormSchema = (skgbType: 'pengeringan' | 'penggilingan') => {
+  const statusOptions = skgbType === 'penggilingan' ? PENGGILINGAN_STATUS_OPTIONS : PENGERINGAN_STATUS_OPTIONS;
+  
+  return z.object({
+    petugas: z.string().min(1, "Petugas harus dipilih"),
+    email_petugas: z.string().email("Email petugas tidak valid"),
+    status_pendataan: z.enum(statusOptions, {
+      errorMap: () => ({ message: "Status pendataan tidak valid" })
+    }),
+  });
+};
+
+// Dynamic type for form data
+type FormData = z.infer<ReturnType<typeof createFormSchema>>;
 
 interface SkgbManageSampleModalProps {
   isOpen: boolean;
@@ -43,6 +73,13 @@ interface SkgbManageSampleModalProps {
   userRole?: string | null;
   onSuccess?: () => void;
 }
+
+// Helper function to get badge variant based on status
+const getStatusBadgeVariant = (status: string | null) => {
+  if (!status || status === "Belum Didata") return "secondary";
+  if (status === "1. Berhasil diwawancarai") return "default";
+  return "outline";
+};
 
 export function SkgbManageSampleModal({ 
   isOpen, 
@@ -70,6 +107,9 @@ export function SkgbManageSampleModal({
   const [flagSampelFilter, setFlagSampelFilter] = useState<string>('U'); // Default to 'U' for faster loading
   const [searchTerm, setSearchTerm] = useState<string>('');
   const debouncedSearchTerm = useDebounce(searchTerm, 500); // 500ms debounce
+
+  // Create dynamic form schema based on skgbType
+  const formSchema = useMemo(() => createFormSchema(skgbType), [skgbType]);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -210,10 +250,17 @@ export function SkgbManageSampleModal({
 
   const handleEditRecord = (record: SkgbPengeringanRecord | SkgbPenggilinganRecord) => {
     setSelectedRecord(record);
+    
+    // Get valid status for current skgbType
+    const statusOptions = skgbType === 'penggilingan' ? PENGGILINGAN_STATUS_OPTIONS : PENGERINGAN_STATUS_OPTIONS;
+    const currentStatus = record.status_pendataan || "Belum Didata";
+    const isValidStatus = statusOptions.some(option => option === currentStatus);
+    const validStatus = isValidStatus ? currentStatus : "Belum Didata";
+    
     form.reset({
       petugas: record.petugas || "",
       email_petugas: record.email_petugas || "",
-      status_pendataan: (record.status_pendataan === "Selesai Didata" ? "Selesai Didata" : "Belum Didata"),
+      status_pendataan: validStatus as (typeof PENGGILINGAN_STATUS_OPTIONS[number] | typeof PENGERINGAN_STATUS_OPTIONS[number]),
     });
     setIsEditFormOpen(true);
   };
@@ -309,7 +356,7 @@ export function SkgbManageSampleModal({
                           </TableCell>
                           <TableCell>{record.petugas || '-'}</TableCell>
                           <TableCell>
-                            <Badge variant={record.status_pendataan === 'Selesai Didata' ? 'default' : 'secondary'}>
+                            <Badge variant={getStatusBadgeVariant(record.status_pendataan)}>
                               {record.status_pendataan || 'Belum Didata'}
                             </Badge>
                           </TableCell>
@@ -483,8 +530,11 @@ export function SkgbManageSampleModal({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="Belum Didata">Belum Didata</SelectItem>
-                        <SelectItem value="Selesai Didata">Selesai Didata</SelectItem>
+                        {(skgbType === 'penggilingan' ? PENGGILINGAN_STATUS_OPTIONS : PENGERINGAN_STATUS_OPTIONS).map((status) => (
+                          <SelectItem key={status} value={status}>
+                            {status}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />

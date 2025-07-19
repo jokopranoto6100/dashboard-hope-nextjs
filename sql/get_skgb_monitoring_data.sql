@@ -1,7 +1,7 @@
--- RPC Function untuk monitoring SKGB Penggilingan per kabupaten
--- Similar to get_skgb_monitoring_data but for penggilingan table
+-- RPC Function untuk monitoring SKGB Pengeringan per kabupaten
+-- Similar to get_skgb_penggilingan_monitoring_data but for pengeringan table
 
-CREATE OR REPLACE FUNCTION get_skgb_penggilingan_monitoring_data(
+CREATE OR REPLACE FUNCTION get_skgb_monitoring_data(
   p_tahun INTEGER
 )
 RETURNS TABLE (
@@ -23,37 +23,37 @@ BEGIN
             COALESCE(sp.kdkab, 'Unknown')::TEXT as kode_kab,
             COUNT(CASE WHEN sp.flag_sampel = 'U' THEN 1 END)::INTEGER as target_utama,
             COUNT(CASE WHEN sp.flag_sampel = 'C' THEN 1 END)::INTEGER as cadangan,
-            COUNT(CASE WHEN sp.status_pendataan = '1. Berhasil diwawancarai' AND sp.flag_sampel = 'U' THEN 1 END)::INTEGER as realisasi,
+            COUNT(CASE WHEN sp.status_pendataan = '1. Berhasil diwawancarai' THEN 1 END)::INTEGER as realisasi,
             CASE 
                 WHEN COUNT(CASE WHEN sp.flag_sampel = 'U' THEN 1 END) > 0 THEN
                     ROUND(
-                        (COUNT(CASE WHEN sp.status_pendataan = '1. Berhasil diwawancarai' AND sp.flag_sampel = 'U' THEN 1 END)::NUMERIC / 
+                        (COUNT(CASE WHEN sp.status_pendataan = '1. Berhasil diwawancarai' THEN 1 END)::NUMERIC / 
                          COUNT(CASE WHEN sp.flag_sampel = 'U' THEN 1 END)::NUMERIC) * 100, 
                         2
                     )
                 ELSE 0
             END as persentase
-        FROM skgb_penggilingan sp
-        WHERE (p_tahun IS NULL OR sp.tahun = p_tahun)
+        FROM skgb_pengeringan sp
+        WHERE (p_tahun IS NULL OR EXTRACT(YEAR FROM sp.created_at) = p_tahun)
             AND sp.nmkab IS NOT NULL 
             AND sp.kdkab IS NOT NULL
         GROUP BY sp.nmkab, sp.kdkab
     ),
     petugas_mapping AS (
-        SELECT '6101'::TEXT as kode_kab, 2 as jumlah_petugas  -- Sambas
-        UNION SELECT '6102', 3   -- Bengkayang
-        UNION SELECT '6103', 3   -- Landak
-        UNION SELECT '6104', 1   -- Mempawah
-        UNION SELECT '6105', 3   -- Sanggau
-        UNION SELECT '6106', 2   -- Ketapang
-        UNION SELECT '6107', 3   -- Sintang
-        UNION SELECT '6108', 3   -- Kapuas Hulu
-        UNION SELECT '6109', 3   -- Sekadau
-        UNION SELECT '6110', 2   -- Melawi
-        UNION SELECT '6111', 2   -- Kayong Utara
-        UNION SELECT '6112', 2   -- Kbu Raya
-        UNION SELECT '6171', 1   -- Kota Pontianak
-        UNION SELECT '6172', 1   -- Kota Singkawang
+        SELECT '6101'::TEXT as kode_kab, 5 as jumlah_petugas
+        UNION SELECT '6102', 5   
+        UNION SELECT '6103', 5   
+        UNION SELECT '6104', 4   
+        UNION SELECT '6105', 2  
+        UNION SELECT '6106', 5   
+        UNION SELECT '6107', 2   
+        UNION SELECT '6108', 1   
+        UNION SELECT '6109', 2  
+        UNION SELECT '6110', 2   
+        UNION SELECT '6111', 2   
+        UNION SELECT '6112', 3   
+        UNION SELECT '6171', 0   
+        UNION SELECT '6172', 3   
     )
     SELECT 
         kd.kabupaten,

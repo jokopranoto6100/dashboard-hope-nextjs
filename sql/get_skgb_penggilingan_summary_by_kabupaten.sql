@@ -58,7 +58,7 @@ BEGIN
       -- Total cadangan (flag_sampel = 'C')
       (SELECT COUNT(*)::INTEGER FROM skgb_penggilingan sp WHERE sp.kdkab = p_kode_kab AND sp.tahun = p_tahun AND sp.flag_sampel = 'C') as cadangan,
       -- Total realisasi (status = 'Selesai Didata' AND flag_sampel = 'U')
-      (SELECT COUNT(*)::INTEGER FROM skgb_penggilingan sp WHERE sp.kdkab = p_kode_kab AND sp.tahun = p_tahun AND sp.status_pendataan = 'Selesai Didata' AND sp.flag_sampel = 'U') as realisasi
+      (SELECT COUNT(*)::INTEGER FROM skgb_penggilingan sp WHERE sp.kdkab = p_kode_kab AND sp.tahun = p_tahun AND sp.status_pendataan = '1. Berhasil diwawancarai' AND sp.flag_sampel = 'U') as realisasi
   ),
   petugas_mapping AS (
     SELECT '6101' as kode_kab, 2 as jumlah_petugas  -- Different from pengeringan

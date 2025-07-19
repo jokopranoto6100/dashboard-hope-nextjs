@@ -1,15 +1,14 @@
--- RPC Function untuk detail SKGB Penggilingan per kabupaten (kecamatan + desa level)
--- Different from pengeringan: includes desa level detail
+-- RPC Function untuk detail SKGB Pengeringan per kabupaten
+-- Returns detail data grouped by kecamatan and location
 
-CREATE OR REPLACE FUNCTION get_skgb_penggilingan_detail_by_kabupaten(
+CREATE OR REPLACE FUNCTION get_skgb_detail_by_kabupaten(
   p_kode_kab TEXT,
   p_tahun INTEGER
 )
 RETURNS TABLE (
   kecamatan TEXT,
   kode_kec TEXT,
-  desa TEXT,
-  kode_desa TEXT,
+  lokasi TEXT,
   target_utama INTEGER,
   cadangan INTEGER,
   realisasi INTEGER,
@@ -23,24 +22,22 @@ BEGIN
     SELECT 
       COALESCE(sp.nmkec, 'Unknown') as kecamatan,
       COALESCE(sp.kdkec, 'Unknown') as kode_kec,
-      COALESCE(sp.nmdesa, 'Unknown') as desa,
-      COALESCE(sp.kddesa, 'Unknown') as kode_desa,
+      COALESCE(sp.lokasi, 'Unknown') as lokasi,
       -- Target Utama: flag_sampel = 'U'
       COUNT(CASE WHEN sp.flag_sampel = 'U' THEN 1 END)::INTEGER as target_utama,
       -- Cadangan: flag_sampel = 'C'  
       COUNT(CASE WHEN sp.flag_sampel = 'C' THEN 1 END)::INTEGER as cadangan,
-      -- Realisasi: status_pendataan = '1. Berhasil diwawancarai' AND flag_sampel = 'U'
-      COUNT(CASE WHEN sp.status_pendataan = '1. Berhasil diwawancarai' AND sp.flag_sampel = 'U' THEN 1 END)::INTEGER as realisasi
-    FROM skgb_penggilingan sp
+      -- Realisasi: status_pendataan = '1. Berhasil diwawancarai'
+      COUNT(CASE WHEN sp.status_pendataan = '1. Berhasil diwawancarai' THEN 1 END)::INTEGER as realisasi
+    FROM skgb_pengeringan sp
     WHERE sp.kdkab = p_kode_kab
-      AND sp.tahun = p_tahun
-    GROUP BY sp.nmkec, sp.kdkec, sp.nmdesa, sp.kddesa
+      AND EXTRACT(YEAR FROM sp.created_at) = p_tahun
+    GROUP BY sp.nmkec, sp.kdkec, sp.lokasi
   )
   SELECT 
     da.kecamatan::TEXT,
     da.kode_kec::TEXT,
-    da.desa::TEXT,
-    da.kode_desa::TEXT,
+    da.lokasi::TEXT,
     da.target_utama,
     da.cadangan,
     da.realisasi,
@@ -51,6 +48,6 @@ BEGIN
       ELSE 0 
     END as persentase
   FROM detail_aggregation da
-  ORDER BY da.kode_kec, da.kode_desa;
+  ORDER BY da.kode_kec, da.lokasi;
 END;
 $$;

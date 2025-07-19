@@ -57,8 +57,8 @@ BEGIN
       COUNT(CASE WHEN sp.flag_sampel = 'U' THEN 1 END)::INTEGER as target_utama,
       -- Cadangan: total record dengan flag_sampel = 'C'  
       COUNT(CASE WHEN sp.flag_sampel = 'C' THEN 1 END)::INTEGER as cadangan,
-      -- Realisasi: total record dengan status_pendataan = 'Selesai Didata' AND flag_sampel = 'U'
-      COUNT(CASE WHEN sp.status_pendataan = 'Selesai Didata' AND sp.flag_sampel = 'U' THEN 1 END)::INTEGER as realisasi
+      -- Realisasi: total record dengan status_pendataan = '1. Berhasil diwawancarai' AND flag_sampel = 'U'
+      COUNT(CASE WHEN sp.status_pendataan = '1. Berhasil diwawancarai' AND sp.flag_sampel = 'U' THEN 1 END)::INTEGER as realisasi
     FROM skgb_pengeringan sp
     WHERE sp.kdkab = p_kode_kab
       AND EXTRACT(YEAR FROM sp.created_at) = p_tahun
