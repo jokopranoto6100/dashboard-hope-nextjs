@@ -32,15 +32,16 @@ BEGIN
     GROUP BY sp.kdkec
   ),
   desa_stats AS (
-    -- Get desa-level statistics  
+    -- Get desa-level statistics (kombinasi lokasi + kecamatan untuk handling nama lokasi yang sama di kecamatan berbeda)
     SELECT 
       sp.lokasi,
+      sp.kdkec,
       COUNT(CASE WHEN sp.flag_sampel = 'U' THEN 1 END)::INTEGER as count_u,
       COUNT(CASE WHEN sp.flag_sampel = 'C' THEN 1 END)::INTEGER as count_c
     FROM skgb_pengeringan sp
     WHERE sp.kdkab = p_kode_kab
       AND EXTRACT(YEAR FROM sp.created_at) = p_tahun
-    GROUP BY sp.lokasi
+    GROUP BY sp.lokasi, sp.kdkec
   ),
   summary_data AS (
     SELECT 
