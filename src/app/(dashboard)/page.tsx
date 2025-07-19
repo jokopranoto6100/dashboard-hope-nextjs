@@ -236,7 +236,7 @@ export default function HomePage() {
               return <KsaJagungSummaryCard key={card.id} isLoading={isAnythingLoading} error={errorKsaJagung} totals={ksaJagungTotals} displayStatus={ksaJagungDisplayStatus} displayMonth={ksaJagungDisplayMonth || ''} uniqueStatusNames={ksaJagungUniqueStatusNames || []} lastUpdate={lastUpdatedKsaJagung} selectedYear={selectedYear} isHighlighted={isHighlighted} />
             }
             if (card.id === 'simtp') {
-              return <SimtpSummaryCard key={card.id} isLoading={isAnythingLoading} error={errorSimtp} data={simtpData} displayStatus={simtpDisplayStatus} isHighlighted={isHighlighted} />
+              return <SimtpSummaryCard key={card.id} isLoading={isAnythingLoading} error={errorSimtp} data={simtpData} displayStatus={simtpDisplayStatus} selectedYear={selectedYear} isHighlighted={isHighlighted} />
             }
             if (card.id === 'kegiatan1') {
               return <KegiatanLainnyaCard key={card.id} title="Kegiatan Lainnya 1" isHighlighted={isHighlighted} />

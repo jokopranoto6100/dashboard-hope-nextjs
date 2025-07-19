@@ -18,10 +18,11 @@ interface SimtpSummaryCardProps {
     line1?: { text: string; color: string; icon: ElementType };
     line2?: { text: string; color: string; icon: ElementType };
   } | null;
+  selectedYear: number;
   isHighlighted?: boolean;
 }
 
-export function SimtpSummaryCard({ isLoading, error, data, displayStatus, isHighlighted }: SimtpSummaryCardProps) {
+export function SimtpSummaryCard({ isLoading, error, data, displayStatus, selectedYear, isHighlighted }: SimtpSummaryCardProps) {
   return (
     <Card className={`
       h-full transition-all duration-300 hover:shadow-lg hover:scale-105 relative
@@ -44,7 +45,7 @@ export function SimtpSummaryCard({ isLoading, error, data, displayStatus, isHigh
         </Badge>
       )}
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
-        <CardTitle className="text-sm font-medium text-[#581c87] dark:text-[#e9d5ff]">📱 SIMTP - {data ? data.monthly.reportForMonthName : "Data tidak tersedia"}</CardTitle>
+        <CardTitle className="text-sm font-medium text-[#581c87] dark:text-[#e9d5ff]">📱 SIMTP ({selectedYear}) - {data ? data.monthly.reportForMonthName : "Data tidak tersedia"}</CardTitle>
         <Button asChild variant="outline" size="sm" className="border-[#c87cc3]/40 text-[#7c3aed] hover:bg-[#c87cc3]/20 dark:text-[#a855f7] dark:border-[#c87cc3]/50">
           <Link href="/monitoring/simtp">Lihat Detail</Link>
         </Button>

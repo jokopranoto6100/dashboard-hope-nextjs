@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useYear } from '@/context/YearContext';
 // Pastikan path impor ini benar
 import { getSimtpKpiData, SimtpKpiData } from "@/app/(dashboard)/_actions/getSimtpKpiAction";
 
@@ -13,6 +14,7 @@ export interface SimtpKpiDataHook {
 }
 
 export function useSimtpKpiData(): SimtpKpiDataHook {
+  const { selectedYear } = useYear();
   const [data, setData] = useState<SimtpKpiData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +27,7 @@ export function useSimtpKpiData(): SimtpKpiDataHook {
         setKegiatanId(null); // Reset ID setiap kali fetch
         
         // Panggil server action
-        const result = await getSimtpKpiData();
+        const result = await getSimtpKpiData(selectedYear);
 
         // Cek jika hasilnya ada
         if (result) {
@@ -42,7 +44,7 @@ export function useSimtpKpiData(): SimtpKpiDataHook {
     };
 
     fetchData();
-  }, []); // Dijalankan sekali saat komponen dimuat
+  }, [selectedYear]); // Dijalankan ulang ketika selectedYear berubah
 
   // ✅ DIUBAH: Kembalikan kegiatanId bersama dengan data lainnya
   return { data, isLoading, error, kegiatanId };

@@ -21,10 +21,9 @@ export async function getSimtpMonitoringData(monitoringYear: number): Promise<{
   ] = await Promise.all([
     supabase
       .from('simtp_uploads')
-      .select('kabupaten_kode, file_type, file_name, uploaded_at')
+      .select('kabupaten_kode, file_type, file_name, uploaded_at, month')
       .eq('file_type', 'STP_BULANAN')
-      .gte('uploaded_at', `${monitoringYear}-02-01T00:00:00Z`)
-      .lt('uploaded_at', `${monitoringYear + 1}-02-01T00:00:00Z`),
+      .eq('year', monitoringYear),
     supabase
       .from('simtp_uploads')
       .select('kabupaten_kode, file_type, file_name, uploaded_at')
@@ -52,21 +51,10 @@ export async function getSimtpMonitoringData(monitoringYear: number): Promise<{
 
   // Proses data bulanan
   for (const row of monthlyData) {
-    const { kabupaten_kode, file_type, file_name, uploaded_at } = row;
-    const uploadDate = new Date(uploaded_at);
+    const { kabupaten_kode, file_type, file_name, uploaded_at, month } = row;
     
-    let reportMonth = uploadDate.getUTCMonth();
-    let reportYear = uploadDate.getUTCFullYear();
-
-    // Logika untuk menangani laporan Des yg masuk di Jan tahun berikutnya
-    if (reportMonth === 0) { // Januari
-      reportMonth = 12; // Dianggap sebagai laporan Desember
-      reportYear = reportYear - 1;
-    }
-
-    if (reportYear !== monitoringYear) {
-      continue;
-    }
+    // Use the month column directly (which now represents data period)
+    const reportMonth = month;
 
     if (!processedData[kabupaten_kode]) {
       processedData[kabupaten_kode] = { months: {}, annuals: {} };
@@ -78,6 +66,7 @@ export async function getSimtpMonitoringData(monitoringYear: number): Promise<{
       uploaded_at,
     };
 
+    const uploadDate = new Date(uploaded_at);
     if (!latestTimestamp || uploadDate > latestTimestamp) {
       latestTimestamp = uploadDate;
     }

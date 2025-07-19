@@ -21,18 +21,29 @@ export interface SimtpKpiData {
   lastUpdate: string | null;
 }
 
-export async function getSimtpKpiData(): Promise<SimtpKpiData> {
+export async function getSimtpKpiData(selectedYear: number): Promise<SimtpKpiData> {
   const supabase = await createSupabaseServerClientWithUserContext();
   const now = new Date();
   const totalDistricts = kabMap.length;
 
-  const currentYear = now.getFullYear();
-  const currentMonthIndex = now.getMonth(); 
+  // Use selectedYear instead of hardcoded current year
+  const currentMonthIndex = now.getMonth() + 1; // Convert to 1-based month
   
-  const kpiStartDate = new Date(Date.UTC(currentYear, currentMonthIndex, 1));
-  const kpiEndDate = new Date(Date.UTC(currentYear, currentMonthIndex + 1, 1));
-  const reportForMonthName = new Date(now.getFullYear(), currentMonthIndex - 1).toLocaleString('id-ID', { month: 'long' });
-  const annualDataYear = currentYear - 1;
+  // For SIMTP, we report data for the previous month
+  // If current month is January (1), we report December of previous year
+  let reportMonth: number;
+  let reportYear: number;
+  
+  if (currentMonthIndex === 1) {
+    reportMonth = 12;
+    reportYear = selectedYear - 1;
+  } else {
+    reportMonth = currentMonthIndex - 1;
+    reportYear = selectedYear;
+  }
+  
+  const reportForMonthName = new Date(reportYear, reportMonth - 1).toLocaleString('id-ID', { month: 'long' });
+  const annualDataYear = selectedYear - 1;
 
   const [
     monthlyResult,
@@ -40,7 +51,11 @@ export async function getSimtpKpiData(): Promise<SimtpKpiData> {
     lastUpdateResult,
     kegiatanResult
   ] = await Promise.all([
-    supabase.from('simtp_uploads').select('kabupaten_kode', { count: 'exact', head: true }).eq('file_type', 'STP_BULANAN').gte('uploaded_at', kpiStartDate.toISOString()).lt('uploaded_at', kpiEndDate.toISOString()),
+    supabase.from('simtp_uploads')
+      .select('kabupaten_kode', { count: 'exact', head: true })
+      .eq('file_type', 'STP_BULANAN')
+      .eq('year', reportYear)
+      .eq('month', reportMonth),
     supabase.from('simtp_uploads').select('file_type, kabupaten_kode').eq('year', annualDataYear).in('file_type', ['LAHAN_TAHUNAN', 'ALSIN_TAHUNAN', 'BENIH_TAHUNAN']),
     supabase.from('simtp_uploads').select('uploaded_at').order('uploaded_at', { ascending: false }).limit(1).single(),
     supabase.from('kegiatan').select('id, nama_kegiatan').eq('nama_kegiatan', 'SIMTP').single()

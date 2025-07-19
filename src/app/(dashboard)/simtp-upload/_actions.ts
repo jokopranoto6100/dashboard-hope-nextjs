@@ -106,7 +106,12 @@ export async function uploadSimtpAction(formData: FormData) {
         throw new Error(`Gagal mengupload ${fileName}: ${uploadResult.error.message}`);
       }
 
-      const currentMonth = new Date().getMonth() + 1;
+      // For SIMTP monthly data: month represents the data period, not upload period
+      // If uploaded in July, it's for June data
+      const currentMonth = new Date().getMonth() + 1; // 1-based month  
+      const dataMonth = fileInfo.type === 'STP_BULANAN' 
+        ? (currentMonth === 1 ? 12 : currentMonth - 1) // Previous month for monthly data
+        : currentMonth; // Current month for annual data
       
       // ✅ DIUBAH: Simpan ke database dengan storage_path sebagai pengganti gdrive_file_id
       const { error: logError } = await supabase.from('simtp_uploads').insert({
@@ -115,7 +120,7 @@ export async function uploadSimtpAction(formData: FormData) {
         file_name: fileName,
         storage_path: filePath, // Menggunakan storage_path instead of gdrive_file_id
         year: yearForData,
-        month: currentMonth,
+        month: dataMonth, // Use data month instead of upload month
         kabupaten_kode: kodeKabupaten,
         kegiatan_id: simtpKegiatanId,
       });
