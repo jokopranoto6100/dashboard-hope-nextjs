@@ -36,9 +36,10 @@ function JadwalRow({
   const hasSub = kegiatan.subKegiatan && kegiatan.subKegiatan.length > 0;
   const daysInYear = getDaysInYear(tahun);
 
-  let displayJadwal: JadwalItem[] = kegiatan.jadwal || [];
+  let displayJadwal: JadwalItem[] = [];
 
   if (hasSub) {
+    // Jika kegiatan memiliki subkegiatan, buat summary bar yang menggabungkan rentang waktu semua subkegiatan
     const allSubDates = kegiatan.subKegiatan!.flatMap(sub => sub.jadwal || []).map(j => ({
       start: new Date(j.startDate),
       end: new Date(j.endDate)
@@ -51,25 +52,28 @@ function JadwalRow({
       displayJadwal = [{
         id: `summary-${kegiatan.id}`,
         kegiatan_id: kegiatan.id,
-        nama: `${kegiatan.kegiatan}`,
+        nama: `${kegiatan.kegiatan} (Ringkasan)`,
         keterangan: `Seluruh rentang kegiatan untuk ${kegiatan.kegiatan}`,
         startDate: earliestStart.toISOString().split('T')[0],
         endDate: latestEnd.toISOString().split('T')[0],
         warna: 'slate'
       }];
     }
+  } else {
+    // Jika kegiatan tidak memiliki subkegiatan, tampilkan jadwal sendiri
+    displayJadwal = kegiatan.jadwal || [];
   }
 
   return (
     <>
       <div className="flex border-t min-h-[48px] group">
-        <div className={`sticky left-0 z-10 flex items-center border-r bg-background p-2 text-sm font-semibold ${isSub ? 'pl-8' : ''}`} style={{ width: '250px', minWidth: '250px' }}>
+        <div className={`sticky left-0 z-10 flex items-center border-r bg-background p-2 text-sm font-semibold ${isSub ? 'pl-6' : ''}`} style={{ width: '250px', minWidth: '250px' }}>
           {hasSub && (
             <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => onToggleRow(kegiatan.kegiatan)}>
               {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
             </Button>
           )}
-          <span className={`truncate flex-grow ${!hasSub && isSub ? 'pl-9' : 'pl-1'}`}>{kegiatan.kegiatan}</span>
+          <span className={`truncate flex-grow ${hasSub ? 'pl-1' : isSub ? 'pl-7' : 'pl-1'}`}>{kegiatan.kegiatan}</span>
 
           {userRole === 'super_admin' && (
             <Tooltip>

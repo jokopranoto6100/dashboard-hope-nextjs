@@ -76,11 +76,16 @@ export function GanttMiniMobile({ data, tahun, onBlockClick }: GanttMiniProps) {
     const items: MergedItem[] = [];
 
     data.forEach(k => {
-      k.jadwal?.forEach(j => {
-        if (new Date(j.endDate) < today) return;
-        if (new Date(j.startDate).getFullYear() !== tahun && new Date(j.endDate).getFullYear() !== tahun) return;
-        items.push({ ...j, parentKegiatan: k.kegiatan });
-      });
+      // Hanya tambahkan jadwal dari kegiatan utama jika tidak memiliki subkegiatan
+      if ((!k.subKegiatan || k.subKegiatan.length === 0) && k.jadwal) {
+        k.jadwal.forEach(j => {
+          if (new Date(j.endDate) < today) return;
+          if (new Date(j.startDate).getFullYear() !== tahun && new Date(j.endDate).getFullYear() !== tahun) return;
+          items.push({ ...j, parentKegiatan: k.kegiatan });
+        });
+      }
+      
+      // Tambahkan jadwal dari subkegiatan (ini yang akan ditampilkan untuk kegiatan yang memiliki subkegiatan)
       k.subKegiatan?.forEach(sub => {
         sub.jadwal?.forEach(j => {
           if (new Date(j.endDate) < today) return;
@@ -192,7 +197,7 @@ export function GanttMiniMobile({ data, tahun, onBlockClick }: GanttMiniProps) {
                         )}
                       </div>
                       <Badge variant="outline" className="text-xs font-normal text-muted-foreground">
-                        {item.parentKegiatan} {item.subKegiatan ? `→ ${item.subKegiatan}` : ""}
+                        {item.subKegiatan ? `${item.parentKegiatan} › ${item.subKegiatan}` : item.parentKegiatan}
                       </Badge>
                       <div className="flex items-center gap-2 text-muted-foreground text-sm">
                         <CalendarClock className="h-4 w-4 flex-shrink-0" />
