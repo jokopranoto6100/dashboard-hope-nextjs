@@ -70,7 +70,7 @@ BEGIN
            LOWER(sp.lokasi) LIKE LOWER('%' || p_search_term || '%') OR
            LOWER(sp.idsubsegmen) LIKE LOWER('%' || p_search_term || '%') OR
            LOWER(sp.petugas) LIKE LOWER('%' || p_search_term || '%'))
-    ORDER BY sp.nmkab, sp.nmkec, sp.lokasi
+    ORDER BY sp.idsubsegmen
     LIMIT p_limit
     OFFSET p_offset;
 END;

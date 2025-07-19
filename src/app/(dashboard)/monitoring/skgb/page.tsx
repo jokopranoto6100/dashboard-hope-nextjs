@@ -481,7 +481,7 @@ export default function SkgbPage() {
             )}
 
             {/* Data Table for Pengeringan */}
-            <div className={!isMobile ? "mt-6" : "mt-4"}>
+            <div className={!isMobile ? "mt-6" : "mt-2"}>
             {selectedPengeringanKabupaten ? (
               <SkgbPengeringanDetailTable
                 kabupatenName={selectedPengeringanKabupaten.kabupaten}
@@ -613,7 +613,7 @@ export default function SkgbPage() {
             )}
 
             {/* Data Table for Penggilingan */}
-            <div className={!isMobile ? "mt-6" : "mt-4"}>
+            <div className={!isMobile ? "mt-6" : "mt-2"}>
             {selectedPenggilinganKabupaten ? (
               <SkgbPenggilinganDetailTable
                 kabupatenName={selectedPenggilinganKabupaten.kabupaten}

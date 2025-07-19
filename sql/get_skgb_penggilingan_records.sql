@@ -78,7 +78,7 @@ BEGIN
            LOWER(sp.nmdesa) LIKE LOWER('%' || p_search_term || '%') OR
            LOWER(sp.nama_usaha) LIKE LOWER('%' || p_search_term || '%') OR
            LOWER(sp.petugas) LIKE LOWER('%' || p_search_term || '%'))
-    ORDER BY sp.nmkab, sp.nmkec, sp.nmdesa, sp.nama_usaha
+    ORDER BY sp.kdkab, sp.kdkec, sp.kddesa, sp.nama_usaha
     LIMIT p_limit
     OFFSET p_offset;
 END;

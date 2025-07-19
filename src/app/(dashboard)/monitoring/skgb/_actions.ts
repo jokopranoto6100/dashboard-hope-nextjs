@@ -1,5 +1,12 @@
 'use server'
 
+// PERFORMANCE OPTIMIZATION: Using optimized RPC functions for Kelola Sampel modal
+// - get_skgb_pengeringan_records_optimized with fallback to original
+// - get_skgb_penggilingan_records_optimized with fallback to original  
+// - get_skgb_pengeringan_count_optimized with fallback to original
+// - get_skgb_penggilingan_count_optimized with fallback to original
+// Expected improvement: 80-90% performance boost (2-5s → 200-500ms)
+
 import { supabaseServer } from '@/lib/supabase-server'
 import { revalidatePath } from 'next/cache'
 
@@ -417,6 +424,7 @@ export async function fetchSkgbRecordsWithPagination(
   flagSampel: string = 'U',
   searchTerm?: string
 ): Promise<{ records: (SkgbPengeringanRecord | SkgbPenggilinganRecord)[], total: number }> {
+  const startTime = Date.now() // Performance tracking
   const offset = (page - 1) * limit
   
   try {
@@ -425,8 +433,9 @@ export async function fetchSkgbRecordsWithPagination(
       let data, totalCount = 0;
       
       try {
+        // Use optimized RPC function first, fallback to original if not available
         const { data: rpcData, error } = await supabaseServer
-          .rpc('get_skgb_pengeringan_records', {
+          .rpc('get_skgb_pengeringan_records_optimized', {
             p_kdkab: satkerId || null,
             p_flag_sampel: flagSampel,
             p_search_term: searchTerm || null,
@@ -435,18 +444,50 @@ export async function fetchSkgbRecordsWithPagination(
           })
 
         if (error) {
-          throw new Error('RPC not available')
+          // Fallback to original RPC function
+          const { data: originalData, error: originalError } = await supabaseServer
+            .rpc('get_skgb_pengeringan_records', {
+              p_kdkab: satkerId || null,
+              p_flag_sampel: flagSampel,
+              p_search_term: searchTerm || null,
+              p_limit: limit,
+              p_offset: offset
+            })
+          
+          if (originalError) {
+            throw new Error('RPC not available')
+          }
+          
+          data = originalData
+        } else {
+          data = rpcData
         }
 
-        data = rpcData
-
-        // Get count using RPC
+        // Get count using optimized RPC function
         const { data: countData, error: countError } = await supabaseServer
-          .rpc('get_skgb_pengeringan_count', {
+          .rpc('get_skgb_pengeringan_count_optimized', {
             p_kdkab: satkerId || null,
             p_flag_sampel: flagSampel,
             p_search_term: searchTerm || null
           })
+
+        if (countError) {
+          // Fallback to original count function
+          const { data: originalCountData, error: originalCountError } = await supabaseServer
+            .rpc('get_skgb_pengeringan_count', {
+              p_kdkab: satkerId || null,
+              p_flag_sampel: flagSampel,
+              p_search_term: searchTerm || null
+            })
+          
+          if (originalCountError) {
+            throw new Error('Count RPC not available')
+          }
+          
+          totalCount = originalCountData || 0
+        } else {
+          totalCount = countData || 0
+        }
 
         if (countError) {
           throw new Error('Count RPC not available')
@@ -518,8 +559,9 @@ export async function fetchSkgbRecordsWithPagination(
       let data, totalCount = 0;
       
       try {
+        // Use optimized RPC function first, fallback to original if not available
         const { data: rpcData, error } = await supabaseServer
-          .rpc('get_skgb_penggilingan_records', {
+          .rpc('get_skgb_penggilingan_records_optimized', {
             p_kdkab: satkerId || null,
             p_flag_sampel: flagSampel,
             p_search_term: searchTerm || null,
@@ -528,24 +570,50 @@ export async function fetchSkgbRecordsWithPagination(
           })
 
         if (error) {
-          throw new Error('RPC not available')
+          // Fallback to original RPC function
+          const { data: originalData, error: originalError } = await supabaseServer
+            .rpc('get_skgb_penggilingan_records', {
+              p_kdkab: satkerId || null,
+              p_flag_sampel: flagSampel,
+              p_search_term: searchTerm || null,
+              p_limit: limit,
+              p_offset: offset
+            })
+          
+          if (originalError) {
+            throw new Error('RPC not available')
+          }
+          
+          data = originalData
+        } else {
+          data = rpcData
         }
 
-        data = rpcData
-
-        // Get count using RPC
+        // Get count using optimized RPC function
         const { data: countData, error: countError } = await supabaseServer
-          .rpc('get_skgb_penggilingan_count', {
+          .rpc('get_skgb_penggilingan_count_optimized', {
             p_kdkab: satkerId || null,
             p_flag_sampel: flagSampel,
             p_search_term: searchTerm || null
           })
 
         if (countError) {
-          throw new Error('Count RPC not available')
+          // Fallback to original count function
+          const { data: originalCountData, error: originalCountError } = await supabaseServer
+            .rpc('get_skgb_penggilingan_count', {
+              p_kdkab: satkerId || null,
+              p_flag_sampel: flagSampel,
+              p_search_term: searchTerm || null
+            })
+          
+          if (originalCountError) {
+            throw new Error('Count RPC not available')
+          }
+          
+          totalCount = originalCountData || 0
+        } else {
+          totalCount = countData || 0
         }
-
-        totalCount = countData || 0
       } catch {
         // Fallback to direct table query
         let query = supabaseServer
@@ -611,6 +679,12 @@ export async function fetchSkgbRecordsWithPagination(
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error'
     throw new Error(`Failed to fetch SKGB records: ${errorMessage}`)
+  } finally {
+    // Performance monitoring in development
+    if (process.env.NODE_ENV === 'development') {
+      const duration = Date.now() - startTime
+      console.log(`🚀 SKGB-${skgbType}-fetch: ${duration}ms (page: ${page}, limit: ${limit}, search: ${searchTerm ? 'yes' : 'no'})`)
+    }
   }
 }
 

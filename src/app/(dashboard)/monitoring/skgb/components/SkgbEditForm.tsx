@@ -275,6 +275,9 @@ export function SkgbManageSampleModal({
               <Users className="h-5 w-5" />
               Kelola Sampel SKGB {skgbType === 'pengeringan' ? 'Pengeringan' : 'Penggilingan'}
             </DialogTitle>
+            <DialogDescription>
+              Mengelola data sampel dan mengupdate status pendataan untuk SKGB {skgbType}
+            </DialogDescription>
           </DialogHeader>
           
           {/* Filter and Search Controls */}
@@ -316,7 +319,7 @@ export function SkgbManageSampleModal({
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-[120px]">Kabupaten</TableHead>
+                        <TableHead className="w-[120px]">Kab/Kota</TableHead>
                         <TableHead className="w-[120px]">Kecamatan</TableHead>
                         <TableHead className="w-[150px]">
                           {skgbType === 'pengeringan' ? 'Lokasi' : 'Nama Usaha'}
@@ -325,7 +328,7 @@ export function SkgbManageSampleModal({
                           <TableHead className="w-[120px]">ID Subsegmen</TableHead>
                         )}
                         <TableHead className="w-[80px]">NKS</TableHead>
-                        <TableHead className="w-[100px]">Flag Sampel</TableHead>
+                        <TableHead className="w-[100px]">Sampel</TableHead>
                         <TableHead className="w-[150px]">Petugas</TableHead>
                         <TableHead className="w-[120px]">Status</TableHead>
                         <TableHead className="w-[100px]">Aksi</TableHead>
@@ -402,7 +405,6 @@ export function SkgbManageSampleModal({
                         disabled={currentPage === 1}
                       >
                         <ChevronLeft className="h-4 w-4" />
-                        Sebelumnya
                       </Button>
                       <div className="flex items-center space-x-1">
                         {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -426,7 +428,6 @@ export function SkgbManageSampleModal({
                         onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                         disabled={currentPage === totalPages}
                       >
-                        Selanjutnya
                         <ChevronRight className="h-4 w-4" />
                       </Button>
                     </div>
@@ -510,6 +511,8 @@ export function SkgbManageSampleModal({
                         {...field}
                         type="email"
                         placeholder="Email petugas"
+                        readOnly
+                        className="bg-muted/50 cursor-not-allowed"
                       />
                     </FormControl>
                     <FormMessage />
