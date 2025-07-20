@@ -41,6 +41,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { daftarSatker } from '@/lib/satker-data';
 import { cn } from '@/lib/utils';
 import { UserImportDialog } from './user-import-dialog';
+import { UserStatsCard } from './user-stats-card';
 
 const userFormSchema = z.object({
     email: z.string().email({ message: "Format email tidak valid." }),
@@ -59,6 +60,15 @@ interface UserManagementClientPageProps {
 
 export default function UserManagementClientPage({ initialUsers }: UserManagementClientPageProps) {
     const [data, setData] = useState<ManagedUser[]>(initialUsers);
+    
+    // Calculate user statistics
+    const stats = useMemo(() => ({
+        total: data.length,
+        active: data.filter(user => user.is_active).length,
+        inactive: data.filter(user => !user.is_active).length,
+        superAdmins: data.filter(user => user.role === 'super_admin').length,
+        viewers: data.filter(user => user.role === 'viewer').length,
+    }), [data]);
     const [isTransitioning, startTransition] = useTransition();
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
@@ -308,16 +318,16 @@ export default function UserManagementClientPage({ initialUsers }: UserManagemen
                                 <DropdownMenuLabel>Aksi Cepat</DropdownMenuLabel>
                                 <DropdownMenuItem onClick={() => handleEditUserRequest(user)} disabled={isCurrentUserBeingProcessed}><Edit3 className="mr-2 h-4 w-4" /> Edit Pengguna</DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => handleToggleStatus(user)} disabled={isCurrentUserBeingProcessed}>
-                                    {user.is_active ? <><XCircle className="mr-2 h-4 w-4 text-yellow-600" /> Nonaktifkan</> : <><PlayCircle className="mr-2 h-4 w-4 text-green-600" /> Aktifkan</>}
+                                    {user.is_active ? <><XCircle className="mr-2 h-4 w-4 text-yellow-600 dark:text-yellow-400" /> Nonaktifkan</> : <><PlayCircle className="mr-2 h-4 w-4 text-green-600 dark:text-green-400" /> Aktifkan</>}
                                 </DropdownMenuItem>
                                 
                                 <DropdownMenuSeparator />
                                 <DropdownMenuLabel>Aksi Lanjutan</DropdownMenuLabel>
                                 <DropdownMenuItem onClick={() => handleSendReset(user)} disabled={isCurrentUserBeingProcessed}><KeyRound className="mr-2 h-4 w-4" /> Kirim Reset Password</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleImpersonate(user)} disabled={isCurrentUserBeingProcessed} className="focus:bg-yellow-100 dark:focus:bg-yellow-800"><User className="mr-2 h-4 w-4" /> Masuk sebagai Pengguna</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleImpersonate(user)} disabled={isCurrentUserBeingProcessed} className="focus:bg-yellow-50 dark:focus:bg-yellow-900/20 focus:text-yellow-800 dark:focus:text-yellow-200"><User className="mr-2 h-4 w-4" /> Masuk sebagai Pengguna</DropdownMenuItem>
                                 
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem className="text-red-600 focus:text-red-600" onClick={() => handleDeleteRequest(user)} disabled={isCurrentUserBeingProcessed}><Trash2 className="mr-2 h-4 w-4" /> Hapus Pengguna</DropdownMenuItem>
+                                <DropdownMenuItem className="text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400" onClick={() => handleDeleteRequest(user)} disabled={isCurrentUserBeingProcessed}><Trash2 className="mr-2 h-4 w-4" /> Hapus Pengguna</DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>
@@ -345,25 +355,34 @@ export default function UserManagementClientPage({ initialUsers }: UserManagemen
     return (
         <>
             <div className="space-y-6">
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                {/* User Statistics */}
+                <UserStatsCard stats={stats} />
+
+                {/* Header dengan responsive flex layout */}
+                <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 gap-4">
                     <Input
                         placeholder="Cari berdasarkan email..."
                         value={(table.getColumn('email')?.getFilterValue() as string) ?? ""}
                         onChange={(event) => table.getColumn('email')?.setFilterValue(event.target.value)}
-                        className="max-w-sm w-full sm:w-auto"
+                        className="w-full sm:max-w-sm sm:w-auto"
                     />
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                         {Object.keys(rowSelection).length > 0 && (
-                            <Button variant="destructive" onClick={() => setShowBulkDeleteConfirm(true)} disabled={isTransitioning}>
+                            <Button variant="destructive" onClick={() => setShowBulkDeleteConfirm(true)} disabled={isTransitioning} className="w-full sm:w-auto">
                                 <Trash2 className="mr-2 h-4 w-4" /> Hapus ({Object.keys(rowSelection).length})
                             </Button>
                         )}
                         <UserImportDialog />
                         <Dialog open={showCreateUserDialog} onOpenChange={(isOpen) => { setShowCreateUserDialog(isOpen); if (!isOpen) form.reset(); }}>
                             <DialogTrigger asChild>
-                                <Button><UserPlus className="mr-2 h-4 w-4" /> Tambah Pengguna</Button>
+                                <Button className="w-full sm:w-auto"><UserPlus className="mr-2 h-4 w-4" /> Tambah Pengguna</Button>
                             </DialogTrigger>
-                            <DialogContent className="sm:max-w-[425px]">
+                            <DialogContent className="sm:max-w-[425px] w-[95vw] max-h-[90vh] overflow-y-auto"
+                                onOpenAutoFocus={(e) => {
+                                    // Prevent auto focus on mobile to avoid keyboard issues
+                                    if (typeof window !== 'undefined' && window.innerWidth < 640) e.preventDefault();
+                                }}
+                            >
                                 <DialogHeader>
                                     <DialogTitle>Tambah Pengguna Baru</DialogTitle>
                                     <DialogDescription>Isi detail pengguna baru di bawah ini.</DialogDescription>
@@ -424,44 +443,140 @@ export default function UserManagementClientPage({ initialUsers }: UserManagemen
                     </div>
                 </div>
 
-                <div className="rounded-md border bg-background shadow-sm">
-                    <Table>
-                        <TableHeader>
-                            {table.getHeaderGroups().map((headerGroup) => (
-                                <TableRow key={headerGroup.id}>
-                                    {headerGroup.headers.map((header) => (<TableHead key={header.id} className="px-4 py-3">{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead>))}
-                                </TableRow>
-                            ))}
-                        </TableHeader>
-                        <TableBody>
-                            {table.getRowModel().rows?.length ? (
-                                table.getRowModel().rows.map((row) => (
-                                    <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
-                                        {row.getVisibleCells().map((cell) => (<TableCell key={cell.id} className="px-4 py-3">{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>))}
+                {/* Responsive table container */}
+                <div className="rounded-md border bg-background shadow-sm overflow-hidden">
+                    {/* Desktop Table View */}
+                    <div className="hidden lg:block">
+                        <Table>
+                            <TableHeader>
+                                {table.getHeaderGroups().map((headerGroup) => (
+                                    <TableRow key={headerGroup.id}>
+                                        {headerGroup.headers.map((header) => (<TableHead key={header.id} className="px-4 py-3">{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead>))}
                                     </TableRow>
-                                ))
-                            ) : (
-                                <TableRow><TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">{isTransitioning ? "Memuat..." : "Tidak ada hasil."}</TableCell></TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
+                                ))}
+                            </TableHeader>
+                            <TableBody>
+                                {table.getRowModel().rows?.length ? (
+                                    table.getRowModel().rows.map((row) => (
+                                        <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+                                            {row.getVisibleCells().map((cell) => (<TableCell key={cell.id} className="px-4 py-3">{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>))}
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableRow><TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">{isTransitioning ? "Memuat..." : "Tidak ada hasil."}</TableCell></TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+
+                    {/* Mobile Card View */}
+                    <div className="lg:hidden space-y-4 p-4">
+                        {table.getRowModel().rows?.length ? (
+                            table.getRowModel().rows.map((row) => {
+                                const user = row.original;
+                                const isCurrentUserBeingProcessed = isTransitioning && (userBeingProcessed === user.id);
+                                return (
+                                    <div key={row.id} className="border rounded-lg p-4 space-y-3 bg-card">
+                                        <div className="flex items-start justify-between">
+                                            <div className="space-y-1 flex-1">
+                                                <div className="flex items-center gap-2">
+                                                    <Checkbox
+                                                        checked={row.getIsSelected()}
+                                                        onCheckedChange={(value) => row.toggleSelected(!!value)}
+                                                        aria-label="Select row"
+                                                    />
+                                                    <h3 className="font-medium text-sm">{user.full_name}</h3>
+                                                    <Badge variant={user.is_active ? "default" : "secondary"} className="text-xs">
+                                                        {user.is_active ? "Aktif" : "Nonaktif"}
+                                                    </Badge>
+                                                </div>
+                                                <p className="text-sm text-muted-foreground">@{user.username}</p>
+                                                <p className="text-sm text-muted-foreground break-all">{user.email}</p>
+                                                <div className="flex flex-wrap gap-1 pt-1">
+                                                    <Badge variant="outline" className="text-xs">
+                                                        {user.role === 'super_admin' ? 'Super Admin' : 'Viewer'}
+                                                    </Badge>
+                                                    <Badge variant="outline" className="text-xs truncate max-w-[200px]" title={user.satker_name || undefined}>
+                                                        {user.satker_name}
+                                                    </Badge>
+                                                </div>
+                                                <p className="text-xs text-muted-foreground pt-1">
+                                                    Dibuat: {new Date(user.created_at).toLocaleDateString('id-ID')}
+                                                </p>
+                                            </div>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" className="h-8 w-8 p-0" disabled={isCurrentUserBeingProcessed}>
+                                                        {isCurrentUserBeingProcessed ? (<Loader2 className="h-4 w-4 animate-spin" />) : (<MoreHorizontal className="h-4 w-4" />)}
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="w-56">
+                                                    <DropdownMenuLabel>Aksi Cepat</DropdownMenuLabel>
+                                                    <DropdownMenuItem onClick={() => handleEditUserRequest(user)} disabled={isCurrentUserBeingProcessed}>
+                                                        <Edit3 className="mr-2 h-4 w-4" /> Edit Pengguna
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleToggleStatus(user)} disabled={isCurrentUserBeingProcessed}>
+                                                        {user.is_active ? <><XCircle className="mr-2 h-4 w-4 text-yellow-600 dark:text-yellow-400" /> Nonaktifkan</> : <><PlayCircle className="mr-2 h-4 w-4 text-green-600 dark:text-green-400" /> Aktifkan</>}
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuLabel>Aksi Lanjutan</DropdownMenuLabel>
+                                                    <DropdownMenuItem onClick={() => handleSendReset(user)} disabled={isCurrentUserBeingProcessed}>
+                                                        <KeyRound className="mr-2 h-4 w-4" /> Kirim Reset Password
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleImpersonate(user)} disabled={isCurrentUserBeingProcessed} className="focus:bg-yellow-50 dark:focus:bg-yellow-900/20 focus:text-yellow-800 dark:focus:text-yellow-200">
+                                                        <User className="mr-2 h-4 w-4" /> Masuk sebagai Pengguna
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuItem className="text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400" onClick={() => handleDeleteRequest(user)} disabled={isCurrentUserBeingProcessed}>
+                                                        <Trash2 className="mr-2 h-4 w-4" /> Hapus Pengguna
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </div>
+                                    </div>
+                                );
+                            })
+                        ) : (
+                            <div className="text-center py-8 text-muted-foreground">
+                                {isTransitioning ? "Memuat..." : "Tidak ada hasil."}
+                            </div>
+                        )}
+                    </div>
                 </div>
 
-                <div className="flex items-center justify-between gap-2 py-4 flex-wrap">
-                    <div className="text-sm text-muted-foreground">
+                {/* Responsive pagination */}
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4">
+                    <div className="text-sm text-muted-foreground order-2 sm:order-1">
                         {table.getFilteredSelectedRowModel().rows.length} dari{" "}
                         {table.getFilteredRowModel().rows.length} baris dipilih.
                     </div>
-                    <div className="flex items-center space-x-2">
-                        <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>Sebelumnya</Button>
-                        <span className="text-sm">Halaman {table.getState().pagination.pageIndex + 1} dari {table.getPageCount()}</span>
-                        <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Berikutnya</Button>
+                    <div className="flex items-center space-x-2 order-1 sm:order-2">
+                        <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
+                            <span className="hidden sm:inline">Sebelumnya</span>
+                            <span className="sm:hidden">Prev</span>
+                        </Button>
+                        <span className="text-sm whitespace-nowrap">
+                            <span className="hidden sm:inline">Halaman </span>
+                            {table.getState().pagination.pageIndex + 1} 
+                            <span className="hidden sm:inline"> dari </span>
+                            <span className="sm:hidden">/</span>
+                            {table.getPageCount()}
+                        </span>
+                        <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
+                            <span className="hidden sm:inline">Berikutnya</span>
+                            <span className="sm:hidden">Next</span>
+                        </Button>
                     </div>
                 </div>
             </div>
 
             <Dialog open={showEditUserDialog} onOpenChange={(isOpen) => { setShowEditUserDialog(isOpen); if (!isOpen) setUserToEdit(null); }}>
-                <DialogContent className="sm:max-w-[425px]">
+                <DialogContent className="sm:max-w-[425px] w-[95vw] max-h-[90vh] overflow-y-auto"
+                    onOpenAutoFocus={(e) => {
+                        // Prevent auto focus on mobile to avoid keyboard issues
+                        if (typeof window !== 'undefined' && window.innerWidth < 640) e.preventDefault();
+                    }}
+                >
                     <DialogHeader>
                         <DialogTitle>Edit Pengguna: {userToEdit?.username}</DialogTitle>
                         <DialogDescription>Ubah detail pengguna di bawah ini.</DialogDescription>

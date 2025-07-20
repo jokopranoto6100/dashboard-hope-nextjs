@@ -15,10 +15,11 @@ import { daftarSatker } from '@/lib/satker-data';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { ChevronsUpDown, Check, Loader2, Moon, Sun } from 'lucide-react';
+import { ChevronsUpDown, Check, Loader2, Moon, Sun, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function RegisterPage() {
@@ -45,7 +46,7 @@ export default function RegisterPage() {
         toast.success('Registrasi Berhasil!', {
           description: result.message,
         });
-        router.push('/auth/login');
+        router.push('/auth/registration-success');
       } else {
         toast.error('Registrasi Gagal', {
           description: result.message,
@@ -71,10 +72,18 @@ export default function RegisterPage() {
         <div className="w-full lg:w-1/2 p-8 md:p-12 flex flex-col justify-center">
           
           {/* === TAMBAHAN: Mengembalikan header formulir yang hilang === */}
-          <div className="mb-8 text-center lg:text-left">
+          <div className="mb-6 text-center lg:text-left">
             <h1 className="text-4xl font-extrabold text-gray-900 dark:text-gray-100 mb-2">Buat Akun Baru</h1>
             <p className="text-gray-600 dark:text-gray-300 text-lg">Mulai perjalanan Anda bersama Dashboard HOPE</p>
           </div>
+
+          {/* Informasi Penting tentang Proses Aktivasi */}
+          <Alert className="mb-6 border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800">
+            <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            <AlertDescription className="text-amber-800 dark:text-amber-200">
+              <strong>Perhatian:</strong> Setelah registrasi, akun Anda perlu diaktifkan oleh Admin BPS Kalbar sebelum dapat login.
+            </AlertDescription>
+          </Alert>
           
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">

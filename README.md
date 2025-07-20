@@ -1,8 +1,261 @@
-# 📊 Dashboard HOPE - Statistik Produksi Pertanian BPS Kalbar (Next.js Version)
+# 🌾 Dashboard HOPE - Sistem Monitoring Statistik Produksi Pertanian
 
-Dashboard HOPE adalah aplikasi web modern yang dibangun ulang dari versi Flask, kini menggunakan **Next.js 15** sebagai *frontend* utama dan **Supabase** sebagai *backend-as-a-service*. Dashboard ini dirancang untuk memantau, mengevaluasi, dan menyajikan statistik produksi pertanian di Provinsi Kalimantan Barat secara internal oleh BPS Kalbar.
+Dashboard HOPE adalah aplikasi web modern yang dibangun dengan **Next.js 15** dan **Supabase** untuk memantau, mengevaluasi, dan menyajikan statistik produksi pertanian di Provinsi Kalimantan Barat. Sistem ini dirancang khusus untuk internal BPS Kalbar dengan arsitektur modern, performa tinggi, dan type safety penuh.
 
-Migrasi ini berfokus pada arsitektur yang lebih modern, performa tinggi, skalabilitas, dan pengalaman pengguna yang superior dengan type safety penuh.
+## 🚀 **Tech Stack & Arsitektur Modern**
+
+### **Core Framework**
+* **Frontend:** Next.js 15 (App Router, Server Components, Server Actions)
+* **Runtime:** React 19 dengan TypeScript 5
+* **Styling:** Tailwind CSS dengan shadcn/ui components
+* **Database:** Supabase PostgreSQL dengan RPC functions
+* **Authentication:** Supabase Auth dengan role-based access control
+
+### **Key Libraries**
+* **UI Framework:** shadcn/ui dengan Radix UI primitives
+* **Table Management:** TanStack Table untuk data interaktif
+* **Data Visualization:** Recharts dan ECharts untuk charts
+* **Form Handling:** React Hook Form dengan Zod validation
+* **State Management:** React Context + SWR untuk caching
+* **File Processing:** xlsx, papaparse untuk Excel/CSV
+* **Animations:** Framer Motion untuk micro-interactions
+
+## ✨ **Fitur Utama yang Telah Diimplementasikan**
+
+### 🏠 **Dashboard Homepage (`/`)**
+* **Executive Dashboard:** KPI cards dengan real-time data monitoring
+* **Performance Sorting:** Dynamic card arrangement berdasarkan completion percentage
+* **Responsive Design:** Mobile-optimized layout dengan adaptive spacing
+* **Status Indicators:** Color-coded badges dengan progress tracking
+* **Integration Links:** Seamless navigation ke detail monitoring pages
+
+### 🔐 **Authentication & User Management (`/auth`, `/pengguna`)**
+* **Supabase Auth Integration:** Secure authentication dengan session management
+* **Role-Based Access Control:** Multi-role system (super_admin, admin, user)
+* **User Registration:** Smart registration dengan satker selection
+* **Profile Management:** Comprehensive user profile editing
+* **Admin User Management:** CRUD operations untuk user administration
+
+### 📊 **Monitoring System**
+
+#### **Monitoring Ubinan (`/monitoring/ubinan`)**
+* **Dual-Table Interface:** Separate monitoring untuk Padi dan Palawija
+* **Responsive Tables:** Mobile-optimized dengan show/hide column controls
+* **Expandable Columns:** Detail columns untuk Fase Generatif dan Realisasi
+* **Real-time Data:** Live updates dengan SWR caching
+* **Aggregate Totals:** Province-level summaries dengan automatic calculations
+
+#### **Monitoring KSA (`/monitoring/ksa`)**
+* **Two-Level Monitoring:** District overview dengan drill-down ke officer level
+* **Interactive Tables:** Clickable rows untuk detailed analysis
+* **Document Generation:** Automated Berita Acara (BA) generation untuk Kode 12
+* **Modal Interactions:** Contextual modals untuk data exploration
+* **Performance Analytics:** Officer performance tracking dan evaluation
+
+#### **Monitoring SKGB (`/monitoring/skgb`)**
+* **Pengeringan & Penggilingan:** Separate tabs untuk different SKGB processes
+* **Sample Management:** Advanced modal system untuk kelola sampel
+* **Optimized Performance:** Database optimization dengan specialized indexes
+* **Real-time Updates:** Live data synchronization dengan fallback mechanisms
+* **Export Capabilities:** Data export dengan custom formatting
+
+#### **Monitoring SIMTP (`/monitoring/simtp`)**
+* **Progress Tracking:** Visual progress indicators untuk reporting status
+* **Multi-Category Monitoring:** Separate tracking untuk different categories
+* **Document Upload:** File upload portal dengan history tracking
+* **Real-time Synchronization:** Live data updates dari SIMTP system
+
+### 🔍 **Evaluation & Analytics**
+
+#### **Evaluasi Ubinan (`/evaluasi/ubinan`)**
+* **Statistical Analysis:** Advanced descriptive statistics dengan visualizations
+* **Dual Analysis Modes:** Detail analysis dan time comparison
+* **Interactive Charts:** Box plots dan comparison charts
+* **Anomaly Detection:** Automated anomaly identification dan export
+* **Modal Drill-Down:** Detailed data exploration dengan pagination
+
+#### **Evaluasi KSA (`/evaluasi/ksa`)**
+* **RPC-Based Analytics:** PostgreSQL functions untuk heavy data processing
+* **Anomaly Validator:** Intelligent anomaly detection dengan contextual information
+* **Interactive Visualizations:** Stacked area charts dan trend analysis
+* **Calendar Displays:** Monthly harvest calendar visualizations
+* **Export Integration:** Filtered data export dengan Excel formatting
+
+### 📈 **Statistical Analysis (`/produksi-statistik`)**
+* **Comprehensive Analytics:** Advanced statistical analysis untuk ATAP data
+* **Dynamic Filtering:** Multi-dimensional filtering dengan real-time updates
+* **Interactive Charts:** Drill-down capabilities dengan Recharts integration
+* **Comparison Analysis:** Year-over-year comparison dengan advanced visualizations
+* **Export Features:** Chart export to PNG dan data export to Excel
+* **Annotation System:** Collaborative discussion system untuk data points
+
+### 🔄 **Data Management (`/update-data`)**
+
+#### **Update Data Ubinan (`/update-data/ubinan`)**
+* **Smart Column Mapping:** Intelligent CSV header matching dengan manual override
+* **Excel Processing:** Multi-sheet Excel file processing
+* **Validation Pipeline:** Multi-step validation dengan comprehensive error reporting
+* **Master Sample Management:** Separate interface untuk master sample updates
+* **History Tracking:** Detailed import history dengan user tracking
+
+#### **Update Data KSA (`/update-data/ksa`)**
+* **Multi-File Processing:** Batch Excel file upload dengan progress tracking
+* **Smart Preview:** Client-side data preview dengan metadata extraction
+* **Data Transformation:** Complex wide-to-long format transformation
+* **Conflict Resolution:** Intelligent duplicate data handling
+
+#### **Update Data ATAP (`/update-data/atap`)**
+* **Scalable Architecture:** Multi-table design dengan unified processing
+* **Generic Uploader:** Reusable upload component untuk multiple data types
+* **Automatic Aggregation:** Monthly-to-yearly data aggregation via RPC
+* **Unit Standardization:** Intelligent unit parsing dan conversion
+
+### 🗓️ **Schedule Management (`/jadwal`)**
+* **Interactive Calendar:** Desktop dan mobile-optimized calendar views
+* **Event Management:** Dynamic event creation, editing, dan deletion
+* **Admin Controls:** Super admin privileges untuk kegiatan management
+* **Responsive Design:** Touch-friendly navigation untuk mobile devices
+* **Real-time Updates:** Live calendar updates dengan optimistic UI
+
+### 🔗 **Content Portal (`/bahan-produksi`)**
+* **Interactive Carousel:** 3D flip animations dengan smooth transitions
+* **Content Management:** Admin CMS untuk sektor dan link management
+* **Drag & Drop Reordering:** Intuitive content reordering dengan @dnd-kit
+* **Modal-Based Editing:** Advanced dialog system untuk content management
+
+## 🏗️ **Arsitektur & Struktur Project**
+
+### **Directory Structure**
+```
+src/
+├── app/                           # Next.js App Router
+│   ├── (dashboard)/              # Protected dashboard routes
+│   │   ├── layout.tsx            # Dashboard layout dengan sidebar
+│   │   ├── page.tsx              # Homepage dashboard
+│   │   ├── monitoring/           # Monitoring modules
+│   │   ├── evaluasi/             # Analytics modules  
+│   │   ├── produksi-statistik/   # Statistical analysis
+│   │   ├── update-data/          # Data management
+│   │   ├── jadwal/               # Calendar system
+│   │   └── pengguna/             # User management
+│   └── auth/                     # Authentication pages
+├── components/                    # Reusable UI components
+│   ├── layout/                   # Layout components
+│   └── ui/                       # shadcn/ui components
+├── context/                      # React Context providers
+├── hooks/                        # Custom React hooks
+└── lib/                          # Utilities dan configurations
+```
+
+### **Key Architectural Features**
+* **Server Components:** Optimal data fetching dengan React Server Components
+* **Server Actions:** Type-safe server operations tanpa API routes
+* **Middleware Protection:** Route-level authentication
+* **Type Safety:** Full TypeScript dengan auto-generated database types
+* **Responsive Design:** Mobile-first approach dengan adaptive layouts
+* **Performance Optimization:** SWR caching, memoization, lazy loading
+
+## 🛠️ **Installation & Development**
+
+### **Prerequisites**
+* Node.js 18+ 
+* npm/yarn
+* Supabase account
+* Git
+
+### **Quick Start**
+```bash
+# Clone repository
+git clone <repository-url>
+cd dashboard-hope-nextjs
+
+# Install dependencies
+npm install
+
+# Environment setup
+cp .env.example .env.local
+# Edit .env.local dengan Supabase credentials
+
+# Generate database types
+npm run gen:types
+
+# Start development server
+npm run dev
+```
+
+### **Build Commands**
+```bash
+npm run build     # Production build
+npm run start     # Start production server
+npm run lint      # Code linting
+npm run gen:types # Generate Supabase types
+```
+
+## 🔧 **Environment Configuration**
+
+Create `.env.local` file:
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
+
+## 📊 **Performance Features**
+
+### **Database Optimization**
+* **Specialized Indexes:** Covering, partial, dan trigram GIN indexes
+* **RPC Functions:** Complex queries di database level untuk performance
+* **Materialized Views:** Pre-computed aggregations untuk fast data access
+* **Optimized Queries:** Fallback mechanisms untuk graceful degradation
+
+### **Frontend Optimization**
+* **Code Splitting:** Automatic bundle splitting
+* **Lazy Loading:** Component dan data lazy loading
+* **Memoization:** Extensive React optimization
+* **Debounced Inputs:** Optimized search dan filtering
+* **SWR Caching:** Intelligent data caching dengan revalidation
+
+## 🚀 **Recent Major Updates**
+
+### **SKGB Performance Optimization**
+* 80-90% performance improvement untuk Kelola Sampel modal
+* Specialized database indexes dengan pg_trgm extension
+* Optimized RPC functions dengan fallback strategy
+* Enhanced UI/UX dengan responsive design improvements
+
+### **Mobile Responsiveness**
+* Comprehensive mobile optimization untuk all headers
+* Responsive font scaling dan spacing adjustments
+* Improved touch targets dan navigation
+* Consistent design across all major pages
+
+### **User Experience Enhancements**
+* Streamlined pagination controls
+* Enhanced dialog accessibility
+* Improved form validation dengan better error handling
+* Optimized loading states dan skeleton UI
+
+## 📈 **Future Development**
+
+### **Planned Improvements**
+* Real-time notifications dengan WebSocket integration
+* Advanced analytics dengan machine learning insights
+* Enhanced mobile PWA capabilities
+* Additional data export formats dan scheduling
+
+### **Technical Roadmap**
+* Edge computing integration
+* Advanced caching strategies
+* Micro-frontend architecture considerations
+* Performance monitoring dan analytics
+
+---
+
+**🔧 Maintenance & Support:**  
+Dashboard ini secara rutin di-maintain untuk memastikan keamanan, performa, dan reliability yang optimal.
+
+**📞 Contact:**  
+Untuk pertanyaan teknis atau feature requests, silakan hubungi tim development BPS Kalbar.
+
 
 ## 🚀 **Teknologi & Stack Terbaru**
 
@@ -766,269 +1019,13 @@ Untuk pertanyaan teknis atau permintaan fitur, silakan hubungi tim development B
 
 **🔧 Maintenance:**
 Dashboard ini secara rutin di-maintain dan di-update untuk memastikan keamanan dan performa optimal.
-│   │   │   │   │   ├── AnomalyValidatorTab.tsx
-│   │   │   │   │   ├── DetailKsaModal.tsx
-│   │   │   │   │   ├── DetailKsaModalContent.tsx
-│   │   │   │   │   ├── MonthlyHarvestDisplay.tsx
-│   │   │   │   │   ├── OfficerPerformanceTab.tsx
-│   │   │   │   │   ├── PhaseTimelineVisual.tsx
-│   │   │   │   │   ├── evaluasi-ksa-client.tsx
-│   │   │   │   │   └── page.tsx
-│   │   │   │   └── ubinan
-│   │   │   │       ├── DetailKabupatenModal.tsx
-│   │   │   │       ├── DetailKabupatenModalContent.tsx
-│   │   │   │       ├── HasilUbinanDetailModal.tsx
-│   │   │   │       ├── HasilUbinanDetailModalContent.tsx
-│   │   │   │       ├── UbinanBoxPlot.tsx
-│   │   │   │       ├── UbinanComparisonChart.tsx
-│   │   │   │       ├── _actions.ts
-│   │   │   │       ├── descriptive-stats-columns.tsx
-│   │   │   │       ├── detail-record-columns.tsx
-│   │   │   │       ├── evaluasi-ubinan-client.tsx
-│   │   │   │       ├── hasil-ubinan-detail-columns.tsx
-│   │   │   │       ├── page.tsx
-│   │   │   │       ├── penggunaan-benih-dan-pupuk-columns.tsx
-│   │   │   │       └── types.ts
-│   │   │   ├── jadwal
-│   │   │   │   ├── jadwal-client.tsx
-│   │   │   │   ├── jadwal-desktop.tsx
-│   │   │   │   ├── jadwal-mobile.tsx
-│   │   │   │   ├── jadwal.config.tsx
-│   │   │   │   ├── jadwal.utils.ts
-│   │   │   │   └── page.tsx
-│   │   │   ├── layout.tsx
-│   │   │   ├── monitoring
-│   │   │   │   ├── kehutanan
-│   │   │   │   │   └── page.tsx
-│   │   │   │   ├── ksa
-│   │   │   │   │   ├── DistrictKsaTable.tsx
-│   │   │   │   │   ├── NamaKsaTable.tsx
-│   │   │   │   │   ├── components
-│   │   │   │   │   │   └── BeritaAcaraModal.tsx
-│   │   │   │   │   ├── ksa-monitoring-client-page.tsx
-│   │   │   │   │   └── page.tsx
-│   │   │   │   ├── simtp
-│   │   │   │   │   ├── SimtpMonitoringClient.tsx
-│   │   │   │   │   ├── _actions.ts
-│   │   │   │   │   ├── page.tsx
-│   │   │   │   │   └── types.ts
-│   │   │   │   └── ubinan
-│   │   │   │       ├── PadiTable.tsx
-│   │   │   │       ├── PalawijaTable.tsx
-│   │   │   │       ├── page.tsx
-│   │   │   │       └── types.ts
-│   │   │   ├── page.tsx
-│   │   │   ├── pengguna
-│   │   │   │   ├── _actions.ts
-│   │   │   │   ├── page.tsx
-│   │   │   │   ├── user-import-dialog.tsx
-│   │   │   │   └── user-management-client-page.tsx
-│   │   │   ├── produksi-statistik
-│   │   │   │   ├── annotation-sheet.tsx
-│   │   │   │   ├── bar-chart-wrapper.tsx
-│   │   │   │   ├── columns.tsx
-│   │   │   │   ├── data-table.tsx
-│   │   │   │   ├── line-chart-wrapper.tsx
-│   │   │   │   ├── page.tsx
-│   │   │   │   ├── pie-chart-wrapper.tsx
-│   │   │   │   └── statistik-client.tsx
-│   │   │   ├── profil
-│   │   │   │   └── page.tsx
-│   │   │   ├── simtp-upload
-│   │   │   │   ├── SimtpUploadClient.tsx
-│   │   │   │   ├── UploadHistory.tsx
-│   │   │   │   ├── _actions.ts
-│   │   │   │   └── page.tsx
-│   │   │   └── update-data
-│   │   │       ├── atap
-│   │   │       │   ├── _actions.ts
-│   │   │       │   ├── atap-uploader.tsx
-│   │   │       │   ├── page.tsx
-│   │   │       │   └── update-atap-client.tsx
-│   │   │       ├── ksa
-│   │   │       │   ├── _actions.ts
-│   │   │       │   ├── ksa-uploader.tsx
-│   │   │       │   ├── page.tsx
-│   │   │       │   └── update-ksa-client.tsx
-│   │   │       └── ubinan
-│   │   │           ├── _actions.ts
-│   │   │           ├── master-sample-uploader.tsx
-│   │   │           ├── page.tsx
-│   │   │           ├── update-ubinan-client.tsx
-│   │   │           └── uploader-client-component.tsx
-│   │   ├── api
-│   │   │   ├── produksi
-│   │   │   │   └── route.ts
-│   │   │   └── users
-│   │   │       └── route.ts
-│   │   ├── auth
-│   │   │   ├── login
-│   │   │   │   └── page.tsx
-│   │   │   └── register
-│   │   │       ├── _actions.ts
-│   │   │       ├── page.tsx
-│   │   │       └── schema.ts
-│   │   ├── client-layout-wrapper.tsx
-│   │   ├── favicon.ico
-│   │   ├── globals.css
-│   │   └── layout.tsx
-│   ├── components
-│   │   ├── layout
-│   │   │   ├── NavMainHope.tsx
-│   │   │   ├── NavUserHope.tsx
-│   │   │   ├── NewSidebar.tsx
-│   │   │   └── main-layout.tsx
-│   │   └── ui
-│   │       ├── CustomFileInput.tsx
-│   │       ├── GenericPaginatedTable.tsx
-│   │       ├── accordion.tsx
-│   │       ├── alert-dialog.tsx
-│   │       ├── alert.tsx
-│   │       ├── avatar.tsx
-│   │       ├── badge.tsx
-│   │       ├── breadcrumb.tsx
-│   │       ├── button.tsx
-│   │       ├── card.tsx
-│   │       ├── carousel.tsx
-│   │       ├── chart.tsx
-│   │       ├── checkbox.tsx
-│   │       ├── collapsible.tsx
-│   │       ├── command.tsx
-│   │       ├── dialog.tsx
-│   │       ├── drawer.tsx
-│   │       ├── dropdown-menu.tsx
-│   │       ├── form.tsx
-│   │       ├── input.tsx
-│   │       ├── label.tsx
-│   │       ├── menubar.tsx
-│   │       ├── navigation-menu.tsx
-│   │       ├── pagination.tsx
-│   │       ├── popover.tsx
-│   │       ├── progress.tsx
-│   │       ├── scroll-area.tsx
-│   │       ├── select.tsx
-│   │       ├── separator.tsx
-│   │       ├── sheet.tsx
-│   │       ├── sidebar.tsx
-│   │       ├── skeleton.tsx
-│   │       ├── sonner.tsx
-│   │       ├── switch.tsx
-│   │       ├── table.tsx
-│   │       ├── tabs.tsx
-│   │       ├── textarea.tsx
-│   │       ├── toggle-group.tsx
-│   │       ├── toggle.tsx
-│   │       └── tooltip.tsx
-│   ├── context
-│   │   ├── AuthContext.tsx
-│   │   ├── DarkModeContext.tsx
-│   │   ├── KsaEvaluasiFilterContext.tsx
-│   │   ├── UbinanEvaluasiFilterContext.tsx
-│   │   └── YearContext.tsx
-│   ├── hooks
-│   │   ├── use-mobile.ts
-│   │   ├── useAtapStatistikData.ts
-│   │   ├── useBahanProduksiData.ts
-│   │   ├── useDailySubmissions.ts
-│   │   ├── useDebounce.ts
-│   │   ├── useKsaAnomalyData.ts
-│   │   ├── useKsaEvaluationData.ts
-│   │   ├── useKsaMonitoringData.ts
-│   │   ├── useOfficerPerformanceData.ts
-│   │   ├── usePadiMonitoringData.ts
-│   │   ├── usePalawijaMonitoringData.ts
-│   │   ├── usePenggunaanBenihDanPupukData.ts
-│   │   ├── useSimtpKpiData.ts
-│   │   └── useUbinanDescriptiveStatsData.ts
-│   ├── lib
-│   │   ├── database.types.ts
-│   │   ├── docx-generator.ts
-│   │   ├── icon-map.tsx
-│   │   ├── satker-data.ts
-│   │   ├── schemas.ts
-│   │   ├── sidebar-data.ts
-│   │   ├── supabase-server.ts
-│   │   ├── supabase.ts
-│   │   ├── useBreakpoint.ts
-│   │   └── utils.ts
-│   └── middleware.ts
-├── tailwind.config.ts
-└── tsconfig.json
+---
 
-**Catatan Penting tentang Struktur Folder:**
-* Penempatan `middleware.ts` di dalam `src/`.
-* File `layout.tsx` di `src/app/(dashboard)/layout.tsx` akan menjadi layout utama untuk semua rute di dalam grup `(dashboard)`. File `src/app/layout.tsx` (jika ada di luar grup dashboard) akan menjadi root layout global.
-* `client-layout-wrapper.tsx` tetap dibutuhkan.
+**📞 Contact & Support:**  
+Untuk pertanyaan teknis, feature requests, atau bantuan implementasi, silakan hubungi tim development BPS Kalbar.
 
-## 🛠️ Cara Instalasi & Menjalankan (Diperbarui)
+**🔧 System Maintenance:**  
+Dashboard ini di-maintain secara berkelanjutan dengan update security patches, performance improvements, dan feature enhancements untuk memastikan reliability dan optimal performance.
 
-1.  **Clone Repo & Masuk Folder:**
-    ```bash
-    git clone <URL_REPO_ANDA>
-    cd Dashboard\ Pertanian # atau nama folder proyek Anda
-    ```
-
-2.  **Instal Dependencies:**
-    ```bash
-    npm install
-    # atau
-    yarn install
-    ```
-    (Pastikan `package.json` Anda mencakup semua dependensi seperti `next`, `react`, `tailwindcss`, `@supabase/ssr`, `@tanstack/react-table`, `sonner`, `lucide-react`, dll.)
-
-3.  **Tambahkan File `.env.local`:**
-    Buat file `.env.local` di root folder proyek Anda dengan isi berikut:
-    ```
-    NEXT_PUBLIC_SUPABASE_URL=[https://your-project-ref.supabase.co](https://your-project-ref.supabase.co)
-    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_public_key
-    ```
-    Ganti nilai *placeholder* dengan URL dan Kunci Supabase proyek Anda yang tepat.
-
-4.  **Konfigurasi `tsconfig.json` (Jika Menggunakan TypeScript):**
-    Pastikan file `tsconfig.json` di root proyek Anda memiliki `paths` yang benar untuk alias `@/`:
-    ```json
-    {
-      "compilerOptions": {
-        // ...
-        "paths": {
-          "@/*": ["./src/*"]
-        }
-        // ...
-      }
-      // ... bagian lain
-    }
-    ```
-   
-
-5.  **Inisialisasi dan Instal Komponen shadcn/ui:**
-    Jika `shadcn/ui` belum diinisialisasi di proyek Anda, jalankan perintah berikut terlebih dahulu:
-    ```bash
-    npx shadcn-ui@latest init
-    ```
-    Ikuti prompt untuk konfigurasi (misalnya, pilihan style, base color, lokasi `globals.css`, alias path).
-
-    Setelah inisialisasi, Anda dapat menambahkan komponen individual yang dibutuhkan. Berdasarkan struktur folder yang Anda berikan, Anda mungkin memerlukan komponen-komponen berikut (dan lainnya):
-    ```bash
-    npx shadcn-ui@latest add table tabs select scroll-area button card checkbox collapsible dropdown-menu input label sonner avatar badge breadcrumb carousel chart form menubar navigation-menu separator sheet skeleton tooltip alert dialog
-    ```
-    Tambahkan atau hapus nama komponen dari daftar di atas sesuai dengan yang benar-benar Anda gunakan atau rencanakan untuk digunakan.
-
-6.  **Buat Tipe Database Supabase (Opsional tapi Sangat Direkomendasikan):**
-    Jika Anda belum punya, instal Supabase CLI dan generate tipe untuk keamanan tipe:
-    ```bash
-    npm install -g supabase # Jika belum terinstal
-    supabase login
-    supabase link --project-ref your-project-id # Ganti dengan ID proyek Anda
-    supabase gen types typescript --project-id "your-project-id" --schema public > src/lib/database.types.ts
-    ```
-
-7.  **Pembersihan Cache & Mulai Aplikasi:**
-    ```bash
-    rm -rf .next # Hapus folder cache Next.js
-    npm run dev
-    # atau
-    yarn dev
-    ```
-    Aplikasi akan berjalan di `http://localhost:3000`. Anda akan diarahkan ke halaman login jika rute awal dilindungi.
-
-Jika ada kendala atau permintaan fitur baru, silakan hubungi pengelola proyek.
+**💻 Development Team:**  
+Dikembangkan dengan ❤️ oleh Tim IT BPS Provinsi Kalimantan Barat.

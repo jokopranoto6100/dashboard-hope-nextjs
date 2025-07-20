@@ -33,9 +33,43 @@ export default function LoginPage() {
     });
 
     if (authError) {
-      toast.error('Login Gagal', {
-        description: authError.message,
-      });
+      // Check if this is an invalid login credentials error
+      if (authError.message.includes('Invalid login credentials')) {
+        // First check if user exists in our users table
+        const { data: userExists } = await supabase
+          .from('users')
+          .select('id, is_active, email')
+          .eq('email', email)
+          .single();
+
+        if (userExists && userExists.is_active === false) {
+          toast.error('Akun Belum Diaktifkan', {
+            description: 'Akun Anda terdaftar tetapi belum diaktifkan oleh admin. Silakan hubungi Admin BPS Kalbar untuk mengaktifkan akun.',
+            duration: 6000,
+            action: {
+              label: 'Chat WhatsApp',
+              onClick: () => window.open(`https://wa.me/628174954463?text=Halo%20Admin%20BPS%20Kalbar%2C%0A%0ASaya%20memerlukan%20aktivasi%20akun%20Dashboard%20HOPE.%0A%0AEmail%3A%20${encodeURIComponent(email)}%0A%0AMohon%20untuk%20mengaktifkan%20akun%20saya.%0A%0ATerima%20kasih.`)
+            }
+          });
+        } else if (userExists && userExists.is_active === null) {
+          toast.error('Akun Menunggu Persetujuan', {
+            description: 'Akun Anda sedang menunggu persetujuan admin. Silakan hubungi Admin BPS Kalbar.',
+            duration: 6000,
+            action: {
+              label: 'Chat WhatsApp',
+              onClick: () => window.open(`https://wa.me/628174954463?text=Halo%20Admin%20BPS%20Kalbar%2C%0A%0ASaya%20memerlukan%20aktivasi%20akun%20Dashboard%20HOPE.%0A%0AEmail%3A%20${encodeURIComponent(email)}%0A%0AMohon%20untuk%20mengaktifkan%20akun%20saya.%0A%0ATerima%20kasih.`)
+            }
+          });
+        } else {
+          toast.error('Login Gagal', {
+            description: 'Email atau password salah. Pastikan Anda telah terdaftar dan akun sudah diaktifkan.',
+          });
+        }
+      } else {
+        toast.error('Login Gagal', {
+          description: authError.message,
+        });
+      }
       setLoading(false);
       return;
     }
@@ -58,8 +92,27 @@ export default function LoginPage() {
 
       if (userData) {
         if (userData.is_active === false) {
-          toast.error('Login Gagal', {
-            description: 'Akun Anda telah dinonaktifkan oleh admin.',
+          toast.error('Akun Dinonaktifkan', {
+            description: 'Akun Anda telah dinonaktifkan oleh admin. Silakan hubungi Admin BPS Kalbar untuk informasi lebih lanjut.',
+            duration: 6000,
+            action: {
+              label: 'Chat WhatsApp',
+              onClick: () => window.open(`https://wa.me/628174954463?text=Halo%20Admin%20BPS%20Kalbar%2C%0A%0AAkun%20saya%20sepertinya%20dinonaktifkan.%0A%0AEmail%3A%20${encodeURIComponent(authData.user?.email || '')}%0A%0AMohon%20informasi%20lebih%20lanjut.%0A%0ATerima%20kasih.`)
+            }
+          });
+          await supabase.auth.signOut();
+          setLoading(false);
+          return;
+        }
+
+        if (userData.is_active === null) {
+          toast.error('Akun Menunggu Persetujuan', {
+            description: 'Akun Anda sedang menunggu persetujuan admin. Silakan hubungi Admin BPS Kalbar.',
+            duration: 6000,
+            action: {
+              label: 'Chat WhatsApp',
+              onClick: () => window.open(`https://wa.me/628174954463?text=Halo%20Admin%20BPS%20Kalbar%2C%0A%0ASaya%20memerlukan%20aktivasi%20akun%20Dashboard%20HOPE.%0A%0AEmail%3A%20${encodeURIComponent(authData.user?.email || '')}%0A%0AMohon%20untuk%20mengaktifkan%20akun%20saya.%0A%0ATerima%20kasih.`)
+            }
           });
           await supabase.auth.signOut();
           setLoading(false);
@@ -92,30 +145,31 @@ export default function LoginPage() {
 
   return (
     // UBAH: Menggunakan warna latar belakang abu-abu sangat muda agar lebih lembut
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-3 sm:p-4">
       {/* Dark Mode Toggle */}
       <button
-        className="fixed top-4 right-4 p-2 rounded-full border bg-background hover:bg-muted transition z-50 shadow-sm"
+        className="fixed top-3 right-3 sm:top-4 sm:right-4 p-2 rounded-full border bg-background hover:bg-muted transition z-50 shadow-sm"
         onClick={toggleDarkMode}
         aria-label="Toggle dark mode"
         type="button"
       >
-        {isDark ? <Sun size={20} className="text-foreground" /> : <Moon size={20} className="text-foreground" />}
+        {isDark ? <Sun size={18} className="sm:w-5 sm:h-5 text-foreground" /> : <Moon size={18} className="sm:w-5 sm:h-5 text-foreground" />}
       </button>
       
       <div className="relative w-full max-w-4xl bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden flex flex-col lg:flex-row">
         
         {/* Kolom Kiri - Form Login */}
-        <div className="w-full lg:w-1/2 p-8 md:p-12 lg:p-16 flex flex-col justify-center">
+        <div className="w-full lg:w-1/2 p-6 sm:p-8 md:p-12 lg:p-16 flex flex-col justify-center">
           {/* Anda bisa menambahkan logo di sini jika mau */}
           {/* <Image src="/logo-hope.png" alt="HOPE Logo" width={150} height={50} className="mb-8" /> */}
 
-          <div className="mb-8">
+          <div className="mb-6 sm:mb-8">
             {/* UBAH: Menyesuaikan warna heading agar cocok dengan abu-abu di logo */}
-            <h1 className="text-4xl font-extrabold text-gray-800 dark:text-gray-100 mb-2">Hey!</h1>
-            <p className="text-gray-600 dark:text-gray-300 text-lg">Welcome back to your hope</p>
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-800 dark:text-gray-100 mb-2">Hey!</h1>
+            <p className="text-gray-600 dark:text-gray-300 text-base sm:text-lg">Welcome back to your hope</p>
           </div>
-          <form onSubmit={handleLogin} className="space-y-6">
+
+          <form onSubmit={handleLogin} className="space-y-4 sm:space-y-6">
             <div>
               <Label htmlFor="email" className="sr-only">Email</Label>
               <Input
@@ -126,7 +180,7 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 // UBAH: Mengubah warna focus ring menjadi teal
-                className="h-12 text-lg px-4 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 focus:border-teal-500 dark:focus:border-teal-400 focus:ring focus:ring-teal-200 dark:focus:ring-teal-800"
+                className="h-10 sm:h-12 text-base sm:text-lg px-3 sm:px-4 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 focus:border-teal-500 dark:focus:border-teal-400 focus:ring focus:ring-teal-200 dark:focus:ring-teal-800"
               />
             </div>
             <div>
@@ -139,10 +193,10 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 // UBAH: Mengubah warna focus ring menjadi teal
-                className="h-12 text-lg px-4 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 focus:border-teal-500 dark:focus:border-teal-400 focus:ring focus:ring-teal-200 dark:focus:ring-teal-800"
+                className="h-10 sm:h-12 text-base sm:text-lg px-3 sm:px-4 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 focus:border-teal-500 dark:focus:border-teal-400 focus:ring focus:ring-teal-200 dark:focus:ring-teal-800"
               />
             </div>
-            <div className="flex items-center justify-between text-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 text-sm">
               <div className="flex items-center">
                 <Checkbox
                   id="remember-me"
@@ -160,11 +214,11 @@ export default function LoginPage() {
               </Link>
             </div>
              {/* UBAH: Mengubah warna tombol menjadi teal */}
-            <Button type="submit" className="w-full h-12 text-lg bg-teal-500 dark:bg-teal-600 text-white hover:bg-teal-600 dark:hover:bg-teal-700" disabled={loading}>
+            <Button type="submit" className="w-full h-10 sm:h-12 text-base sm:text-lg bg-teal-500 dark:bg-teal-600 text-white hover:bg-teal-600 dark:hover:bg-teal-700" disabled={loading}>
               {loading ? 'Signing In...' : 'Sign In'}
             </Button>
           </form>
-          <div className="mt-8 text-center text-gray-600 dark:text-gray-300">
+          <div className="mt-6 sm:mt-8 text-center text-gray-600 dark:text-gray-300 text-sm sm:text-base">
             Don&apos;t have an account?{' '}
             <Link href="/auth/register" passHref>
                {/* UBAH: Mengubah warna link menjadi teal */}
