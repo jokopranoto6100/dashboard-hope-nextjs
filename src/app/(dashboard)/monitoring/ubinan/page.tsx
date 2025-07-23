@@ -82,7 +82,7 @@ export default function UbinanMonitoringPage() {
     <div className="flex flex-col gap-4 min-w-0">
       <div className="flex items-center justify-end flex-wrap gap-2">
         <Select value={selectedSubround} onValueChange={setSelectedSubround}>
-          <SelectTrigger className="w-full md:w-[180px]">
+          <SelectTrigger className="w-full md:w-[180px] bg-card border hover:bg-accent transition-colors">
             <SelectValue placeholder="Pilih Subround" />
           </SelectTrigger>
           <SelectContent>
@@ -96,10 +96,15 @@ export default function UbinanMonitoringPage() {
 
       {pageIsLoading ? (
         <div className="space-y-4">
+          {/* Filter Section Skeleton */}
+          <div className="flex items-center justify-end flex-wrap gap-2">
+            <Skeleton className="h-10 w-full md:w-[180px] rounded-md" />
+          </div>
+          
           {/* Tab Navigation Skeleton */}
-          <div className="grid w-full grid-cols-2 gap-2 p-1 bg-muted rounded-lg">
-            <Skeleton className="h-10 w-full rounded-md" />
-            <Skeleton className="h-10 w-full rounded-md" />
+          <div className="grid w-full grid-cols-2 gap-1 p-1 bg-muted rounded-md">
+            <Skeleton className="h-10 w-full rounded-sm" />
+            <Skeleton className="h-10 w-full rounded-sm" />
           </div>
           
           {/* Table Card Skeleton */}
@@ -166,13 +171,19 @@ export default function UbinanMonitoringPage() {
           {/* Tab Navigation */}
           <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="padi" className="flex items-center gap-2 transition-all">
-                <span>🌾</span>
-                <span>Monitoring Padi</span>
+              <TabsTrigger 
+                value="padi" 
+                className="flex items-center gap-2"
+              >
+                <span className="text-base">🌾</span>
+                <span className="font-medium">Monitoring Padi</span>
               </TabsTrigger>
-              <TabsTrigger value="palawija" className="flex items-center gap-2 transition-all">
-                <span>🌿</span>
-                <span>Monitoring Palawija</span>
+              <TabsTrigger 
+                value="palawija" 
+                className="flex items-center gap-2"
+              >
+                <span className="text-base">🌿</span>
+                <span className="font-medium">Monitoring Palawija</span>
               </TabsTrigger>
             </TabsList>
 
