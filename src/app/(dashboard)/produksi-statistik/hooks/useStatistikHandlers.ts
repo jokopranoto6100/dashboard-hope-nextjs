@@ -6,6 +6,8 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { MONTH_NAMES } from '@/lib/utils';
 import * as XLSX from 'xlsx';
 import { toast } from 'sonner';
+import { toPng } from 'html-to-image';
+import { saveAs } from 'file-saver';
 
 interface UseStatistikHandlersProps {
   selectedYear: number;
@@ -111,17 +113,26 @@ export const useStatistikHandlers = ({
     ref: React.RefObject<HTMLDivElement | null>, 
     filename: string
   ) => {
-    if (!ref.current) return;
+    if (!ref.current) {
+      toast.error("Grafik tidak dapat ditemukan.");
+      return;
+    }
+
+    toast.info("Membuat gambar grafik...");
 
     try {
-      // Menggunakan browser's built-in screenshot API jika tersedia
-      // Fallback ke basic export functionality
-      const link = document.createElement('a');
-      link.download = `${filename}_${filters.indikatorNama.replace(/\s+/g, '_')}_${selectedYear}.txt`;
-      link.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent('Chart export not available');
-      link.click();
-    } catch (error) {
-      console.error('Error exporting chart:', error);
+      const dataUrl = await toPng(ref.current, {
+        cacheBust: true,
+        backgroundColor: 'white',
+        pixelRatio: 2
+      });
+
+      saveAs(dataUrl, `grafik_${filename}_${filters.indikatorNama.replace(/\s+/g, '_')}_${selectedYear}.png`);
+      toast.success("Grafik berhasil diunduh!");
+    } catch (err) {
+      toast.error("Gagal mengekspor grafik.", { 
+        description: (err as Error).message 
+      });
     }
   }, [filters.indikatorNama, selectedYear]);
 
