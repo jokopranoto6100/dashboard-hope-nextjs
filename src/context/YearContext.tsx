@@ -17,6 +17,11 @@ interface YearProviderProps {
   children: ReactNode;
 }
 
+// Interface untuk data yang dikembalikan dari RPC
+interface YearData {
+  tahun: number;
+}
+
 export const YearProvider = ({ children }: YearProviderProps) => {
   const supabase = createClientComponentSupabaseClient(); // BARU
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
@@ -38,7 +43,7 @@ export const YearProvider = ({ children }: YearProviderProps) => {
 
         if (data) {
           // Asumsi RPC mengembalikan array of objects, misal: [{tahun: 2023}, {tahun: 2024}]
-          const years = data.map((item: any) => item.tahun).sort((a: number, b: number) => b - a);
+          const years = (data as YearData[]).map((item: YearData) => item.tahun).sort((a: number, b: number) => b - a);
           setAvailableYears(years);
         }
       } catch (error) {

@@ -19,12 +19,20 @@ const CustomActiveDot = ({ cx, cy, payload, onPointClick }: { cx?: number; cy?: 
     return null;
   }
   const hasAnnotations = payload.annotations && payload.annotations.length > 0;
+  
+  // Dynamic positioning: jika titik terlalu dekat dengan atas chart, letakkan icon di bawah
+  const iconSize = 24;
+  const iconOffset = 28;
+  const minTopDistance = 35; // minimal jarak dari atas chart area
+  
+  const iconY = cy < minTopDistance ? cy + iconOffset : cy - iconOffset;
+  
   return (
     <g onClick={() => onPointClick(payload)} style={{ cursor: 'pointer' }}>
       <circle cx={cx} cy={cy} r={10} fill="#8884d8" fillOpacity={0.2} />
       <circle cx={cx} cy={cy} r={4} fill="#8884d8" />
       {hasAnnotations && (
-        <foreignObject x={cx - 12} y={cy - 28} width={24} height={24} style={{ overflow: 'visible' }}>
+        <foreignObject x={cx - 12} y={iconY - 12} width={iconSize} height={iconSize} style={{ overflow: 'visible' }}>
           <div className="flex items-center justify-center w-full h-full">
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white shadow-md">
               {payload.annotations.length}
@@ -41,7 +49,7 @@ export default function LineChartWrapper({ data, dataKey1, dataKey2, onPointClic
     <ResponsiveContainer width="100%" height={350}>
       <LineChart 
         data={data}
-        margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
+        margin={{ top: 40, right: 20, left: 0, bottom: 5 }}
       >
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis dataKey="name" fontSize={12} />
