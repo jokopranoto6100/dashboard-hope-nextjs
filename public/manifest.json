@@ -3,7 +3,7 @@
   "short_name": "Dashboard HOPE",
   "description": "Statistik Produksi Pertanian BPS Kalimantan Barat",
   "start_url": "/",
-  "display": "minimal-ui",
+  "display": "standalone",
   "orientation": "portrait-primary",
   "scope": "/",
   "lang": "id",
