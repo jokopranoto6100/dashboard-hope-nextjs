@@ -17,11 +17,6 @@ export const metadata: Metadata = {
   title: 'Dashboard HOPE',
   description: 'Statistik Produksi Pertanian BPS Kalbar',
   manifest: '/manifest.json',
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'default',
-    title: 'Dashboard HOPE',
-  },
   formatDetection: {
     telephone: false,
   },
@@ -32,13 +27,12 @@ export const metadata: Metadata = {
   },
 };
 
-// Export viewport dan themeColor terpisah sesuai Next.js 15
+// Export viewport tanpa themeColor untuk menghindari splash screen
 export const viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: '#059669',
 };
 
 export default function RootLayout({
