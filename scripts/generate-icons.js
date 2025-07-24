@@ -2,17 +2,24 @@ const sharp = require('sharp');
 const fs = require('fs');
 const path = require('path');
 
-// SVG icon Atom dari Lucide (simplified version)
+// SVG icon Atom dari Lucide (https://lucide.dev/icons/atom) - Optimized for PWA
 const atomIconSVG = `
 <svg width="512" height="512" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <circle cx="12" cy="12" r="1" fill="#059669"/>
-  <path d="m8.5 8.5c0 0-5-3.5-5 0s5 0 5 0" stroke="#059669" stroke-width="1.5" stroke-linecap="round"/>
-  <path d="m15.5 15.5c0 0 5 3.5 5 0s-5 0-5 0" stroke="#059669" stroke-width="1.5" stroke-linecap="round"/>
-  <path d="M8.5 15.5c0 0-5-3.5-5 0s5 0 5 0" stroke="#059669" stroke-width="1.5" stroke-linecap="round"/>
-  <path d="M15.5 8.5c0 0 5 3.5 5 0s-5 0-5 0" stroke="#059669" stroke-width="1.5" stroke-linecap="round"/>
-  <ellipse cx="12" cy="12" rx="6" ry="3" stroke="#059669" stroke-width="1.5" fill="none"/>
-  <ellipse cx="12" cy="12" rx="3" ry="6" stroke="#059669" stroke-width="1.5" fill="none"/>
-  <ellipse cx="12" cy="12" rx="4.5" ry="4.5" stroke="#059669" stroke-width="1.5" fill="none" transform="rotate(45 12 12)"/>
+  <!-- Central nucleus -->
+  <circle cx="12" cy="12" r="1.5" fill="#059669"/>
+  
+  <!-- Electron orbits -->
+  <ellipse cx="12" cy="12" rx="10.5" ry="4.5" stroke="#059669" stroke-width="1.5" fill="none"/>
+  <ellipse cx="12" cy="12" rx="10.5" ry="4.5" stroke="#059669" stroke-width="1.5" fill="none" transform="rotate(60 12 12)"/>
+  <ellipse cx="12" cy="12" rx="10.5" ry="4.5" stroke="#059669" stroke-width="1.5" fill="none" transform="rotate(120 12 12)"/>
+  
+  <!-- Electron particles -->
+  <circle cx="22" cy="12" r="1" fill="#059669"/>
+  <circle cx="2" cy="12" r="1" fill="#059669"/>
+  <circle cx="12" cy="2" r="1" fill="#059669"/>
+  <circle cx="12" cy="22" r="1" fill="#059669"/>
+  <circle cx="18.4" cy="6.4" r="1" fill="#059669"/>
+  <circle cx="5.6" cy="17.6" r="1" fill="#059669"/>
 </svg>
 `.trim();
 

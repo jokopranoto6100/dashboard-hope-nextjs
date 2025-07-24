@@ -1,4 +1,5 @@
 // src/hooks/usePenggunaanBenihDanPupukData.ts
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useYear } from '@/context/YearContext';
@@ -88,10 +89,10 @@ export const usePenggunaanBenihDanPupukData = (comparisonYear: number | null) =>
       // AKHIR PERUBAHAN UTAMA
       // =======================================================================
 
-    } catch (err: any)
-    {
+    } catch (err: unknown) {
       console.error("Error fetching from RPC get_pupuk_benih_stats:", err);
-      setError(err.message || 'Terjadi kesalahan saat memanggil data pupuk & benih.');
+      const errorMessage = err instanceof Error ? err.message : 'Terjadi kesalahan saat memanggil data pupuk & benih.';
+      setError(errorMessage);
       setProcessedData({ pupukDanBenihPerKab: [], kalimantanBaratPupukDanBenih: null });
     } finally {
       setIsLoadingData(false);
