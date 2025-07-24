@@ -206,13 +206,20 @@ export function BahanProduksiClient() {
     setFlippedCardId(null);
   }, []);
 
-  // ✅ Memoized carousel options
-  const carouselOptions = useMemo(() => ({
-    align: "start" as const,
-    loop: (dataSektor?.length || 0) > 3,
-    skipSnaps: false,
-    dragFree: true
-  }), [dataSektor?.length]);
+  // ✅ Memoized carousel options dengan responsive snap behavior
+  const carouselOptions = useMemo(() => {
+    // Detect if mobile view (bisa juga pakai useMediaQuery hook kalau ada)
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+    
+    return {
+      align: "start" as const,
+      loop: (dataSektor?.length || 0) > 3,
+      skipSnaps: false,
+      dragFree: !isMobile, // Mobile: snap per card, Desktop: free drag
+      containScroll: "trimSnaps" as const, // Trim snaps untuk clean edge behavior
+      slidesToScroll: isMobile ? 1 : "auto" as const, // Mobile: 1 card per swipe
+    };
+  }, [dataSektor?.length]);
 
   if (isLoading) {
     return <BahanProduksiSkeleton />;
@@ -279,7 +286,7 @@ export function BahanProduksiClient() {
             {dataSektor.map((sektor) => (
               <CarouselItem 
                 key={sektor.id} 
-                className="pl-4 md:basis-1/2 lg:basis-1/3 xl:basis-1/4"
+                className="pl-4 basis-full sm:basis-1/1 md:basis-1/2 lg:basis-1/3 xl:basis-1/4"
               >
                 <SektorCard
                   sektor={sektor}
