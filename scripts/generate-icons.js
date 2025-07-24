@@ -2,35 +2,16 @@ const sharp = require('sharp');
 const fs = require('fs');
 const path = require('path');
 
-// SVG icon Atom dengan background dan padding yang optimal untuk PWA
+// SVG icon Atom simplified - Clean dan minimalis untuk PWA
 const atomIconSVG = `
 <svg width="512" height="512" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Background circle dengan gradient subtle -->
-  <circle cx="24" cy="24" r="22" fill="url(#bgGradient)" stroke="#059669" stroke-width="0.5"/>
+  <!-- Central nucleus - hanya 1 titik di tengah -->
+  <circle cx="24" cy="24" r="2.5" fill="#059669"/>
   
-  <!-- Gradient definition -->
-  <defs>
-    <radialGradient id="bgGradient" cx="0.3" cy="0.3">
-      <stop offset="0%" stop-color="#ecfdf5"/>
-      <stop offset="100%" stop-color="#f0fdf4"/>
-    </radialGradient>
-  </defs>
-  
-  <!-- Central nucleus -->
-  <circle cx="24" cy="24" r="2.2" fill="#059669"/>
-  
-  <!-- Electron orbits -->
-  <ellipse cx="24" cy="24" rx="14" ry="6" stroke="#059669" stroke-width="2" fill="none"/>
-  <ellipse cx="24" cy="24" rx="14" ry="6" stroke="#059669" stroke-width="2" fill="none" transform="rotate(60 24 24)"/>
-  <ellipse cx="24" cy="24" rx="14" ry="6" stroke="#059669" stroke-width="2" fill="none" transform="rotate(120 24 24)"/>
-  
-  <!-- Electron particles -->
-  <circle cx="38" cy="24" r="1.5" fill="#059669"/>
-  <circle cx="10" cy="24" r="1.5" fill="#059669"/>
-  <circle cx="24" cy="10" r="1.5" fill="#059669"/>
-  <circle cx="24" cy="38" r="1.5" fill="#059669"/>
-  <circle cx="32" cy="15" r="1.5" fill="#059669"/>
-  <circle cx="16" cy="33" r="1.5" fill="#059669"/>
+  <!-- Electron orbits - tanpa background dan outline -->
+  <ellipse cx="24" cy="24" rx="16" ry="6" stroke="#059669" stroke-width="2.5" fill="none"/>
+  <ellipse cx="24" cy="24" rx="16" ry="6" stroke="#059669" stroke-width="2.5" fill="none" transform="rotate(60 24 24)"/>
+  <ellipse cx="24" cy="24" rx="16" ry="6" stroke="#059669" stroke-width="2.5" fill="none" transform="rotate(120 24 24)"/>
 </svg>
 `.trim();
 
@@ -70,7 +51,7 @@ async function generateIcons() {
       await sharp(Buffer.from(scaledSVG))
         .resize(icon.size, icon.size, {
           fit: 'contain',
-          background: { r: 255, g: 255, b: 255, alpha: 0 } // Transparent background
+          background: { r: 255, g: 255, b: 255, alpha: 1 } // White background untuk mengatasi splash screen hitam
         })
         .png()
         .toFile(outputPath);
@@ -85,7 +66,7 @@ async function generateIcons() {
     await sharp(Buffer.from(baseSVG))
       .resize(512, 512, {
         fit: 'contain',
-        background: { r: 255, g: 255, b: 255, alpha: 0 }
+        background: { r: 255, g: 255, b: 255, alpha: 1 } // White background untuk base icon
       })
       .png()
       .toFile(baseIconPath);
