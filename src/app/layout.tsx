@@ -25,18 +25,20 @@ export const metadata: Metadata = {
   formatDetection: {
     telephone: false,
   },
-  themeColor: '#059669',
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-  },
   icons: {
     icon: '/icon/hope.png',
     shortcut: '/icon/hope.png',
     apple: '/icon/hope.png',
   },
+};
+
+// Export viewport dan themeColor terpisah sesuai Next.js 15
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: '#059669',
 };
 
 export default function RootLayout({
