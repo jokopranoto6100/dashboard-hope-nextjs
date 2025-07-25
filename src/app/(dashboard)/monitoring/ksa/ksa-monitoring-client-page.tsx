@@ -306,12 +306,15 @@ export default function KsaMonitoringClientPage() {
             </TabsList>
 
             <TabsContent value="padi" className="space-y-4 animate-in fade-in-0 slide-in-from-left-4 duration-300">
-              <LeaderboardCard 
-                data={leaderboardData} 
-                isLoading={isLoading || !displayMonth}
-                monthName={selectedMonthLabel}
-                year={selectedYear || new Date().getFullYear()}
-              />
+              {/* Tampilkan LeaderboardCard hanya jika ada pemenang (data tidak kosong) */}
+              {leaderboardData && leaderboardData.length > 0 && (
+                <LeaderboardCard 
+                  data={leaderboardData} 
+                  isLoading={isLoading || !displayMonth}
+                  monthName={selectedMonthLabel}
+                  year={selectedYear || new Date().getFullYear()}
+                />
+              )}
 
               <DistrictKsaTable
                 title="KSA Padi - Data Kabupaten"
@@ -327,12 +330,15 @@ export default function KsaMonitoringClientPage() {
             </TabsContent>
 
             <TabsContent value="jagung" className="space-y-4 animate-in fade-in-0 slide-in-from-right-4 duration-300">
-              <LeaderboardJagungCard 
-                data={jagungLeaderboardData} 
-                isLoading={jagungIsLoading || !jagungDisplayMonth}
-                monthName={selectedMonthLabel}
-                year={selectedYear || new Date().getFullYear()}
-              />
+              {/* Tampilkan LeaderboardCard hanya jika ada pemenang (data tidak kosong) */}
+              {jagungLeaderboardData && jagungLeaderboardData.length > 0 && (
+                <LeaderboardJagungCard 
+                  data={jagungLeaderboardData} 
+                  isLoading={jagungIsLoading || !jagungDisplayMonth}
+                  monthName={selectedMonthLabel}
+                  year={selectedYear || new Date().getFullYear()}
+                />
+              )}
 
               <DistrictKsaJagungTable
                 title="KSA Jagung - Data Kabupaten"

@@ -69,33 +69,119 @@ export function NamaKsaJagungTable({ title, description, data, totals, uniqueSta
 
   const countdownStatus = React.useMemo(() => {
     if (!jadwal || !displayMonth) return null;
-    const currentMonth = parseInt(displayMonth, 10) - 1; // Bulan di Date object 0-indexed
+    
+    // ✅ DEBUG: Log untuk memahami data yang tersedia
+    console.log("🔍 KSA Jagung Nama Countdown Debug:", {
+      displayMonth,
+      jadwalData: jadwal,
+      allJadwalItems: [...(jadwal.jadwal || []), ...(jadwal.subKegiatan?.flatMap(sub => sub.jadwal || []) || [])]
+    });
 
-    const allJadwalItems = [...(jadwal.jadwal || []), ...(jadwal.subKegiatan?.flatMap(sub => sub.jadwal || []) || [])]
-      .filter(item => new Date(item.startDate).getMonth() === currentMonth);
-
-    if (allJadwalItems.length === 0) return null;
-
-    const allStartDates = allJadwalItems.map(j => new Date(j.startDate));
-    const allEndDates = allJadwalItems.map(j => new Date(j.endDate));
-
-    const earliestStart = new Date(Math.min(...allStartDates.map(d => d.getTime())));
-    const latestEnd = new Date(Math.max(...allEndDates.map(d => d.getTime())));
-
+    // ✅ FIX: Lebih fleksibel dalam filtering - coba cari jadwal yang aktif dulu
+    const allJadwalItems = [...(jadwal.jadwal || []), ...(jadwal.subKegiatan?.flatMap(sub => sub.jadwal || []) || [])];
+    
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    
+    console.log("📅 Jagung Nama Today:", today.toISOString().split('T')[0]);
+    
+    // ✅ FIX: Cari jadwal yang sedang aktif atau akan datang, tanpa filter bulan dulu
+    const activeOrUpcomingSchedules = allJadwalItems.filter(item => {
+      const startDate = new Date(item.startDate);
+      const endDate = new Date(item.endDate);
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setHours(0, 0, 0, 0);
+      
+      console.log("📊 Jagung Nama Schedule analysis:", {
+        nama: item.nama,
+        startDate: startDate.toISOString().split('T')[0],
+        endDate: endDate.toISOString().split('T')[0],
+        isActive: today >= startDate && today <= endDate,
+        isUpcoming: today < startDate,
+        hasEnded: today > endDate
+      });
+      
+      // Jadwal yang sedang aktif atau akan datang
+      return today <= endDate;
+    });
 
-    if (today > latestEnd) return { text: "Jadwal Telah Berakhir", color: "text-gray-500" };
-    if (today >= earliestStart && today <= latestEnd) {
+    console.log("✅ Jagung Nama Active/Upcoming schedules:", activeOrUpcomingSchedules);
+
+    if (activeOrUpcomingSchedules.length === 0) {
+      console.log("❌ Jagung Nama No active or upcoming schedules found");
+      return null;
+    }
+
+    // ✅ FIX: Jika displayMonth diberikan, prioritaskan jadwal bulan itu
+    let relevantSchedules = activeOrUpcomingSchedules;
+    if (displayMonth && displayMonth !== "Semua") {
+      const currentMonth = parseInt(displayMonth, 10) - 1; // 0-indexed
+      const monthSpecificSchedules = activeOrUpcomingSchedules.filter(item => {
+        const startMonth = new Date(item.startDate).getMonth();
+        const endMonth = new Date(item.endDate).getMonth();
+        // Jadwal yang dimulai atau berakhir di bulan yang dipilih
+        return startMonth === currentMonth || endMonth === currentMonth;
+      });
+      
+      if (monthSpecificSchedules.length > 0) {
+        relevantSchedules = monthSpecificSchedules;
+        console.log("✅ Jagung Nama Found month-specific schedules:", monthSpecificSchedules);
+      } else {
+        console.log("⚠️ Jagung Nama No schedules for selected month, using all active/upcoming");
+      }
+    }
+
+    // ✅ Cari jadwal yang paling relevan (sedang aktif atau terdekat)
+    const currentlyActive = relevantSchedules.filter(item => {
+      const startDate = new Date(item.startDate);
+      const endDate = new Date(item.endDate);
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setHours(0, 0, 0, 0);
+      return today >= startDate && today <= endDate;
+    });
+
+    if (currentlyActive.length > 0) {
+      // Ada jadwal yang sedang aktif
+      const latestEnd = new Date(Math.max(...currentlyActive.map(j => new Date(j.endDate).getTime())));
+      latestEnd.setHours(0, 0, 0, 0);
+      
       const daysLeft = getDiffInDays(today, latestEnd);
+      console.log("📊 Jagung Nama Active schedule - Days calculation:", {
+        daysLeft,
+        todayStr: today.toISOString().split('T')[0],
+        latestEndStr: latestEnd.toISOString().split('T')[0],
+        activeSchedules: currentlyActive.map(s => ({ nama: s.nama, start: s.startDate, end: s.endDate }))
+      });
+      
       if (daysLeft === 0) return { text: "Berakhir Hari Ini", color: "text-red-600 font-bold" };
       return { text: `Berakhir dalam ${daysLeft} hari`, color: "text-green-600" };
     }
-    if (today < earliestStart) {
+
+    // Tidak ada yang aktif, cari yang akan datang
+    const upcoming = relevantSchedules.filter(item => {
+      const startDate = new Date(item.startDate);
+      startDate.setHours(0, 0, 0, 0);
+      return today < startDate;
+    });
+
+    if (upcoming.length > 0) {
+      const earliestStart = new Date(Math.min(...upcoming.map(j => new Date(j.startDate).getTime())));
+      earliestStart.setHours(0, 0, 0, 0);
+      
       const daysUntil = getDiffInDays(today, earliestStart);
-       if (daysUntil === 1) return { text: "Dimulai Besok", color: "text-blue-600" };
+      console.log("📊 Jagung Nama Upcoming schedule - Days calculation:", {
+        daysUntil,
+        todayStr: today.toISOString().split('T')[0],
+        earliestStartStr: earliestStart.toISOString().split('T')[0],
+        upcomingSchedules: upcoming.map(s => ({ nama: s.nama, start: s.startDate, end: s.endDate }))
+      });
+      
+      if (daysUntil === 0) return { text: "Dimulai Hari Ini", color: "text-blue-600 font-bold" };
+      if (daysUntil === 1) return { text: "Dimulai Besok", color: "text-blue-600" };
       return { text: `Dimulai dalam ${daysUntil} hari`, color: "text-blue-600" };
     }
+
+    console.log("❌ Jagung Nama No relevant schedules found");
     return null;
   }, [jadwal, displayMonth]);
 
