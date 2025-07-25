@@ -114,9 +114,25 @@ export const usePadiMonitoringData = (selectedYear: number, selectedSubround: st
         currentPage++;
       }
 
-      // BARU: Ambil kegiatan_id dari baris data pertama (semua akan sama)
+      // BARU: Ambil kegiatan_id dari baris data pertama yang memiliki kegiatan_id valid
       if (allRawPadiData && allRawPadiData.length > 0) {
-        setKegiatanId(allRawPadiData[0].kegiatan_id);
+        // Kegiatan ID yang valid untuk data padi ubinan - parent kegiatan
+        const validKegiatanId = 'a0a0a0a0-0002-4002-8002-000000000002'; // Ubinan Padi (parent)
+        
+        // Cari baris pertama yang memiliki kegiatan_id yang valid (harus berupa UUID format)
+        const rowWithKegiatanId = allRawPadiData.find(row => 
+          row.kegiatan_id && 
+          row.kegiatan_id.trim() !== '' && 
+          // Hanya terima UUID format (8-4-4-4-12 characters dengan hyphens)
+          /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(row.kegiatan_id.trim())
+        );
+        
+        if (rowWithKegiatanId) {
+          setKegiatanId(rowWithKegiatanId.kegiatan_id.trim());
+        } else {
+          // Fallback: karena kita tahu kegiatan_id yang benar untuk dataset padi ubinan
+          setKegiatanId(validKegiatanId);
+        }
       }
 
       // --- Sisa dari logika pemrosesan Anda tidak berubah ---

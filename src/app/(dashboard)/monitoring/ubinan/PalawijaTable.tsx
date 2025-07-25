@@ -71,24 +71,47 @@ export function PalawijaMonitoringTable({ data, totals, isLoading, error, lastUp
     if (!jadwal) return null;
     const allJadwalItems = [...(jadwal.jadwal || []), ...(jadwal.subKegiatan?.flatMap(sub => sub.jadwal || []) || [])];
     if (allJadwalItems.length === 0) return null;
-    const allStartDates = allJadwalItems.map(j => new Date(j.startDate));
-    const allEndDates = allJadwalItems.map(j => new Date(j.endDate));
-    const earliestStart = new Date(Math.min(...allStartDates.map(d => d.getTime())));
-    const latestEnd = new Date(Math.max(...allEndDates.map(d => d.getTime())));
+    
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    if (today > latestEnd) return { text: "Jadwal Telah Berakhir", color: "text-gray-500" };
-    if (today >= earliestStart && today <= latestEnd) {
-      const daysLeft = getDiffInDays(today, latestEnd);
+    
+    // Cari jadwal yang sedang berlangsung atau akan datang
+    const activeJadwal = allJadwalItems.find(j => {
+      const startDate = new Date(j.startDate);
+      const endDate = new Date(j.endDate);
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setHours(0, 0, 0, 0);
+      return today >= startDate && today <= endDate;
+    });
+    
+    // Jika ada jadwal yang sedang berlangsung, gunakan itu
+    if (activeJadwal) {
+      const endDate = new Date(activeJadwal.endDate);
+      endDate.setHours(0, 0, 0, 0);
+      const daysLeft = getDiffInDays(today, endDate);
       if (daysLeft === 0) return { text: "Berakhir Hari Ini", color: "text-red-600 font-bold" };
       return { text: `Berakhir dalam ${daysLeft} hari`, color: "text-green-600" };
     }
-    if (today < earliestStart) {
-      const daysUntil = getDiffInDays(today, earliestStart);
-       if (daysUntil === 1) return { text: "Dimulai Besok", color: "text-blue-600" };
+    
+    // Jika tidak ada yang sedang berlangsung, cari yang akan datang
+    const upcomingJadwal = allJadwalItems
+      .filter(j => {
+        const startDate = new Date(j.startDate);
+        startDate.setHours(0, 0, 0, 0);
+        return today < startDate;
+      })
+      .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())[0];
+    
+    if (upcomingJadwal) {
+      const startDate = new Date(upcomingJadwal.startDate);
+      startDate.setHours(0, 0, 0, 0);
+      const daysUntil = getDiffInDays(today, startDate);
+      if (daysUntil === 1) return { text: "Dimulai Besok", color: "text-blue-600" };
       return { text: `Dimulai dalam ${daysUntil} hari`, color: "text-blue-600" };
     }
-    return null;
+    
+    // Jika semua jadwal sudah berakhir
+    return { text: "Jadwal Telah Berakhir", color: "text-gray-500" };
   }, [jadwal]);
 
   const allColumns = React.useMemo<ColumnDef<PalawijaDataRow>[]>(() => {
