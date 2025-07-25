@@ -19,17 +19,14 @@ const cardVariants: Variants = {
     rotateY: 0,
     transition: { 
       duration: 0.35, // ✅ Slightly faster for less layout shift time
-      ease: [0.25, 0.1, 0.25, 1], // ✅ easeInOut cubic bezier for smoother animation
-      // ✅ FIX 10: Prevent intermediate layout calculations
-      transformOrigin: "center center"
+      ease: [0.25, 0.1, 0.25, 1] // ✅ easeInOut cubic bezier for smoother animation
     }
   },
   back: { 
     rotateY: 180,
     transition: { 
       duration: 0.35, // ✅ Consistent timing
-      ease: [0.25, 0.1, 0.25, 1], // ✅ easeInOut cubic bezier
-      transformOrigin: "center center"
+      ease: [0.25, 0.1, 0.25, 1] // ✅ easeInOut cubic bezier
     }
   }
 };
