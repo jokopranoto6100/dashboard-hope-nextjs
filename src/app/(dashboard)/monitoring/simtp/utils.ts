@@ -40,16 +40,29 @@ export function isOngoingReportingPeriod(
 }
 
 /**
- * Format upload date for Indonesian locale
+ * Format upload date for Indonesian locale with WIB timezone
  */
 export function formatUploadDate(dateString: string): string {
-  return new Date(dateString).toLocaleString('id-ID', {
+  const date = new Date(dateString);
+  
+  // Format tanggal secara terpisah
+  const dateFormatted = date.toLocaleDateString('id-ID', {
     day: '2-digit',
     month: 'long', 
     year: 'numeric',
+    timeZone: 'Asia/Jakarta',
+  });
+  
+  // Format waktu secara terpisah
+  const timeFormatted = date.toLocaleTimeString('id-ID', {
     hour: '2-digit',
     minute: '2-digit',
+    hour12: false,
+    timeZone: 'Asia/Jakarta',
   });
+  
+  // Gabungkan dengan format yang diinginkan
+  return `${dateFormatted} pukul ${timeFormatted} WIB`;
 }
 
 /**

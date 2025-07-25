@@ -90,10 +90,26 @@ export async function getSimtpMonitoringData(monitoringYear: number): Promise<{
   }
 
   const lastUpdate = latestTimestamp ? 
-    latestTimestamp.toLocaleString('id-ID', {
-      day: '2-digit', month: 'long', year: 'numeric',
-      hour: '2-digit', minute: '2-digit',
-    }) : null;
+    (() => {
+      // Format tanggal secara terpisah
+      const dateFormatted = latestTimestamp.toLocaleDateString('id-ID', {
+        day: '2-digit',
+        month: 'long', 
+        year: 'numeric',
+        timeZone: 'Asia/Jakarta',
+      });
+      
+      // Format waktu secara terpisah
+      const timeFormatted = latestTimestamp.toLocaleTimeString('id-ID', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+        timeZone: 'Asia/Jakarta',
+      });
+      
+      // Gabungkan dengan format yang diinginkan
+      return `${dateFormatted} pukul ${timeFormatted} WIB`;
+    })() : null;
 
   // Ekstrak ID dari hasil query kegiatan
   const kegiatanId = kegiatanResult.data?.id || null;
