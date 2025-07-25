@@ -13,20 +13,23 @@ import { BahanProduksiLink, BahanProduksiSektor } from "@/lib/types";
 import { ContentManagementDialog } from "./content-management-dialog";
 import { useAuth } from "@/context/AuthContext";
 
-// ✅ OPTIMIZED animation variants untuk smooth performance
+// ✅ OPTIMIZED animation variants untuk smooth performance dan stable layout
 const cardVariants: Variants = {
   front: { 
     rotateY: 0,
     transition: { 
-      duration: 0.4, // ✅ Reduced from 0.6s untuk lebih snappy
-      ease: [0.22, 1, 0.36, 1] // ✅ Custom cubic-bezier untuk smoother easing
+      duration: 0.35, // ✅ Slightly faster for less layout shift time
+      ease: [0.25, 0.1, 0.25, 1], // ✅ easeInOut cubic bezier for smoother animation
+      // ✅ FIX 10: Prevent intermediate layout calculations
+      transformOrigin: "center center"
     }
   },
   back: { 
     rotateY: 180,
     transition: { 
-      duration: 0.4, // ✅ Reduced from 0.6s
-      ease: [0.22, 1, 0.36, 1] // ✅ Custom cubic-bezier
+      duration: 0.35, // ✅ Consistent timing
+      ease: [0.25, 0.1, 0.25, 1], // ✅ easeInOut cubic bezier
+      transformOrigin: "center center"
     }
   }
 };
@@ -57,45 +60,58 @@ const LinksSection = ({ links, isVisible }: { links: BahanProduksiLink[], isVisi
   if (!isVisible) return null;
 
   return (
-    <div className="flex flex-col gap-2 overflow-y-auto pr-1 text-white scrollbar-thin scrollbar-thumb-white/20">
-      {/* ✅ OPTIMIZED: Removed AnimatePresence untuk mengurangi complexity */}
-      {linksWithIcons.map((link, index) => (
-        <motion.div
-          key={link.id}
-          variants={linkVariants}
-          initial="hidden"
-          animate="visible"
-          custom={index}
-        >
-          {/* ✅ SIMPLE: Native <a> tag tanpa animasi berlebihan */}
-          <a 
-            href={link.href || '#'} 
-            target="_blank" 
-            rel="noopener noreferrer" 
-            className="group block"
-            style={{
-              WebkitTapHighlightColor: 'rgba(0,0,0,0)',
-              outline: 'none'
-            }}
-          >
-            <div className="flex items-center gap-3 rounded-md p-2 text-left transition-colors hover:bg-white/20 dark:hover:bg-white/10">
-              <link.LinkIcon className="h-5 w-5 flex-shrink-0 opacity-80"/>
-              <span className="text-sm font-medium">{link.label}</span>
-              <ArrowUpRight className="ml-auto h-4 w-4 opacity-70 transition-opacity group-hover:opacity-100"/>
-            </div>
-          </a>
-        </motion.div>
-      ))}
-      {linksWithIcons.length === 0 && (
-        <motion.p 
-          className="text-sm text-center text-muted-foreground/80"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-        >
-          Belum ada link di sektor ini.
-        </motion.p>
-      )}
+    // ✅ FIX 7: Improve scrolling stability and prevent flickering
+    <div className="h-full flex flex-col overflow-hidden">
+      <div 
+        className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent pr-1"
+        style={{
+          // ✅ FIX 8: Force scrollbar space to prevent layout shifts
+          scrollbarGutter: "stable",
+          // ✅ FIX 9: Smooth scrolling behavior
+          scrollBehavior: "smooth"
+        }}
+      >
+        <div className="flex flex-col gap-2 text-white">
+          {/* ✅ OPTIMIZED: Removed AnimatePresence untuk mengurangi complexity */}
+          {linksWithIcons.map((link, index) => (
+            <motion.div
+              key={link.id}
+              variants={linkVariants}
+              initial="hidden"
+              animate="visible"
+              custom={index}
+            >
+              {/* ✅ SIMPLE: Native <a> tag tanpa animasi berlebihan */}
+              <a 
+                href={link.href || '#'} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="group block"
+                style={{
+                  WebkitTapHighlightColor: 'rgba(0,0,0,0)',
+                  outline: 'none'
+                }}
+              >
+                <div className="flex items-center gap-3 rounded-md p-2 text-left transition-colors hover:bg-white/20 dark:hover:bg-white/10">
+                  <link.LinkIcon className="h-5 w-5 flex-shrink-0 opacity-80"/>
+                  <span className="text-sm font-medium truncate flex-1">{link.label}</span>
+                  <ArrowUpRight className="ml-auto h-4 w-4 opacity-70 transition-opacity group-hover:opacity-100 flex-shrink-0"/>
+                </div>
+              </a>
+            </motion.div>
+          ))}
+          {linksWithIcons.length === 0 && (
+            <motion.p 
+              className="text-sm text-center text-muted-foreground/80 p-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+            >
+              Belum ada link di sektor ini.
+            </motion.p>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
@@ -122,17 +138,20 @@ const SektorCard = ({ sektor, flippedCardId, onFlip, onReset }: {
   }, [sektor.id, onFlip]);
 
   return (
-    <div className="perspective-1000">
+    // ✅ FIX 1: Add fixed height container to prevent layout shifts
+    <div className="perspective-1000 h-80">
       <motion.div
-        className="relative h-80 w-full"
+        className="relative w-full h-full"
         style={{ 
           transformStyle: "preserve-3d",
-          willChange: "transform" // ✅ GPU optimization hint
+          willChange: "transform", // ✅ GPU optimization hint
+          // ✅ FIX 2: Force containment to prevent layout recalculation
+          contain: "layout style paint"
         }}
         animate={isFlipped ? "back" : "front"}
         variants={cardVariants}
         layout={false}
-        // ✅ PERFORMANCE: Disable transform origin untuk smoother animation
+        // ✅ FIX 3: Simplified transform to reduce GPU overhead
         transformTemplate={({ rotateY }) => `rotateY(${rotateY})`}
       >
         {/* --- SISI DEPAN KARTU --- */}
@@ -142,7 +161,9 @@ const SektorCard = ({ sektor, flippedCardId, onFlip, onReset }: {
           className="absolute inset-0 flex h-full w-full cursor-pointer flex-col items-center justify-center rounded-2xl p-6 text-center shadow-lg bg-gradient-to-br from-white/20 to-white/10 dark:from-white/10 dark:to-white/5 border border-white/30 dark:border-white/20"
           style={{ 
             backfaceVisibility: "hidden",
-            WebkitBackfaceVisibility: "hidden" // ✅ Safari compatibility
+            WebkitBackfaceVisibility: "hidden", // ✅ Safari compatibility
+            // ✅ FIX 4: Prevent any overflow issues
+            overflow: "hidden"
           }}
           onClick={handleCardClick}
           onKeyDown={handleKeyDown}
@@ -158,15 +179,17 @@ const SektorCard = ({ sektor, flippedCardId, onFlip, onReset }: {
           style={{ 
             backfaceVisibility: "hidden", 
             WebkitBackfaceVisibility: "hidden", // ✅ Safari compatibility
-            transform: "rotateY(180deg)" 
+            transform: "rotateY(180deg)",
+            // ✅ FIX 5: Ensure back card doesn't cause overflow
+            overflow: "hidden"
           }}
         >
-          <div className="flex items-center justify-between border-b border-white/20 dark:border-white/10 pb-2 mb-2 text-white">
-            <h3 className="font-bold">{sektor.nama}</h3>
+          <div className="flex items-center justify-between border-b border-white/20 dark:border-white/10 pb-2 mb-2 text-white flex-shrink-0">
+            <h3 className="font-bold truncate">{sektor.nama}</h3>
             <Button 
               variant="ghost" 
               size="icon" 
-              className="h-8 w-8 rounded-full hover:bg-white/20 dark:hover:bg-white/15" 
+              className="h-8 w-8 rounded-full hover:bg-white/20 dark:hover:bg-white/15 flex-shrink-0" 
               onClick={onReset}
             >
               <Undo2 className="h-4 w-4"/>
@@ -174,10 +197,13 @@ const SektorCard = ({ sektor, flippedCardId, onFlip, onReset }: {
             </Button>
           </div>
 
-          <LinksSection 
-            links={sektor.links} 
-            isVisible={isFlipped}
-          />
+          {/* ✅ FIX 6: Fixed height for links container with stable scrolling */}
+          <div className="flex-1 min-h-0">
+            <LinksSection 
+              links={sektor.links} 
+              isVisible={isFlipped}
+            />
+          </div>
         </motion.div>
       </motion.div>
     </div>
@@ -281,26 +307,37 @@ export function BahanProduksiClient() {
       </CardHeader>
 
       <CardContent>
-        <Carousel opts={carouselOptions} className="w-full">
-          <CarouselContent className="-ml-4">
-            {dataSektor.map((sektor) => (
-              <CarouselItem 
-                key={sektor.id} 
-                className="pl-4 basis-full sm:basis-1/1 md:basis-1/2 lg:basis-1/3 xl:basis-1/4"
-              >
-                <SektorCard
-                  sektor={sektor}
-                  flippedCardId={flippedCardId}
-                  onFlip={handleCardFlip}
-                  onReset={handleCardReset}
-                />
-              </CarouselItem>
-            ))}
-          </CarouselContent>
-          
-          <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2 text-white bg-white/10 hover:bg-white/20 dark:bg-white/5 dark:hover:bg-white/15 border-white/20 dark:border-white/10" />
-          <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2 text-white bg-white/10 hover:bg-white/20 dark:bg-white/5 dark:hover:bg-white/15 border-white/20 dark:border-white/10" />
-        </Carousel>
+        {/* ✅ FIX 11: Add stable container to prevent layout shifts during carousel animation */}
+        <div 
+          className="w-full" 
+          style={{
+            // ✅ FIX 12: Force containment to prevent layout recalculation in parent
+            contain: "layout style",
+            // ✅ FIX 13: Ensure stable height
+            minHeight: "320px" // 80*4 (card height)
+          }}
+        >
+          <Carousel opts={carouselOptions} className="w-full">
+            <CarouselContent className="-ml-4">
+              {dataSektor.map((sektor) => (
+                <CarouselItem 
+                  key={sektor.id} 
+                  className="pl-4 basis-full sm:basis-1/1 md:basis-1/2 lg:basis-1/3 xl:basis-1/4"
+                >
+                  <SektorCard
+                    sektor={sektor}
+                    flippedCardId={flippedCardId}
+                    onFlip={handleCardFlip}
+                    onReset={handleCardReset}
+                  />
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            
+            <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2 text-white bg-white/10 hover:bg-white/20 dark:bg-white/5 dark:hover:bg-white/15 border-white/20 dark:border-white/10" />
+            <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2 text-white bg-white/10 hover:bg-white/20 dark:bg-white/5 dark:hover:bg-white/15 border-white/20 dark:border-white/10" />
+          </Carousel>
+        </div>
       </CardContent>
     </Card>
   );
