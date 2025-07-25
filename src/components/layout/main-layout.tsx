@@ -189,7 +189,7 @@ export default function MainLayout({ children, isCollapsed, setIsCollapsed }: Ma
                 aria-label="Toggle dark mode"
                 type="button"
               >
-                {isDark ? <Sun size={20} className="text-foreground" /> : <Moon size={20} className="text-foreground" />}
+                {isDark ? <Sun size={20} className="text-orange-500" /> : <Moon size={20} className="text-foreground" />}
               </button>
             </div>
           </header>

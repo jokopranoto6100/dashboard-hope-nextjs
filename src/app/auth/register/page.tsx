@@ -56,43 +56,43 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4 sm:p-4">
       {/* Dark Mode Toggle */}
       <button
-        className="fixed top-4 right-4 p-2 rounded-full border bg-background hover:bg-muted transition z-50 shadow-sm"
+        className="fixed top-4 right-4 sm:top-4 sm:right-4 p-2 rounded-full border bg-background hover:bg-muted transition z-50 shadow-sm"
         onClick={toggleDarkMode}
         aria-label="Toggle dark mode"
         type="button"
       >
-        {isDark ? <Sun size={20} className="text-foreground" /> : <Moon size={20} className="text-foreground" />}
+        {isDark ? <Sun size={18} className="sm:w-5 sm:h-5 text-orange-500" /> : <Moon size={18} className="sm:w-5 sm:h-5 text-foreground" />}
       </button>
       
       <div className="relative w-full max-w-4xl bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden flex flex-col lg:flex-row-reverse">
         
-        <div className="w-full lg:w-1/2 p-8 md:p-12 flex flex-col justify-center">
+        <div className="w-full lg:w-1/2 p-8 sm:p-8 md:p-12 lg:p-16 flex flex-col justify-center">
           
           {/* === TAMBAHAN: Mengembalikan header formulir yang hilang === */}
-          <div className="mb-6 text-center lg:text-left">
-            <h1 className="text-4xl font-extrabold text-gray-900 dark:text-gray-100 mb-2">Buat Akun Baru</h1>
-            <p className="text-gray-600 dark:text-gray-300 text-lg">Mulai perjalanan Anda bersama Dashboard HOPE</p>
+          <div className="mb-8 sm:mb-8 text-center lg:text-left">
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-gray-100 mb-2">Buat Akun Baru</h1>
+            <p className="text-gray-600 dark:text-gray-300 text-base sm:text-lg">Mulai perjalanan Anda bersama Dashboard HOPE</p>
           </div>
 
           {/* Informasi Penting tentang Proses Aktivasi */}
-          <Alert className="mb-6 border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800">
+          <Alert className="mb-8 sm:mb-8 border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800">
             <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-            <AlertDescription className="text-amber-800 dark:text-amber-200">
+            <AlertDescription className="text-amber-800 dark:text-amber-200 text-sm sm:text-base">
               <strong>Perhatian:</strong> Setelah registrasi, akun Anda perlu diaktifkan oleh Admin BPS Kalbar sebelum dapat login.
             </AlertDescription>
           </Alert>
           
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 sm:space-y-6">
               
               <FormField control={form.control} name="fullname" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Nama Lengkap</FormLabel>
+                  <FormLabel className="text-sm sm:text-base">Nama Lengkap</FormLabel>
                   <FormControl>
-                    <Input placeholder="Nama lengkap Anda" {...field} className="h-12 text-lg focus:border-teal-500 focus:ring-teal-200" />
+                    <Input placeholder="Nama lengkap Anda" {...field} className="h-12 sm:h-12 text-base sm:text-lg px-4 sm:px-4 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 focus:border-teal-500 dark:focus:border-teal-400 focus:ring focus:ring-teal-200 dark:focus:ring-teal-800" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -100,9 +100,9 @@ export default function RegisterPage() {
 
               <FormField control={form.control} name="username" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Username</FormLabel>
+                  <FormLabel className="text-sm sm:text-base">Username</FormLabel>
                   <FormControl>
-                    <Input placeholder="Username Anda" {...field} className="h-12 text-lg focus:border-teal-500 focus:ring-teal-200" />
+                    <Input placeholder="Username Anda" {...field} className="h-12 sm:h-12 text-base sm:text-lg px-4 sm:px-4 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 focus:border-teal-500 dark:focus:border-teal-400 focus:ring focus:ring-teal-200 dark:focus:ring-teal-800" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -110,9 +110,9 @@ export default function RegisterPage() {
 
               <FormField control={form.control} name="email" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel className="text-sm sm:text-base">Email</FormLabel>
                   <FormControl>
-                    <Input type="email" placeholder="Email Anda" {...field} className="h-12 text-lg focus:border-teal-500 focus:ring-teal-200" />
+                    <Input type="email" placeholder="Email Anda" {...field} className="h-12 sm:h-12 text-base sm:text-lg px-4 sm:px-4 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 focus:border-teal-500 dark:focus:border-teal-400 focus:ring focus:ring-teal-200 dark:focus:ring-teal-800" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -120,9 +120,9 @@ export default function RegisterPage() {
               
               <FormField control={form.control} name="password" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Password</FormLabel>
+                  <FormLabel className="text-sm sm:text-base">Password</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="Password Anda" {...field} className="h-12 text-lg focus:border-teal-500 focus:ring-teal-200" />
+                    <Input type="password" placeholder="Password Anda" {...field} className="h-12 sm:h-12 text-base sm:text-lg px-4 sm:px-4 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 focus:border-teal-500 dark:focus:border-teal-400 focus:ring focus:ring-teal-200 dark:focus:ring-teal-800" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -134,7 +134,7 @@ export default function RegisterPage() {
                 name="satker_id"
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
-                    <FormLabel>Satuan Kerja</FormLabel>
+                    <FormLabel className="text-sm sm:text-base">Satuan Kerja</FormLabel>
                     <Popover>
                       <PopoverTrigger asChild>
                         <FormControl>
@@ -142,7 +142,7 @@ export default function RegisterPage() {
                             variant="outline"
                             role="combobox"
                             className={cn(
-                              "h-12 w-full justify-between text-lg font-normal",
+                              "h-12 sm:h-12 w-full justify-between text-sm sm:text-base font-normal px-4 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-600",
                               !field.value && "text-muted-foreground"
                             )}
                           >
@@ -156,9 +156,9 @@ export default function RegisterPage() {
                           </Button>
                         </FormControl>
                       </PopoverTrigger>
-                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0 h-[300px]">
+                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0 h-[250px] sm:h-[300px]">
                         <Command>
-                          <CommandInput placeholder="Cari satuan kerja..." />
+                          <CommandInput placeholder="Cari satuan kerja..." className="h-9 sm:h-10 text-sm sm:text-sm" />
                           <CommandEmpty>Satuan kerja tidak ditemukan.</CommandEmpty>
                           <CommandList>
                             <CommandGroup>
@@ -166,6 +166,7 @@ export default function RegisterPage() {
                                 <CommandItem
                                   value={satker.label}
                                   key={satker.value}
+                                  className="text-sm sm:text-sm py-2.5 sm:py-2"
                                   onSelect={() => {
                                     // PERBAIKAN: Pastikan nilai yang disimpan ke form adalah number
                                     form.setValue("satker_id", Number(satker.value));
@@ -193,23 +194,23 @@ export default function RegisterPage() {
                 )}
               />
               
-              <Button type="submit" className="w-full h-12 text-lg bg-teal-500 hover:bg-teal-600" disabled={isPending}>
+              <Button type="submit" className="w-full h-12 sm:h-12 text-base sm:text-lg bg-teal-500 dark:bg-teal-600 text-white hover:bg-teal-600 dark:hover:bg-teal-700" disabled={isPending}>
                 {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Daftar
               </Button>
             </form>
           </Form>
 
-          <div className="mt-8 text-center text-gray-600">
+          <div className="mt-8 sm:mt-8 text-center text-gray-600 dark:text-gray-300 text-sm sm:text-base">
             Sudah punya akun?{' '}
-            <Link href="/auth/login" className="text-teal-600 hover:underline font-semibold">
+            <Link href="/auth/login" className="text-teal-600 dark:text-teal-400 hover:underline font-semibold">
               Login di sini
             </Link>
           </div>
         </div>
 
         {/* Kolom Kanan: Ilustrasi */}
-        <div className="hidden lg:flex w-1/2 bg-gray-100 items-center justify-center p-8">
+        <div className="hidden lg:flex w-1/2 bg-gray-100 dark:bg-gray-700 items-center justify-center p-8 sm:p-12">
             <div className="relative w-full h-full flex items-center justify-center">
                 {/* === PERBAIKAN: Menggunakan gambar yang sesuai untuk registrasi === */}
                 <div className="absolute inset-0 bg-contain bg-center bg-no-repeat opacity-80"

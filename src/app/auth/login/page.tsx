@@ -145,31 +145,31 @@ export default function LoginPage() {
 
   return (
     // UBAH: Menggunakan warna latar belakang abu-abu sangat muda agar lebih lembut
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-3 sm:p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4 sm:p-4">
       {/* Dark Mode Toggle */}
       <button
-        className="fixed top-3 right-3 sm:top-4 sm:right-4 p-2 rounded-full border bg-background hover:bg-muted transition z-50 shadow-sm"
+        className="fixed top-4 right-4 sm:top-4 sm:right-4 p-2 rounded-full border bg-background hover:bg-muted transition z-50 shadow-sm"
         onClick={toggleDarkMode}
         aria-label="Toggle dark mode"
         type="button"
       >
-        {isDark ? <Sun size={18} className="sm:w-5 sm:h-5 text-foreground" /> : <Moon size={18} className="sm:w-5 sm:h-5 text-foreground" />}
+        {isDark ? <Sun size={18} className="sm:w-5 sm:h-5 text-orange-500" /> : <Moon size={18} className="sm:w-5 sm:h-5 text-foreground" />}
       </button>
       
       <div className="relative w-full max-w-4xl bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden flex flex-col lg:flex-row">
         
         {/* Kolom Kiri - Form Login */}
-        <div className="w-full lg:w-1/2 p-6 sm:p-8 md:p-12 lg:p-16 flex flex-col justify-center">
+        <div className="w-full lg:w-1/2 p-8 sm:p-8 md:p-12 lg:p-16 flex flex-col justify-center">
           {/* Anda bisa menambahkan logo di sini jika mau */}
           {/* <Image src="/logo-hope.png" alt="HOPE Logo" width={150} height={50} className="mb-8" /> */}
 
-          <div className="mb-6 sm:mb-8">
+          <div className="mb-8 sm:mb-8">
             {/* UBAH: Menyesuaikan warna heading agar cocok dengan abu-abu di logo */}
             <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-800 dark:text-gray-100 mb-2">Hey!</h1>
             <p className="text-gray-600 dark:text-gray-300 text-base sm:text-lg">Welcome back to your hope</p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-4 sm:space-y-6">
+          <form onSubmit={handleLogin} className="space-y-6 sm:space-y-6">
             <div>
               <Label htmlFor="email" className="sr-only">Email</Label>
               <Input
@@ -180,7 +180,7 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 // UBAH: Mengubah warna focus ring menjadi teal
-                className="h-10 sm:h-12 text-base sm:text-lg px-3 sm:px-4 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 focus:border-teal-500 dark:focus:border-teal-400 focus:ring focus:ring-teal-200 dark:focus:ring-teal-800"
+                className="h-12 sm:h-12 text-base sm:text-lg px-4 sm:px-4 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 focus:border-teal-500 dark:focus:border-teal-400 focus:ring focus:ring-teal-200 dark:focus:ring-teal-800"
               />
             </div>
             <div>
@@ -193,10 +193,10 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 // UBAH: Mengubah warna focus ring menjadi teal
-                className="h-10 sm:h-12 text-base sm:text-lg px-3 sm:px-4 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 focus:border-teal-500 dark:focus:border-teal-400 focus:ring focus:ring-teal-200 dark:focus:ring-teal-800"
+                className="h-12 sm:h-12 text-base sm:text-lg px-4 sm:px-4 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 focus:border-teal-500 dark:focus:border-teal-400 focus:ring focus:ring-teal-200 dark:focus:ring-teal-800"
               />
             </div>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 text-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-0 text-sm">
               <div className="flex items-center">
                 <Checkbox
                   id="remember-me"
@@ -214,15 +214,15 @@ export default function LoginPage() {
               </Link>
             </div>
              {/* UBAH: Mengubah warna tombol menjadi teal */}
-            <Button type="submit" className="w-full h-10 sm:h-12 text-base sm:text-lg bg-teal-500 dark:bg-teal-600 text-white hover:bg-teal-600 dark:hover:bg-teal-700" disabled={loading}>
+            <Button type="submit" className="w-full h-12 sm:h-12 text-base sm:text-lg bg-teal-500 dark:bg-teal-600 text-white hover:bg-teal-600 dark:hover:bg-teal-700" disabled={loading}>
               {loading ? 'Signing In...' : 'Sign In'}
             </Button>
           </form>
-          <div className="mt-6 sm:mt-8 text-center text-gray-600 dark:text-gray-300 text-sm sm:text-base">
+          <div className="mt-8 sm:mt-8 text-center text-gray-600 dark:text-gray-300 text-sm sm:text-base">
             Don&apos;t have an account?{' '}
             <Link href="/auth/register" passHref>
                {/* UBAH: Mengubah warna link menjadi teal */}
-              <span className="text-teal-600 dark:text-teal-400 hover:underline font-semibold cursor-pointer">Sign Up</span>
+              <span className="text-teal-600 dark:text-teal-400 hover:underline font-semibold cursor-pointer">Register</span>
             </Link>
           </div>
         </div>
