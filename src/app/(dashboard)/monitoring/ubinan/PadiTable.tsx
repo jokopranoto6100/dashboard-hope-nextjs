@@ -66,7 +66,7 @@ const PadiTableSkeleton = ({ columns }: { columns: ColumnDef<PadiDataRow, unknow
   </div>
 );
 
-export function PadiMonitoringTable({ data, totals, isLoading, error, lastUpdate, jadwal }: PadiTableProps) {
+export function PadiMonitoringTable({ data, totals, isLoading, error, lastUpdate, selectedSubround, jadwal }: PadiTableProps) {
   const isMobile = useIsMobile();
   const [showAllColumns, setShowAllColumns] = React.useState(false);
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -87,23 +87,30 @@ export function PadiMonitoringTable({ data, totals, isLoading, error, lastUpdate
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    // FALLBACK: Jika tidak ada jadwal untuk subround spesifik, gunakan estimasi berdasarkan pola umum
-    // Subround 2 biasanya 2025-05-01 sampai 2025-08-31
-    const hasSubround2Schedule = allJadwalItems.some(j => 
-      j.nama && (j.nama.toLowerCase().includes('subround 2') || j.nama.toLowerCase().includes('pencacahan'))
-    );
+    // ✅ FILTER BERDASARKAN SELECTEDSUBROUND
+    let relevantJadwal = allJadwalItems;
     
-    if (!hasSubround2Schedule && jadwal.kegiatan === 'Ubinan Padi') {
-      const fallbackEndDate = new Date('2025-08-31');
-      fallbackEndDate.setHours(0, 0, 0, 0);
-      if (today <= fallbackEndDate) {
-        const daysLeft = getDiffInDays(today, fallbackEndDate);
-        return { text: `Berakhir dalam ${daysLeft} hari (estimasi)`, color: "text-orange-600" };
+    if (selectedSubround !== 'all') {
+      // Cari jadwal yang sesuai dengan subround yang dipilih
+      const subroundKeywords = {
+        '1': ['subround 1', 'subround i', 'sub-round 1', 'sr 1', 'sr1', 'pencacahan 1', 'ubinan padi 1'],
+        '2': ['subround 2', 'subround ii', 'sub-round 2', 'sr 2', 'sr2', 'pencacahan 2', 'ubinan padi 2'],
+        '3': ['subround 3', 'subround iii', 'sub-round 3', 'sr 3', 'sr3', 'pencacahan 3', 'ubinan padi 3']
+      };
+      
+      const keywords = subroundKeywords[selectedSubround as keyof typeof subroundKeywords] || [];
+      relevantJadwal = allJadwalItems.filter(j => 
+        j.nama && keywords.some(keyword => j.nama!.toLowerCase().includes(keyword))
+      );
+      
+      // Jika tidak ada jadwal khusus untuk subround, gunakan semua jadwal
+      if (relevantJadwal.length === 0) {
+        relevantJadwal = allJadwalItems;
       }
     }
     
-    // Cari jadwal yang sedang berlangsung atau akan datang
-    const activeJadwal = allJadwalItems.find(j => {
+    // Cari jadwal yang sedang berlangsung
+    const activeJadwal = relevantJadwal.find(j => {
       const startDate = new Date(j.startDate);
       const endDate = new Date(j.endDate);
       startDate.setHours(0, 0, 0, 0);
@@ -111,17 +118,18 @@ export function PadiMonitoringTable({ data, totals, isLoading, error, lastUpdate
       return today >= startDate && today <= endDate;
     });
     
-    // Jika ada jadwal yang sedang berlangsung, gunakan itu
+    // Jika ada jadwal yang sedang berlangsung
     if (activeJadwal) {
       const endDate = new Date(activeJadwal.endDate);
       endDate.setHours(0, 0, 0, 0);
       const daysLeft = getDiffInDays(today, endDate);
+      
       if (daysLeft === 0) return { text: "Berakhir Hari Ini", color: "text-red-600 font-bold" };
       return { text: `Berakhir dalam ${daysLeft} hari`, color: "text-green-600" };
     }
     
-    // Jika tidak ada yang sedang berlangsung, cari yang akan datang
-    const upcomingJadwal = allJadwalItems
+    // Cari jadwal yang akan datang
+    const upcomingJadwal = relevantJadwal
       .filter(j => {
         const startDate = new Date(j.startDate);
         startDate.setHours(0, 0, 0, 0);
@@ -133,13 +141,16 @@ export function PadiMonitoringTable({ data, totals, isLoading, error, lastUpdate
       const startDate = new Date(upcomingJadwal.startDate);
       startDate.setHours(0, 0, 0, 0);
       const daysUntil = getDiffInDays(today, startDate);
+      
+      if (daysUntil === 0) return { text: "Dimulai Hari Ini", color: "text-blue-600 font-bold" };
       if (daysUntil === 1) return { text: "Dimulai Besok", color: "text-blue-600" };
       return { text: `Dimulai dalam ${daysUntil} hari`, color: "text-blue-600" };
     }
     
     // Jika semua jadwal sudah berakhir
-    return { text: "Jadwal Telah Berakhir", color: "text-gray-500" };
-  }, [jadwal]);
+    const subroundInfo = selectedSubround !== 'all' ? ` Subround ${selectedSubround}` : '';
+    return { text: `Jadwal${subroundInfo} Telah Berakhir`, color: "text-gray-500" };
+  }, [jadwal, selectedSubround]);
   
   const allColumns = React.useMemo<ColumnDef<PadiDataRow>[]>(() => {
     const persentaseColumn: ColumnDef<PadiDataRow> = {
