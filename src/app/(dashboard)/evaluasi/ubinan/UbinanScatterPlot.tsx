@@ -78,12 +78,26 @@ export function UbinanScatterPlot({
         formatter: (params: { componentType: string; seriesType: string; data: { name: string; value: number[]; record_count: number; subround: number } }) => {
           if (params.componentType === 'series' && params.seriesType === 'scatter') {
             const item = params.data;
+            
+            // Helper function to format hasil ubinan with both ku/ha and kg/plot
+            const formatHasilUbinan = (value: number, variable: string, label: string) => {
+              if (variable === 'r701_per_ha') {
+                const kuHa = Number(value).toLocaleString('id-ID', { maximumFractionDigits: 2 });
+                const kgPlot = Number(value / 16).toLocaleString('id-ID', { maximumFractionDigits: 2 });
+                return `
+                  <div>${label}: ${kuHa} ku/ha</div>
+                  <div>Hasil Ubinan per Plot: ${kgPlot} kg/plot</div>
+                `;
+              } else {
+                return `<div>${label}: ${Number(value).toLocaleString('id-ID')} ${getVariableUnit(variable)}</div>`;
+              }
+            };
+            
             return `
               <div style="padding: 8px;">
                 <div style="font-weight: bold; margin-bottom: 4px;">${item.name}</div>
-                <div>${getVariableLabel(xVariable)}: ${Number(item.value[0]).toLocaleString('id-ID')} ${getVariableUnit(xVariable)}</div>
-                <div>${getVariableLabel(yVariable)}: ${Number(item.value[1]).toLocaleString('id-ID')} ${getVariableUnit(yVariable)}</div>
-                <div>Jumlah Data: ${item.record_count}</div>
+                ${formatHasilUbinan(item.value[0], xVariable, getVariableLabel(xVariable))}
+                ${formatHasilUbinan(item.value[1], yVariable, getVariableLabel(yVariable))}
                 <div>Subround: ${item.subround}</div>
               </div>
             `;

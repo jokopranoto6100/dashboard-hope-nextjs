@@ -51,7 +51,7 @@ export default function UbinanScatterPlotPage() {
   );
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center space-x-3">
         <BarChart3 className="h-8 w-8 text-blue-600" />
@@ -64,7 +64,7 @@ export default function UbinanScatterPlotPage() {
       </div>
 
       {/* Filter Controls */}
-      <Card>
+      <Card className="mt-6">
         <CardHeader>
           <CardTitle>Filter Data</CardTitle>
         </CardHeader>
@@ -209,7 +209,7 @@ export default function UbinanScatterPlotPage() {
 
       {/* Scatter Plot */}
       {selectedYear && selectedKomoditas && (
-        <Card>
+        <Card className="mt-6">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <TrendingUp className="h-5 w-5" />
@@ -230,7 +230,7 @@ export default function UbinanScatterPlotPage() {
 
       {/* Data Summary */}
       {scatterData.length > 0 && (
-        <Card>
+        <Card className="mt-6">
           <CardHeader>
             <CardTitle>Ringkasan Data</CardTitle>
           </CardHeader>
