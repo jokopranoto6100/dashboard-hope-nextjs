@@ -21,8 +21,8 @@ export default function UbinanScatterPlotPage() {
   // Independent filters for scatter plot page
   const [selectedKomoditas, setSelectedKomoditas] = useState<string>('');
   const [selectedSubround, setSelectedSubround] = useState<string>('all');
-  const [xVariable, setXVariable] = useState('r702'); // Default: Jumlah Rumpun
-  const [yVariable, setYVariable] = useState('r701'); // Default: Hasil Ubinan
+  const [xVariable, setXVariable] = useState('r702'); // Default: Jumlah Rumpun per plot
+  const [yVariable, setYVariable] = useState('r701_per_ha'); // Default: Hasil Ubinan per ha
   const [selectedKabupaten, setSelectedKabupaten] = useState<number | 'all'>('all');
 
   // Get subround options based on selected komoditas
@@ -49,11 +49,6 @@ export default function UbinanScatterPlotPage() {
     generateScatterPlotTitle(xVariable, yVariable), 
     [xVariable, yVariable]
   );
-
-  const handleApplyPreset = (xVar: string, yVar: string) => {
-    setXVariable(xVar);
-    setYVariable(yVar);
-  };
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -174,7 +169,6 @@ export default function UbinanScatterPlotPage() {
         yVariable={yVariable}
         onXVariableChange={setXVariable}
         onYVariableChange={setYVariable}
-        onApplyPreset={handleApplyPreset}
       />
 
       {/* Loading Alert */}

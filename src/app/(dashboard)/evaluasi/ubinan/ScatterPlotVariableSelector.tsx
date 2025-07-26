@@ -5,30 +5,30 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { SCATTER_PLOT_VARIABLES, POPULAR_COMBINATIONS } from './scatter-plot-constants';
+import { SCATTER_PLOT_VARIABLES } from './scatter-plot-constants';
 
 interface ScatterPlotVariableSelectorProps {
   xVariable: string;
   yVariable: string;
   onXVariableChange: (value: string) => void;
   onYVariableChange: (value: string) => void;
-  onApplyPreset: (xVar: string, yVar: string) => void;
 }
 
 export function ScatterPlotVariableSelector({
   xVariable,
   yVariable,
   onXVariableChange,
-  onYVariableChange,
-  onApplyPreset
+  onYVariableChange
 }: ScatterPlotVariableSelectorProps) {
   
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-lg">Pengaturan Variabel Scatter Plot</CardTitle>
+                <p className="text-sm text-muted-foreground mb-4">
+          Semua variabel telah distandarisasi dalam satuan per hektar untuk perbandingan yang meaningful, 
+          kecuali jumlah rumpun yang tetap dalam satuan per plot untuk menunjukkan kepadatan tanam dalam area sampling.
+        </p>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Variable Selectors */}
@@ -73,34 +73,6 @@ export function ScatterPlotVariableSelector({
                 ))}
               </SelectContent>
             </Select>
-          </div>
-        </div>
-
-        {/* Popular Combinations */}
-        <div className="space-y-3">
-          <Label className="text-sm font-medium">Kombinasi Populer</Label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {POPULAR_COMBINATIONS.map((combo, index) => (
-              <Button
-                key={index}
-                variant="outline"
-                size="sm"
-                className="h-auto p-3 text-left justify-start"
-                onClick={() => onApplyPreset(combo.xVariable, combo.yVariable)}
-              >
-                <div className="flex flex-col items-start space-y-1">
-                  <div className="flex items-center space-x-2">
-                    <Badge variant="secondary" className="text-xs">
-                      {combo.xVariable} vs {combo.yVariable}
-                    </Badge>
-                  </div>
-                  <span className="text-xs font-medium">{combo.title}</span>
-                  <span className="text-xs text-gray-500 line-clamp-2">
-                    {combo.description}
-                  </span>
-                </div>
-              </Button>
-            ))}
           </div>
         </div>
 

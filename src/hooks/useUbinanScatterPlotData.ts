@@ -43,7 +43,7 @@ export const useUbinanScatterPlotData = (
       
       while (hasMore && page < 100) { // Max 100 pages = 100k records untuk safety
         const { data: pageData, error: pageError } = await supabase
-          .rpc('get_ubinan_scatter_plot_data', {
+          .rpc('get_ubinan_scatter_plot_standardized', {
             tahun_val: selectedYear,
             komoditas_val: komoditasFilter,
             subround_filter: selectedSubround === 'all' ? 'all' : String(selectedSubround),
