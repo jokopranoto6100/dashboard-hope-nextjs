@@ -16,8 +16,9 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
-import { SlidersHorizontal, Download, Loader2, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { SlidersHorizontal, Download, Loader2, ArrowUpDown, ArrowUp, ArrowDown, BarChart3 } from 'lucide-react';
 import { toast } from "sonner";
+import Link from 'next/link';
 
 // Impor konteks dan hooks kustom
 import { useUbinanEvaluasiFilter } from '@/context/UbinanEvaluasiFilterContext';
@@ -405,7 +406,10 @@ export function EvaluasiUbinanClient() {
         </div>
       </div>
       <Card>
-        <CardHeader><CardTitle>Mode Analisis</CardTitle><CardDescription>Pilih mode untuk analisis mendalam satu tahun atau perbandingan antar waktu.</CardDescription></CardHeader>
+        <CardHeader>
+          <CardTitle>Mode Analisis</CardTitle>
+          <CardDescription>Pilih mode untuk analisis mendalam satu tahun atau perbandingan antar waktu.</CardDescription>
+        </CardHeader>
         <CardContent className="flex flex-col sm:flex-row gap-4 items-center flex-wrap">
             <Tabs value={analysisMode} onValueChange={(value) => setAnalysisMode(value as 'detail' | 'comparison')} className="w-full sm:w-auto">
                 <TabsList><TabsTrigger value="detail">Analisis Detail</TabsTrigger><TabsTrigger value="comparison">Perbandingan Waktu</TabsTrigger></TabsList>
@@ -415,6 +419,14 @@ export function EvaluasiUbinanClient() {
                     <SelectTrigger id="comparison-year-filter" className="w-[150px]"><SelectValue placeholder="Pilih Tahun" /></SelectTrigger>
                     <SelectContent><SelectItem value="none">(Tidak ada)</SelectItem>{availableYears?.filter(y => y !== selectedYear).map(year => (<SelectItem key={year} value={String(year)}>{year}</SelectItem>))}</SelectContent>
                 </Select>
+            </div>
+            <div className="flex items-center gap-2 pl-2 sm:border-l">
+              <Link href="/evaluasi/ubinan/scatter-plot">
+                <Button variant="outline" size="sm" className="flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4" />
+                  Scatter Plot Analysis
+                </Button>
+              </Link>
             </div>
         </CardContent>
       </Card>

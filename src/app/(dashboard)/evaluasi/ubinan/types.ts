@@ -97,3 +97,30 @@ export interface HasilUbinanDetailRow {
   subsegmen: string | null;
   total_records: number;
 }
+
+// For Dynamic Scatter Plot
+export interface ScatterPlotDataRow {
+  kab: number;
+  nama_kabupaten: string;
+  x_value: number;
+  y_value: number;
+  record_count: number;
+  komoditas: string;
+  subround: number;
+  tahun: number;
+}
+
+export interface VariableOption {
+  value: string;
+  label: string;
+  description?: string;
+  unit?: string;
+}
+
+export interface ScatterPlotConfig {
+  xVariable: string;
+  yVariable: string;
+  xLabel: string;
+  yLabel: string;
+  title: string;
+}
