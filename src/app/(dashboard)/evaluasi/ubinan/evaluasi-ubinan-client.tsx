@@ -410,24 +410,48 @@ export function EvaluasiUbinanClient() {
           <CardTitle>Mode Analisis</CardTitle>
           <CardDescription>Pilih mode untuk analisis mendalam satu tahun atau perbandingan antar waktu.</CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col sm:flex-row gap-4 items-center flex-wrap">
+        <CardContent className="space-y-4">
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
             <Tabs value={analysisMode} onValueChange={(value) => setAnalysisMode(value as 'detail' | 'comparison')} className="w-full sm:w-auto">
-                <TabsList><TabsTrigger value="detail">Analisis Detail</TabsTrigger><TabsTrigger value="comparison">Perbandingan Waktu</TabsTrigger></TabsList>
+              <TabsList>
+                <TabsTrigger value="detail">Analisis Detail</TabsTrigger>
+                <TabsTrigger value="comparison">Perbandingan Waktu</TabsTrigger>
+              </TabsList>
             </Tabs>
-            <div className="flex items-center gap-2 pl-2 sm:border-l"><Label htmlFor="comparison-year-filter" className="text-sm font-medium">Tahun Pembanding:</Label>
-                <Select value={comparisonYear ? String(comparisonYear) : "none"} onValueChange={(value) => setComparisonYear(value === "none" ? null : Number(value))} disabled={analysisMode !== 'comparison'}>
-                    <SelectTrigger id="comparison-year-filter" className="w-[150px]"><SelectValue placeholder="Pilih Tahun" /></SelectTrigger>
-                    <SelectContent><SelectItem value="none">(Tidak ada)</SelectItem>{availableYears?.filter(y => y !== selectedYear).map(year => (<SelectItem key={year} value={String(year)}>{year}</SelectItem>))}</SelectContent>
+            
+            {/* Tahun Pembanding - hanya muncul ketika mode comparison aktif */}
+            {analysisMode === 'comparison' && (
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:pl-4 sm:border-l w-full sm:w-auto">
+                <Label htmlFor="comparison-year-filter" className="text-sm font-medium whitespace-nowrap">
+                  Tahun Pembanding:
+                </Label>
+                <Select 
+                  value={comparisonYear ? String(comparisonYear) : "none"} 
+                  onValueChange={(value) => setComparisonYear(value === "none" ? null : Number(value))}
+                >
+                  <SelectTrigger id="comparison-year-filter" className="w-full sm:w-[150px]">
+                    <SelectValue placeholder="Pilih Tahun" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">(Tidak ada)</SelectItem>
+                    {availableYears?.filter(y => y !== selectedYear).map(year => (
+                      <SelectItem key={year} value={String(year)}>{year}</SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
-            </div>
-            <div className="flex items-center gap-2 pl-2 sm:border-l">
-              <Link href="/evaluasi/ubinan/scatter-plot">
-                <Button variant="outline" size="sm" className="flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4" />
-                  Scatter Plot Analysis
-                </Button>
-              </Link>
-            </div>
+              </div>
+            )}
+          </div>
+          
+          {/* Link ke Scatter Plot Analysis */}
+          <div className="flex justify-start">
+            <Link href="/evaluasi/ubinan/scatter-plot">
+              <Button variant="outline" size="sm" className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4" />
+                Scatter Plot Analysis
+              </Button>
+            </Link>
+          </div>
         </CardContent>
       </Card>
       <div className={analysisMode === 'detail' ? 'block' : 'hidden'}>

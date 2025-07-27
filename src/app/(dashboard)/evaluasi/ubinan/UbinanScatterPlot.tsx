@@ -1,7 +1,7 @@
 // src/app/(dashboard)/evaluasi/ubinan/UbinanScatterPlot.tsx
 "use client";
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import ReactECharts from 'echarts-for-react';
 import { ScatterPlotDataRow } from './types';
 import { getVariableLabel, getVariableUnit } from './scatter-plot-constants';
@@ -10,27 +10,67 @@ interface UbinanScatterPlotProps {
   data: ScatterPlotDataRow[];
   xVariable: string;
   yVariable: string;
-  title: string;
   isLoading?: boolean;
+}
+
+// Hook to detect dark mode
+function useDarkMode() {
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    const checkDarkMode = () => {
+      if (typeof window !== 'undefined') {
+        const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches ||
+                          document.documentElement.classList.contains('dark');
+        setIsDark(isDarkMode);
+      }
+    };
+
+    checkDarkMode();
+    
+    // Listen for changes
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    mediaQuery.addEventListener('change', checkDarkMode);
+    
+    // Listen for class changes on html element
+    const observer = new MutationObserver(checkDarkMode);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+
+    return () => {
+      mediaQuery.removeEventListener('change', checkDarkMode);
+      observer.disconnect();
+    };
+  }, []);
+
+  return isDark;
 }
 
 export function UbinanScatterPlot({
   data,
   xVariable,
   yVariable,
-  title,
   isLoading = false
 }: UbinanScatterPlotProps) {
   
+  const isDarkMode = useDarkMode();
+  
   const chartOptions = useMemo(() => {
+    const textColor = isDarkMode ? '#e5e7eb' : '#374151';
+    const axisColor = isDarkMode ? '#6b7280' : '#9ca3af';
+    const gridColor = isDarkMode ? '#374151' : '#e5e7eb';
+    
     if (!data || data.length === 0) {
       return {
+        backgroundColor: 'transparent',
         title: {
           text: 'Tidak ada data untuk ditampilkan',
           left: 'center',
           top: 'middle',
           textStyle: {
-            color: '#64748b',
+            color: textColor,
             fontSize: 14
           }
         }
@@ -57,16 +97,14 @@ export function UbinanScatterPlot({
     const trendLine = generateTrendLine(data);
 
     return {
+      backgroundColor: 'transparent',
       title: {
-        text: title,
-        subtext: `Koefisien Korelasi: ${correlation.toFixed(3)}`,
+        text: `Koefisien Korelasi: ${correlation.toFixed(3)}`,
         left: 'center',
+        top: '2%',
         textStyle: {
-          fontSize: 16,
-          fontWeight: 'bold'
-        },
-        subtextStyle: {
-          fontSize: 12,
+          fontSize: 13,
+          fontWeight: 'bold',
           color: correlation > 0.7 ? '#10b981' : correlation > 0.4 ? '#f59e0b' : '#ef4444'
         }
       },
@@ -106,19 +144,37 @@ export function UbinanScatterPlot({
         }
       },
       grid: {
-        left: '10%',
-        right: '10%',
+        left: '12%',
+        right: '8%',
         bottom: '15%',
-        top: '20%',
-        containLabel: true
+        top: '15%',
+        containLabel: true,
+        borderColor: gridColor,
+        show: true
       },
       xAxis: {
         type: 'value',
         name: `${getVariableLabel(xVariable)} (${getVariableUnit(xVariable)})`,
         nameLocation: 'middle',
         nameGap: 30,
+        nameTextStyle: {
+          color: textColor,
+          fontSize: 12
+        },
         axisLabel: {
-          formatter: (value: number) => value.toLocaleString('id-ID')
+          formatter: (value: number) => value.toLocaleString('id-ID'),
+          color: axisColor
+        },
+        axisLine: {
+          lineStyle: {
+            color: axisColor
+          }
+        },
+        splitLine: {
+          lineStyle: {
+            color: gridColor,
+            opacity: 0.3
+          }
         }
       },
       yAxis: {
@@ -126,8 +182,24 @@ export function UbinanScatterPlot({
         name: `${getVariableLabel(yVariable)} (${getVariableUnit(yVariable)})`,
         nameLocation: 'middle',
         nameGap: 50,
+        nameTextStyle: {
+          color: textColor,
+          fontSize: 12
+        },
         axisLabel: {
-          formatter: (value: number) => value.toLocaleString('id-ID')
+          formatter: (value: number) => value.toLocaleString('id-ID'),
+          color: axisColor
+        },
+        axisLine: {
+          lineStyle: {
+            color: axisColor
+          }
+        },
+        splitLine: {
+          lineStyle: {
+            color: gridColor,
+            opacity: 0.3
+          }
         }
       },
       series: [
@@ -166,7 +238,7 @@ export function UbinanScatterPlot({
         }
       ]
     };
-  }, [data, xVariable, yVariable, title]);
+  }, [data, xVariable, yVariable, isDarkMode]);
 
   if (isLoading) {
     return (
@@ -180,11 +252,12 @@ export function UbinanScatterPlot({
   }
 
   return (
-    <div className="w-full">
+    <div className="w-full h-full">
       <ReactECharts 
         option={chartOptions} 
-        style={{ height: '500px', width: '100%' }}
+        style={{ height: '100%', width: '100%', minHeight: '300px' }}
         opts={{ renderer: 'canvas' }}
+        lazyUpdate={true}
       />
     </div>
   );
