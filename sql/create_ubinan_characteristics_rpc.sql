@@ -103,8 +103,8 @@ BEGIN
                  COALESCE(ur.r610_5::NUMERIC, 0) > 0 OR 
                  COALESCE(ur.r610_6::NUMERIC, 0) > 0 OR 
                  COALESCE(ur.r610_7::NUMERIC, 0) > 0 
-            THEN 'Menggunakan Pupuk'
-            ELSE 'Tidak Menggunakan Pupuk'
+            THEN 'Ya'
+            ELSE 'Tidak'
         END as menggunakan_pupuk,
         
         -- Bantuan benih (r801a_value adalah text, lebih fleksibel)
@@ -197,3 +197,27 @@ GRANT EXECUTE ON FUNCTION get_ubinan_characteristics_data TO authenticated;
 
 -- Debug query untuk cek nilai unik di field bermasalah:
 -- SELECT DISTINCT r609_value, r609_label, komoditas, tahun FROM ubinan_raw WHERE tahun IN ('2024', '2025') AND komoditas ILIKE '%jagung%' ORDER BY komoditas, r609_value;
+
+-- Debug query untuk cek penggunaan pupuk:
+-- SELECT 
+--   r610_1, r610_2, r610_3, r610_4, r610_5, r610_6, r610_7,
+--   CASE 
+--     WHEN COALESCE(r610_1::NUMERIC, 0) > 0 OR 
+--          COALESCE(r610_2::NUMERIC, 0) > 0 OR 
+--          COALESCE(r610_3::NUMERIC, 0) > 0 OR 
+--          COALESCE(r610_4::NUMERIC, 0) > 0 OR 
+--          COALESCE(r610_5::NUMERIC, 0) > 0 OR 
+--          COALESCE(r610_6::NUMERIC, 0) > 0 OR 
+--          COALESCE(r610_7::NUMERIC, 0) > 0 
+--     THEN 'Ya'
+--     ELSE 'Tidak'
+--   END as menggunakan_pupuk,
+--   komoditas, tahun, subround, kab
+-- FROM ubinan_raw 
+-- WHERE tahun = '2024' AND komoditas ILIKE '%Padi Sawah%' 
+-- LIMIT 20;
+
+-- Debug query untuk cek nama kolom pupuk yang tersedia:
+-- SELECT column_name FROM information_schema.columns 
+-- WHERE table_name = 'ubinan_raw' AND column_name LIKE '%610%' 
+-- ORDER BY column_name;

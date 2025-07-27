@@ -5,7 +5,11 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { BarChart3, TrendingUp, Calendar, MapPin } from 'lucide-react';
+import { BarChart3, TrendingUp, MapPin, AlertCircle } from 'lucide-react';
+
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 import { CharacteristicsTabNavigation, type CharacteristicsTab } from './components/CharacteristicsTabNavigation';
 import { KarakteristikLahanTab } from './components/KarakteristikLahanTab';
@@ -67,124 +71,176 @@ export default function KarakteristikSampelUbinanPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-      {/* Header Section */}
-      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            {/* Title and Description */}
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                  <BarChart3 className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div>
-                  <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-gray-100">
-                    Karakteristik Sampel Ubinan
-                  </h1>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm lg:text-base">
-                    Analisis komprehensif karakteristik lahan, varietas benih, penggunaan pupuk, dan dukungan program
-                  </p>
-                </div>
+    <div className="space-y-4">
+      {/* Header - following scatter-plot pattern with gradient */}
+      <div 
+        className="relative overflow-hidden rounded-xl p-4 sm:p-6 text-white shadow-xl"
+        style={{
+          background: 'linear-gradient(135deg, rgb(59, 130, 246) 0%, rgb(37, 99, 235) 50%, rgb(29, 78, 216) 100%)'
+        }}
+      >
+        {/* Background pattern dengan dark mode adaptif */}
+        <div className="absolute inset-0 bg-black/10 dark:bg-black/20" />
+        <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent dark:from-white/3 dark:to-transparent" />
+        
+        {/* Decorative circles dengan dark mode adaptif */}
+        <div className="absolute -top-4 -right-4 h-24 w-24 rounded-full bg-white/10 dark:bg-white/5 blur-xl" />
+        <div className="absolute -bottom-6 -left-6 h-32 w-32 rounded-full bg-white/5 dark:bg-white/3 blur-2xl" />
+        
+        <div className="relative flex flex-col gap-4 sm:gap-6 sm:flex-row sm:justify-between sm:items-center">
+          <div className="space-y-2 sm:space-y-3">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-2 sm:p-3 bg-white/20 dark:bg-white/10 rounded-xl backdrop-blur-sm border border-white/10">
+                <BarChart3 className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
               </div>
-
-              {/* Quick Info Badges */}
-              <div className="flex flex-wrap gap-2 mt-3">
-                {selectedYear && (
-                  <div className="flex items-center gap-1 px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-xs font-medium">
-                    <Calendar className="w-3 h-3" />
-                    {selectedYear}
-                  </div>
-                )}
-                {komoditas && (
-                  <div className="flex items-center gap-1 px-3 py-1 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full text-xs font-medium">
-                    <TrendingUp className="w-3 h-3" />
-                    {komoditas}
-                  </div>
-                )}
-                {subround && (
-                  <div className="px-3 py-1 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-full text-xs font-medium">
-                    Subround {subround}
-                  </div>
-                )}
-                {data && (
-                  <div className="flex items-center gap-1 px-3 py-1 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full text-xs font-medium">
-                    <MapPin className="w-3 h-3" />
-                    {data.totalSampel.toLocaleString('id-ID')} Sampel
-                  </div>
-                )}
+              <div>
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-white">Karakteristik Sampel Ubinan</h1>
+                <div className="flex items-center gap-1 sm:gap-2 mt-1">
+                  <div className="h-0.5 sm:h-1 w-8 sm:w-12 bg-white/60 dark:bg-white/50 rounded-full" />
+                  <div className="h-0.5 sm:h-1 w-6 sm:w-8 bg-white/40 dark:bg-white/30 rounded-full" />
+                  <div className="h-0.5 sm:h-1 w-3 sm:w-4 bg-white/20 dark:bg-white/15 rounded-full" />
+                </div>
               </div>
             </div>
-
-            {/* Simple Controls */}
-            <div className="flex flex-col sm:flex-row gap-3 lg:w-auto">
-              <select 
-                value={komoditas} 
-                onChange={(e) => setKomoditas(e.target.value)}
-                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-              >
-                <option value="Padi Sawah">Padi Sawah</option>
-                <option value="Padi Ladang">Padi Ladang</option>
-                <option value="Jagung">Jagung</option>
-              </select>
-              
-              <select 
-                value={subround} 
-                onChange={(e) => setSubround(e.target.value)}
-                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-              >
-                <option value="1">Subround 1</option>
-                <option value="2">Subround 2</option>
-                <option value="3">Subround 3</option>
-              </select>
-              
-              <select 
-                value={kabupaten} 
-                onChange={(e) => setKabupaten(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
-                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-              >
-                <option value="all">Semua Kabupaten</option>
-                <option value="1">Sambas</option>
-                <option value="2">Bengkayang</option>
-                <option value="3">Landak</option>
-                <option value="4">Mempawah</option>
-                <option value="5">Sanggau</option>
-              </select>
+            <p className="text-white/90 dark:text-white/85 text-sm sm:text-base lg:text-lg font-medium flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-white flex-shrink-0" />
+              <span>Analisis komprehensif karakteristik lahan, varietas benih, penggunaan pupuk, dan dukungan program</span>
+              <span className="font-bold bg-white/20 dark:bg-white/15 px-2 py-1 rounded-lg text-white text-sm sm:text-base">{selectedYear || 'Pilih Tahun'}</span>
+            </p>
+            
+            {/* Quick Info Badges - moved here in header */}
+            <div className="flex flex-wrap gap-2 pt-2">
+              {komoditas && (
+                <div className="flex items-center gap-1 px-2 py-1 bg-white/20 dark:bg-white/15 rounded-lg text-white text-xs font-medium">
+                  <TrendingUp className="w-3 h-3" />
+                  {komoditas}
+                </div>
+              )}
+              {subround && (
+                <div className="px-2 py-1 bg-white/20 dark:bg-white/15 rounded-lg text-white text-xs font-medium">
+                  Subround {subround}
+                </div>
+              )}
+              {data && (
+                <div className="flex items-center gap-1 px-2 py-1 bg-white/20 dark:bg-white/15 rounded-lg text-white text-xs font-medium">
+                  <MapPin className="w-3 h-3" />
+                  {data.totalSampel.toLocaleString('id-ID')} Sampel
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Error State */}
-        {error && (
-          <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-6">
-            <div className="flex items-center gap-2">
-              <div className="text-red-600 dark:text-red-400 text-sm font-medium">
-                Error: {error}
+      {/* Filter Controls */}
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <div className="p-1.5 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
+              <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            </div>
+            Filter Data
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {/* Filter grid layout following scatter-plot pattern */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            {/* Komoditas Filter */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Komoditas</label>
+              <Select value={komoditas} onValueChange={setKomoditas}>
+                <SelectTrigger className="w-full h-10">
+                  <SelectValue placeholder="Pilih Komoditas" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Padi Sawah">Padi Sawah</SelectItem>
+                  <SelectItem value="Padi Ladang">Padi Ladang</SelectItem>
+                  <SelectItem value="Jagung">Jagung</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {/* Subround Filter */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Subround</label>
+              <Select value={subround} onValueChange={setSubround}>
+                <SelectTrigger className="w-full h-10">
+                  <SelectValue placeholder="Pilih Subround" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">Subround 1</SelectItem>
+                  <SelectItem value="2">Subround 2</SelectItem>
+                  <SelectItem value="3">Subround 3</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {/* Kabupaten Filter */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Kabupaten</label>
+              <Select 
+                value={kabupaten.toString()} 
+                onValueChange={(value) => setKabupaten(value === 'all' ? 'all' : parseInt(value))}
+              >
+                <SelectTrigger className="w-full h-10">
+                  <SelectValue placeholder="Pilih Kabupaten" />
+                </SelectTrigger>
+                <SelectContent className="max-h-60">
+                  <SelectItem value="all">Semua Kabupaten</SelectItem>
+                  <SelectItem value="1">Sambas</SelectItem>
+                  <SelectItem value="2">Bengkayang</SelectItem>
+                  <SelectItem value="3">Landak</SelectItem>
+                  <SelectItem value="4">Mempawah</SelectItem>
+                  <SelectItem value="5">Sanggau</SelectItem>
+                  <SelectItem value="6">Ketapang</SelectItem>
+                  <SelectItem value="7">Sintang</SelectItem>
+                  <SelectItem value="8">Kapuas Hulu</SelectItem>
+                  <SelectItem value="9">Sekadau</SelectItem>
+                  <SelectItem value="10">Melawi</SelectItem>
+                  <SelectItem value="11">Kayong Utara</SelectItem>
+                  <SelectItem value="12">Kubu Raya</SelectItem>
+                  <SelectItem value="71">Pontianak</SelectItem>
+                  <SelectItem value="72">Singkawang</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Tahun Display */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Tahun</label>
+              <div className="w-full px-3 py-2 h-10 bg-gray-50 dark:bg-gray-800 border dark:border-gray-700 rounded-md text-sm flex items-center dark:text-gray-300">
+                {selectedYear || 'Tahun belum dipilih'}
               </div>
             </div>
           </div>
-        )}
+        </CardContent>
+      </Card>
 
-        {/* Tab Navigation */}
-        <CharacteristicsTabNavigation
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          className="mb-6"
-        />
+      {/* Error State */}
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Error: {error}
+          </AlertDescription>
+        </Alert>
+      )}
 
-        {/* Tab Content */}
-        <motion.div
-          key={activeTab}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          {renderTabContent()}
-        </motion.div>
-      </div>
+      {/* Tab Navigation */}
+      <CharacteristicsTabNavigation
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+      />
+
+      {/* Tab Content */}
+      <motion.div
+        key={activeTab}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        {renderTabContent()}
+      </motion.div>
     </div>
   );
 }
