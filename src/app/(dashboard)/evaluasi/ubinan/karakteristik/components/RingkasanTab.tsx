@@ -13,7 +13,6 @@ import {
   Beaker,
   Gift,
   Handshake,
-  BarChart3,
 } from 'lucide-react';
 
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -71,20 +70,20 @@ export function RingkasanTab({ data, isLoading }: RingkasanTabProps) {
 
   return (
     <div className="space-y-6">
-      {/* Overview Statistics Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+      {/* Overview Statistics Cards - 4 KPIs per row */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                <div>
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">Total Sampel</p>
-                  <p className="text-lg font-bold text-gray-900 dark:text-gray-100">
+          <Card className="h-24">
+            <CardContent className="p-4 h-full flex items-center">
+              <div className="flex items-center gap-2 w-full">
+                <Users className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400 truncate">Total Sampel</p>
+                  <p className="text-lg font-bold text-gray-900 dark:text-gray-100 truncate">
                     {overallStats.total_sampel.toLocaleString('id-ID')}
                   </p>
                 </div>
@@ -98,13 +97,13 @@ export function RingkasanTab({ data, isLoading }: RingkasanTabProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <MapPin className="w-5 h-5 text-green-600 dark:text-green-400" />
-                <div>
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">Rata² Luas</p>
-                  <p className="text-lg font-bold text-green-600 dark:text-green-400">
+          <Card className="h-24">
+            <CardContent className="p-4 h-full flex items-center">
+              <div className="flex items-center gap-2 w-full">
+                <MapPin className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400 truncate">Rata² Luas</p>
+                  <p className="text-lg font-bold text-green-600 dark:text-green-400 truncate">
                     {overallStats.rata_rata_luas.toFixed(2)} ha
                   </p>
                 </div>
@@ -118,13 +117,13 @@ export function RingkasanTab({ data, isLoading }: RingkasanTabProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Target className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                <div>
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">Sawah Irigasi</p>
-                  <p className="text-lg font-bold text-purple-600 dark:text-purple-400">
+          <Card className="h-24">
+            <CardContent className="p-4 h-full flex items-center">
+              <div className="flex items-center gap-2 w-full">
+                <Target className="w-5 h-5 text-purple-600 dark:text-purple-400 flex-shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400 truncate">Sawah Irigasi</p>
+                  <p className="text-lg font-bold text-purple-600 dark:text-purple-400 truncate">
                     {overallStats.pct_sawah_irigasi}%
                   </p>
                 </div>
@@ -138,13 +137,13 @@ export function RingkasanTab({ data, isLoading }: RingkasanTabProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
         >
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <PieChart className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-                <div>
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">Monokultur</p>
-                  <p className="text-lg font-bold text-orange-600 dark:text-orange-400">
+          <Card className="h-24">
+            <CardContent className="p-4 h-full flex items-center">
+              <div className="flex items-center gap-2 w-full">
+                <PieChart className="w-5 h-5 text-orange-600 dark:text-orange-400 flex-shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400 truncate">Monokultur</p>
+                  <p className="text-lg font-bold text-orange-600 dark:text-orange-400 truncate">
                     {overallStats.pct_monokultur}%
                   </p>
                 </div>
@@ -158,13 +157,13 @@ export function RingkasanTab({ data, isLoading }: RingkasanTabProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
         >
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Award className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-                <div>
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">Hibrida</p>
-                  <p className="text-lg font-bold text-indigo-600 dark:text-indigo-400">
+          <Card className="h-24">
+            <CardContent className="p-4 h-full flex items-center">
+              <div className="flex items-center gap-2 w-full">
+                <Award className="w-5 h-5 text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400 truncate">Hibrida</p>
+                  <p className="text-lg font-bold text-indigo-600 dark:text-indigo-400 truncate">
                     {overallStats.pct_hibrida}%
                   </p>
                 </div>
@@ -178,13 +177,13 @@ export function RingkasanTab({ data, isLoading }: RingkasanTabProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
         >
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Beaker className="w-5 h-5 text-teal-600 dark:text-teal-400" />
-                <div>
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">Pakai Pupuk</p>
-                  <p className="text-lg font-bold text-teal-600 dark:text-teal-400">
+          <Card className="h-24">
+            <CardContent className="p-4 h-full flex items-center">
+              <div className="flex items-center gap-2 w-full">
+                <Beaker className="w-5 h-5 text-teal-600 dark:text-teal-400 flex-shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400 truncate">Pakai Pupuk</p>
+                  <p className="text-lg font-bold text-teal-600 dark:text-teal-400 truncate">
                     {overallStats.pct_menggunakan_pupuk}%
                   </p>
                 </div>
@@ -198,13 +197,13 @@ export function RingkasanTab({ data, isLoading }: RingkasanTabProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.7 }}
         >
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Gift className="w-5 h-5 text-pink-600 dark:text-pink-400" />
-                <div>
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">Bantuan Benih</p>
-                  <p className="text-lg font-bold text-pink-600 dark:text-pink-400">
+          <Card className="h-24">
+            <CardContent className="p-4 h-full flex items-center">
+              <div className="flex items-center gap-2 w-full">
+                <Gift className="w-5 h-5 text-pink-600 dark:text-pink-400 flex-shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400 truncate">Bantuan Benih</p>
+                  <p className="text-lg font-bold text-pink-600 dark:text-pink-400 truncate">
                     {overallStats.pct_bantuan_benih}%
                   </p>
                 </div>
@@ -218,13 +217,13 @@ export function RingkasanTab({ data, isLoading }: RingkasanTabProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8 }}
         >
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Handshake className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
-                <div>
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">Anggota Poktan</p>
-                  <p className="text-lg font-bold text-cyan-600 dark:text-cyan-400">
+          <Card className="h-24">
+            <CardContent className="p-4 h-full flex items-center">
+              <div className="flex items-center gap-2 w-full">
+                <Handshake className="w-5 h-5 text-cyan-600 dark:text-cyan-400 flex-shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400 truncate">Anggota Poktan</p>
+                  <p className="text-lg font-bold text-cyan-600 dark:text-cyan-400 truncate">
                     {overallStats.pct_anggota_poktan}%
                   </p>
                 </div>
@@ -358,78 +357,6 @@ export function RingkasanTab({ data, isLoading }: RingkasanTabProps) {
           </Card>
         </motion.div>
       </div>
-
-      {/* Summary Insights */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 1.2 }}
-      >
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-              Ringkasan Analisis Karakteristik
-            </CardTitle>
-            <CardDescription>
-              Insight dan rekomendasi berdasarkan data karakteristik sampel ubinan
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Key Findings */}
-              <div className="space-y-4">
-                <h4 className="font-medium text-gray-900 dark:text-gray-100">Temuan Utama</h4>
-                <div className="space-y-3 text-sm text-gray-600 dark:text-gray-400">
-                  <div className="flex items-start gap-2">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
-                    <p>
-                      <strong>{overallStats.pct_sawah_irigasi}%</strong> lahan menggunakan sistem irigasi yang baik
-                    </p>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <div className="w-2 h-2 bg-indigo-500 rounded-full mt-2"></div>
-                    <p>
-                      <strong>{overallStats.pct_hibrida}%</strong> petani menggunakan varietas hibrida unggul
-                    </p>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <div className="w-2 h-2 bg-teal-500 rounded-full mt-2"></div>
-                    <p>
-                      <strong>{overallStats.pct_menggunakan_pupuk}%</strong> petani menerapkan pemupukan yang tepat
-                    </p>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <div className="w-2 h-2 bg-pink-500 rounded-full mt-2"></div>
-                    <p>
-                      Program bantuan benih mencapai <strong>{overallStats.pct_bantuan_benih}%</strong> petani
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Recommendations */}
-              <div className="space-y-4">
-                <h4 className="font-medium text-gray-900 dark:text-gray-100">Rekomendasi</h4>
-                <div className="space-y-3 text-sm text-gray-600 dark:text-gray-400">
-                  <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                    <p className="font-medium text-green-800 dark:text-green-200">Pertahankan Kualitas</p>
-                    <p>Tingkat penggunaan teknologi dan program bantuan sudah baik</p>
-                  </div>
-                  <div className="p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
-                    <p className="font-medium text-orange-800 dark:text-orange-200">Tingkatkan Partisipasi</p>
-                    <p>Perluas jangkauan program bantuan dan keanggotaan poktan</p>
-                  </div>
-                  <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                    <p className="font-medium text-blue-800 dark:text-blue-200">Modernisasi Lanjutan</p>
-                    <p>Dorong adopsi teknologi jajar legowo dan varietas unggul</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
     </div>
   );
 }

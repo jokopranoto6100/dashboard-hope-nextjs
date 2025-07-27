@@ -178,7 +178,7 @@ export function DukunganProgramTab({ data, isLoading }: DukunganProgramTabProps)
                 Distribusi penerima bantuan benih
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-6">
               <ResponsiveContainer width="100%" height={250}>
                 <PieChart>
                   <Pie
@@ -234,7 +234,7 @@ export function DukunganProgramTab({ data, isLoading }: DukunganProgramTabProps)
                 Jenis bantuan pupuk yang diterima
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-6">
               <ResponsiveContainer width="100%" height={250}>
                 <PieChart>
                   <Pie
@@ -290,7 +290,7 @@ export function DukunganProgramTab({ data, isLoading }: DukunganProgramTabProps)
                 Status keanggotaan kelompok tani
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-6">
               <ResponsiveContainer width="100%" height={250}>
                 <PieChart>
                   <Pie
@@ -330,90 +330,6 @@ export function DukunganProgramTab({ data, isLoading }: DukunganProgramTabProps)
           </Card>
         </motion.div>
       </div>
-
-      {/* Program Summary */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.7 }}
-      >
-        <Card>
-          <CardHeader>
-            <CardTitle>Ringkasan Dukungan Program</CardTitle>
-            <CardDescription>
-              Analisis efektivitas program bantuan pemerintah
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Program Performance */}
-              <div className="space-y-4">
-                <h4 className="font-medium text-gray-900 dark:text-gray-100">Tingkat Partisipasi</h4>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">Bantuan Benih</span>
-                    <div className="flex items-center gap-2">
-                      <div className="w-20 h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
-                        <div 
-                          className="h-2 bg-green-500 rounded-full" 
-                          style={{ width: `${overviewStats.bantuanBenih}%` }}
-                        />
-                      </div>
-                      <span className="text-sm font-medium">{overviewStats.bantuanBenih}%</span>
-                    </div>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">Bantuan Pupuk</span>
-                    <div className="flex items-center gap-2">
-                      <div className="w-20 h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
-                        <div 
-                          className="h-2 bg-purple-500 rounded-full" 
-                          style={{ width: `${overviewStats.bantuanPupuk}%` }}
-                        />
-                      </div>
-                      <span className="text-sm font-medium">{overviewStats.bantuanPupuk}%</span>
-                    </div>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">Keanggotaan Poktan</span>
-                    <div className="flex items-center gap-2">
-                      <div className="w-20 h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
-                        <div 
-                          className="h-2 bg-orange-500 rounded-full" 
-                          style={{ width: `${overviewStats.anggotaPoktan}%` }}
-                        />
-                      </div>
-                      <span className="text-sm font-medium">{overviewStats.anggotaPoktan}%</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Key Insights */}
-              <div className="space-y-4">
-                <h4 className="font-medium text-gray-900 dark:text-gray-100">Insight Utama</h4>
-                <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-                  <p>• Program bantuan benih mencapai {overviewStats.bantuanBenih}% petani</p>
-                  <p>• Bantuan pupuk mendukung {overviewStats.bantuanPupuk}% pertanian</p>
-                  <p>• Partisipasi poktan sebesar {overviewStats.anggotaPoktan}%</p>
-                  <p>• Total sampel yang dianalisis: {data.totalSampel.toLocaleString('id-ID')}</p>
-                </div>
-              </div>
-
-              {/* Recommendations */}
-              <div className="space-y-4">
-                <h4 className="font-medium text-gray-900 dark:text-gray-100">Rekomendasi</h4>
-                <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-                  <p>• Tingkatkan sosialisasi program bantuan</p>
-                  <p>• Optimalkan distribusi bantuan pupuk</p>
-                  <p>• Perkuat kelompok tani di daerah</p>
-                  <p>• Monitor efektivitas program secara berkala</p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
     </div>
   );
 }

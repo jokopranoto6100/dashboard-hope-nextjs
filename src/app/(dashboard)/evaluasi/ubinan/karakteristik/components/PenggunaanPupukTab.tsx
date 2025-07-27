@@ -139,7 +139,7 @@ export function PenggunaanPupukTab({ data, isLoading }: PenggunaanPupukTabProps)
                 Persentase petani berdasarkan penggunaan pupuk
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-6">
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie
@@ -199,7 +199,7 @@ export function PenggunaanPupukTab({ data, isLoading }: PenggunaanPupukTabProps)
                 Analisis penggunaan pupuk dalam pertanian
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-6">
               <div className="space-y-6">
                 {/* Key Metrics */}
                 <div className="grid grid-cols-2 gap-4">
