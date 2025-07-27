@@ -10,6 +10,9 @@ import { BarChart3, TrendingUp, Calendar, MapPin } from 'lucide-react';
 import { CharacteristicsTabNavigation, type CharacteristicsTab } from './components/CharacteristicsTabNavigation';
 import { KarakteristikLahanTab } from './components/KarakteristikLahanTab';
 import { VarietasBenihTab } from './components/VarietasBenihTab';
+import { PenggunaanPupukTab } from './components/PenggunaanPupukTab';
+import { DukunganProgramTab } from './components/DukunganProgramTab';
+import { RingkasanTab } from './components/RingkasanTab';
 import { useUbinanCharacteristics } from '@/hooks/useUbinanCharacteristics';
 import { useYear } from '@/context/YearContext';
 
@@ -53,11 +56,11 @@ export default function KarakteristikSampelUbinanPage() {
       case 'varietas-benih':
         return <VarietasBenihTab data={data} isLoading={isLoading} />;
       case 'penggunaan-pupuk':
-        return <div className="text-center text-gray-500 dark:text-gray-400 py-12">Tab Penggunaan Pupuk - Coming Soon</div>;
+        return <PenggunaanPupukTab data={data} isLoading={isLoading} />;
       case 'dukungan-program':
-        return <div className="text-center text-gray-500 dark:text-gray-400 py-12">Tab Dukungan Program - Coming Soon</div>;
+        return <DukunganProgramTab data={data} isLoading={isLoading} />;
       case 'ringkasan':
-        return <div className="text-center text-gray-500 dark:text-gray-400 py-12">Tab Ringkasan - Coming Soon</div>;
+        return <RingkasanTab data={data} isLoading={isLoading} />;
       default:
         return null;
     }
