@@ -376,76 +376,7 @@ export function EvaluasiUbinanClient() {
         </div>
       </div>
 
-      {/* Desktop Layout: Inline (Download left, filters right) */}
-      <div className="hidden sm:flex sm:items-center sm:justify-between sm:gap-4">
-        {/* Download Button - Left */}
-        <div className="flex justify-start">
-          <Button 
-            onClick={handleDownloadAnomali} 
-            disabled={isDownloading || !selectedYear} 
-            className="w-auto bg-amber-500 hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-700 text-white border-amber-500 dark:border-amber-600 transition-colors"
-            size="default"
-          >
-            {isDownloading ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Download className="mr-2 h-4 w-4" />
-            )}
-            Download Anomali
-          </Button>
-        </div>
-        
-        {/* Filters - Right */}
-        <div className="flex gap-3">
-          <div>
-            {isLoadingFilters ? (
-              <Skeleton className="h-10 w-40" />
-            ) : (
-              <Select 
-                value={selectedSubround === 'all' ? 'all' : String(selectedSubround)} 
-                onValueChange={handleSubroundChange} 
-                disabled={isLoadingFilters || availableSubrounds.length === 0}
-              >
-                <SelectTrigger id="subround-filter" className="w-40">
-                  <SelectValue placeholder="Pilih Subround" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Subround</SelectItem>
-                  {availableSubrounds.map((subround) => (
-                    <SelectItem key={subround} value={String(subround)}>
-                      Subround {subround}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-          
-          <div>
-            {isLoadingFilters ? (
-              <Skeleton className="h-10 w-40" />
-            ) : (
-              <Select 
-                value={selectedKomoditas || ""} 
-                onValueChange={handleKomoditasChange} 
-                disabled={isKomoditasDisabled}
-              >
-                <SelectTrigger id="komoditas-filter" className="w-40">
-                  <SelectValue placeholder={isKomoditasDisabled ? "Tidak ada komoditas" : "Pilih Komoditas"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableKomoditas.map((komoditas) => (
-                    <SelectItem key={komoditas} value={komoditas}>
-                      {komoditas}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-        </div>
-      </div>
-      <Card>
+            <Card>
         <CardHeader>
           <CardTitle>Mode Analisis</CardTitle>
           <CardDescription>Pilih mode untuk analisis mendalam satu tahun atau perbandingan antar waktu.</CardDescription>
