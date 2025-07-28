@@ -313,55 +313,68 @@ export function OfficerPerformanceTab() {
         </div>
       </div>
       
-      <div className="rounded-md border mt-6 overflow-hidden">
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              {table.getHeaderGroups().map(headerGroup => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map(header => (
-                    <TableHead key={header.id} className="whitespace-nowrap">
-                      {flexRender(header.column.columnDef.header, header.getContext())}
-                    </TableHead>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <User className="h-5 w-5" />
+            Data Kinerja Petugas
+          </CardTitle>
+          <CardDescription>
+            Daftar petugas lapangan dengan informasi kinerja, durasi kerja, dan tingkat anomali temuan. Klik kolom untuk mengurutkan data.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-md border overflow-hidden">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  {table.getHeaderGroups().map(headerGroup => (
+                    <TableRow key={headerGroup.id}>
+                      {headerGroup.headers.map(header => (
+                        <TableHead key={header.id} className="whitespace-nowrap">
+                          {flexRender(header.column.columnDef.header, header.getContext())}
+                        </TableHead>
+                      ))}
+                    </TableRow>
                   ))}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {table.getRowModel().rows.length ? (
-                table.getRowModel().rows.map(row => (
-                  <TableRow key={row.id}>
-                    {row.getVisibleCells().map(cell => (
-                      <TableCell key={cell.id} className="whitespace-nowrap text-xs md:text-sm">
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : (
-                <NoDataDisplay message="Tidak ada data kinerja petugas untuk filter ini." />
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
-      
-      {table.getPageCount() > 1 && (
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 sm:space-x-2 py-4">
-            <div className="text-sm text-muted-foreground">Total {table.getFilteredRowModel().rows.length} baris data ditemukan.</div>
-            <div className="flex items-center space-x-2">
-              <span className="text-sm">Halaman {table.getState().pagination.pageIndex + 1} dari {table.getPageCount()}</span>
-              <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()} className="text-xs">
-                <span className="hidden sm:inline">Sebelumnya</span>
-                <span className="sm:hidden">‹</span>
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()} className="text-xs">
-                <span className="hidden sm:inline">Berikutnya</span>
-                <span className="sm:hidden">›</span>
-              </Button>
+                </TableHeader>
+                <TableBody>
+                  {table.getRowModel().rows.length ? (
+                    table.getRowModel().rows.map(row => (
+                      <TableRow key={row.id}>
+                        {row.getVisibleCells().map(cell => (
+                          <TableCell key={cell.id} className="whitespace-nowrap text-xs md:text-sm">
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))
+                  ) : (
+                    <NoDataDisplay message="Tidak ada data kinerja petugas untuk filter ini." />
+                  )}
+                </TableBody>
+              </Table>
             </div>
-        </div>
-      )}
+          </div>
+          
+          {table.getPageCount() > 1 && (
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 sm:space-x-2 py-4">
+                <div className="text-sm text-muted-foreground">Total {table.getFilteredRowModel().rows.length} baris data ditemukan.</div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm">Halaman {table.getState().pagination.pageIndex + 1} dari {table.getPageCount()}</span>
+                  <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()} className="text-xs">
+                    <span className="hidden sm:inline">Sebelumnya</span>
+                    <span className="sm:hidden">‹</span>
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()} className="text-xs">
+                    <span className="hidden sm:inline">Berikutnya</span>
+                    <span className="sm:hidden">›</span>
+                  </Button>
+                </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

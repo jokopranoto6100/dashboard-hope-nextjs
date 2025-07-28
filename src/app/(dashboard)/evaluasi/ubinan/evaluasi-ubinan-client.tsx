@@ -306,14 +306,15 @@ export function EvaluasiUbinanClient() {
       </div>
 
       {/* Mobile Layout: Stack (Download top, filters below in 2-col grid) */}
-      <div className="flex flex-col gap-4 sm:hidden">
+            {/* Filter Controls - Compact and Responsive */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         {/* Download Button */}
-        <div className="flex justify-start">
+        <div className="order-2 sm:order-1">
           <Button 
             onClick={handleDownloadAnomali} 
             disabled={isDownloading || !selectedYear} 
-            className="w-full bg-amber-500 hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-700 text-white border-amber-500 dark:border-amber-600 transition-colors"
-            size="default"
+            className="w-full sm:w-auto bg-amber-500 hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-700 text-white border-amber-500 dark:border-amber-600 transition-colors"
+            size="sm"
           >
             {isDownloading ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -324,19 +325,19 @@ export function EvaluasiUbinanClient() {
           </Button>
         </div>
         
-        {/* Filters in 2-column grid */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
+        {/* Filters - Compact Layout */}
+        <div className="order-1 sm:order-2 flex gap-2">
+          <div className="flex-1">
             {isLoadingFilters ? (
-              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-9 w-full" />
             ) : (
               <Select 
                 value={selectedSubround === 'all' ? 'all' : String(selectedSubround)} 
                 onValueChange={handleSubroundChange} 
                 disabled={isLoadingFilters || availableSubrounds.length === 0}
               >
-                <SelectTrigger id="subround-filter" className="w-full">
-                  <SelectValue placeholder="Pilih Subround" />
+                <SelectTrigger className="h-9 w-full">
+                  <SelectValue placeholder="Subround" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Semua Subround</SelectItem>
@@ -350,17 +351,17 @@ export function EvaluasiUbinanClient() {
             )}
           </div>
           
-          <div>
+          <div className="flex-1">
             {isLoadingFilters ? (
-              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-9 w-full" />
             ) : (
               <Select 
                 value={selectedKomoditas || ""} 
                 onValueChange={handleKomoditasChange} 
                 disabled={isKomoditasDisabled}
               >
-                <SelectTrigger id="komoditas-filter" className="w-full">
-                  <SelectValue placeholder={isKomoditasDisabled ? "Tidak ada komoditas" : "Pilih Komoditas"} />
+                <SelectTrigger className="h-9 w-full">
+                  <SelectValue placeholder={isKomoditasDisabled ? "Tidak ada" : "Komoditas"} />
                 </SelectTrigger>
                 <SelectContent>
                   {availableKomoditas.map((komoditas) => (

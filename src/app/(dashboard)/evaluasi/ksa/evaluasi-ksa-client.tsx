@@ -239,12 +239,52 @@ export function EvaluasiKsaClient() {
     const COLORS = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#17becf'];
 
     return (
-        <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-end gap-4">
-                <div className="w-full sm:w-auto">
-                    <Label htmlFor="filter-ksa-type" className="text-xs font-medium">Jenis Survei</Label>
+        <div className="space-y-4">
+            {/* Header - following evaluasi ubinan pattern with gradient */}
+            <div 
+                className="relative overflow-hidden rounded-xl p-4 sm:p-6 text-white shadow-xl"
+                style={{
+                    background: 'linear-gradient(135deg, rgb(59, 130, 246) 0%, rgb(37, 99, 235) 50%, rgb(29, 78, 216) 100%)'
+                }}
+            >
+                {/* Background pattern dengan dark mode adaptif */}
+                <div className="absolute inset-0 bg-black/10 dark:bg-black/20" />
+                <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent dark:from-white/3 dark:to-transparent" />
+                
+                {/* Decorative circles dengan dark mode adaptif */}
+                <div className="absolute -top-4 -right-4 h-24 w-24 rounded-full bg-white/10 dark:bg-white/5 blur-xl" />
+                <div className="absolute -bottom-6 -left-6 h-32 w-32 rounded-full bg-white/5 dark:bg-white/3 blur-2xl" />
+                
+                <div className="relative flex flex-col gap-4 sm:gap-6 sm:flex-row sm:justify-between sm:items-center">
+                    <div className="space-y-2 sm:space-y-3">
+                        <div className="flex items-center gap-2 sm:gap-3">
+                            <div className="p-2 sm:p-3 bg-white/20 dark:bg-white/10 rounded-xl backdrop-blur-sm border border-white/10">
+                                <Tractor className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
+                            </div>
+                            <div>
+                                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-white">Evaluasi Kerangka Sampel Area</h1>
+                                <div className="flex items-center gap-1 sm:gap-2 mt-1">
+                                    <div className="h-0.5 sm:h-1 w-8 sm:w-12 bg-white/60 dark:bg-white/50 rounded-full" />
+                                    <div className="h-0.5 sm:h-1 w-6 sm:w-8 bg-white/40 dark:bg-white/30 rounded-full" />
+                                    <div className="h-0.5 sm:h-1 w-3 sm:w-4 bg-white/20 dark:bg-white/15 rounded-full" />
+                                </div>
+                            </div>
+                        </div>
+                        <p className="text-white/90 dark:text-white/85 text-sm sm:text-base lg:text-lg font-medium flex items-center gap-2">
+                            <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-white flex-shrink-0" />
+                            <span>Analisis frekuensi panen, anomali amatan, dan kinerja petugas lapangan</span>
+                            <span className="font-bold bg-white/20 dark:bg-white/15 px-2 py-1 rounded-lg text-white text-sm sm:text-base">{selectedYear || 'Pilih Tahun'}</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Filter Controls */}
+            <div className="flex gap-3">
+                <div className="flex-1 space-y-2">
+                    <Label htmlFor="filter-ksa-type" className="text-sm font-medium">Jenis Survei</Label>
                     <Select value={selectedKsaType} onValueChange={(v) => setSelectedKsaType(v as 'Padi' | 'Jagung')}>
-                        <SelectTrigger id="filter-ksa-type" className="mt-1 w-full sm:w-[160px]">
+                        <SelectTrigger id="filter-ksa-type">
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -253,11 +293,11 @@ export function EvaluasiKsaClient() {
                         </SelectContent>
                     </Select>
                 </div>
-                <div className="w-full sm:w-auto">
-                    <Label htmlFor="filter-kabupaten" className="text-xs font-medium">Wilayah</Label>
-                    {isLoadingFilters ? <Skeleton className="h-10 w-full sm:w-48 mt-1" /> : (
+                <div className="flex-1 space-y-2">
+                    <Label htmlFor="filter-kabupaten" className="text-sm font-medium">Wilayah</Label>
+                    {isLoadingFilters ? <Skeleton className="h-10 w-full" /> : (
                         <Select value={selectedKabupaten} onValueChange={setSelectedKabupaten} disabled={isLoadingFilters}>
-                            <SelectTrigger id="filter-kabupaten" className="mt-1 w-full sm:min-w-[180px]">
+                            <SelectTrigger id="filter-kabupaten">
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>

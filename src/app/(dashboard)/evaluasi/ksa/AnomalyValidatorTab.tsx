@@ -17,7 +17,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Download, ArrowUpDown, AlertTriangle, MapPin, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
 import * as XLSX from 'xlsx';
@@ -234,71 +240,84 @@ export function AnomalyValidatorTab() {
         </Card>
       </div>
         
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center pt-4 gap-4">
-        <div className="flex items-center gap-2">
-            <label htmlFor="month-filter" className="text-sm font-medium whitespace-nowrap">Filter Bulan:</label>
-            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                <SelectTrigger id="month-filter" className="w-[160px] md:w-[180px]">
-                    <SelectValue placeholder="Pilih bulan..." />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="semua">Semua Bulan</SelectItem>
-                    {availableMonths.map(month => (
-                        <SelectItem key={month} value={String(month)}>
-                            {NAMA_BULAN[month - 1]}
-                        </SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
-        </div>
-        <Button onClick={handleExport} disabled={table.getRowModel().rows.length === 0} className="text-sm">
-            <Download className="mr-2 h-4 w-4" />
-            <span className="hidden sm:inline">Ekspor ke Excel</span>
-            <span className="sm:hidden">Ekspor</span>
-        </Button>
-      </div>
-
-      <div className="rounded-md border overflow-hidden">
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              {table.getHeaderGroups().map(headerGroup => (<TableRow key={headerGroup.id}>{headerGroup.headers.map(header => (<TableHead key={header.id} className="whitespace-nowrap">{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead>))}</TableRow>))}
-            </TableHeader>
-            <TableBody>
-              {table.getRowModel().rows.length ? (
-                  table.getRowModel().rows.map(row => (
-                      <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
-                        {row.getVisibleCells().map(cell => (<TableCell key={cell.id} className="whitespace-nowrap">{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>))}
-                      </TableRow>
-                  ))
-              ) : (
-                  <TableRow>
-                      <TableCell colSpan={columns.length} className="h-24 text-center text-sm">
-                          Tidak ada data anomali yang sesuai dengan filter.
-                      </TableCell>
-                  </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
-      
-      {table.getPageCount() > 1 && (
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 sm:space-x-2 py-4">
-            <div className="text-sm text-muted-foreground">Total {table.getFilteredRowModel().rows.length} baris anomali.</div>
-            <div className="flex items-center space-x-2">
-              <span className="text-sm">Halaman {table.getState().pagination.pageIndex + 1} dari {table.getPageCount()}</span>
-              <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()} className="text-xs">
-                <span className="hidden sm:inline">Sebelumnya</span>
-                <span className="sm:hidden">‹</span>
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()} className="text-xs">
-                <span className="hidden sm:inline">Berikutnya</span>
-                <span className="sm:hidden">›</span>
-              </Button>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5" />
+            Data Anomali Amatan
+          </CardTitle>
+          <CardDescription>
+            Daftar subsegmen yang mengalami anomali dalam fase pengamatan. Klik kolom untuk mengurutkan data.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center pb-4 gap-4">
+            <div className="flex items-center gap-2">
+                <label htmlFor="month-filter" className="text-sm font-medium whitespace-nowrap">Filter Bulan:</label>
+                <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                    <SelectTrigger id="month-filter" className="w-[160px] md:w-[180px]">
+                        <SelectValue placeholder="Pilih bulan..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="semua">Semua Bulan</SelectItem>
+                        {availableMonths.map(month => (
+                            <SelectItem key={month} value={String(month)}>
+                                {NAMA_BULAN[month - 1]}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
             </div>
-        </div>
-      )}
+            <Button onClick={handleExport} disabled={table.getRowModel().rows.length === 0} className="text-sm">
+                <Download className="mr-2 h-4 w-4" />
+                <span className="hidden sm:inline">Ekspor ke Excel</span>
+                <span className="sm:hidden">Ekspor</span>
+            </Button>
+          </div>
+
+          <div className="rounded-md border overflow-hidden">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  {table.getHeaderGroups().map(headerGroup => (<TableRow key={headerGroup.id}>{headerGroup.headers.map(header => (<TableHead key={header.id} className="whitespace-nowrap">{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead>))}</TableRow>))}
+                </TableHeader>
+                <TableBody>
+                  {table.getRowModel().rows.length ? (
+                      table.getRowModel().rows.map(row => (
+                          <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+                            {row.getVisibleCells().map(cell => (<TableCell key={cell.id} className="whitespace-nowrap">{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>))}
+                          </TableRow>
+                      ))
+                  ) : (
+                      <TableRow>
+                          <TableCell colSpan={columns.length} className="h-24 text-center text-sm">
+                              Tidak ada data anomali yang sesuai dengan filter.
+                          </TableCell>
+                      </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+          
+          {table.getPageCount() > 1 && (
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 sm:space-x-2 py-4">
+                <div className="text-sm text-muted-foreground">Total {table.getFilteredRowModel().rows.length} baris anomali.</div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm">Halaman {table.getState().pagination.pageIndex + 1} dari {table.getPageCount()}</span>
+                  <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()} className="text-xs">
+                    <span className="hidden sm:inline">Sebelumnya</span>
+                    <span className="sm:hidden">‹</span>
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()} className="text-xs">
+                    <span className="hidden sm:inline">Berikutnya</span>
+                    <span className="sm:hidden">›</span>
+                  </Button>
+                </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
