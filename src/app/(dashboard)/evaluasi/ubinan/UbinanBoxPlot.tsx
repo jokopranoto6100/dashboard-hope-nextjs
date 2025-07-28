@@ -127,7 +127,7 @@ export function UbinanBoxPlot({ data, currentUnit, isLoading }: UbinanBoxPlotPro
     <Card className="mt-6">
         <CardHeader>
             <CardTitle>Box Plot Sebaran Data</CardTitle>
-            <CardDescription>Visualisasi sebaran data hasil ubinan, menunjukkan median, kuartil, dan pencilan (outlier) untuk setiap kabupaten.</CardDescription>
+            <CardDescription>Visualisasi sebaran data hasil ubinan menurut kabupaten.</CardDescription>
         </CardHeader>
         <CardContent>
             <ReactECharts option={chartOption} style={{ height: '500px', width: '100%' }} />

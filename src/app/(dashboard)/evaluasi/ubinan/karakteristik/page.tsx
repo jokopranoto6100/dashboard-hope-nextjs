@@ -27,7 +27,7 @@ export default function KarakteristikSampelUbinanPage() {
   // State management
   const [activeTab, setActiveTab] = useState<CharacteristicsTab>('karakteristik-lahan');
   const [komoditas, setKomoditas] = useState<string>('Padi Sawah'); // Sesuaikan dengan RPC test
-  const [subround, setSubround] = useState<string>('1');
+  const [subround, setSubround] = useState<string>('all');
   const [kabupaten, setKabupaten] = useState<number | 'all'>('all');
 
   // Initialize from URL params
@@ -118,7 +118,7 @@ export default function KarakteristikSampelUbinanPage() {
               )}
               {subround && (
                 <div className="px-2 py-1 bg-white/20 dark:bg-white/15 rounded-lg text-white text-xs font-medium">
-                  Subround {subround}
+                  {subround === 'all' ? 'Semua Subround' : `Subround ${subround}`}
                 </div>
               )}
               {data && (
@@ -168,6 +168,7 @@ export default function KarakteristikSampelUbinanPage() {
                   <SelectValue placeholder="Pilih Subround" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="all">Semua Subround</SelectItem>
                   <SelectItem value="1">Subround 1</SelectItem>
                   <SelectItem value="2">Subround 2</SelectItem>
                   <SelectItem value="3">Subround 3</SelectItem>
