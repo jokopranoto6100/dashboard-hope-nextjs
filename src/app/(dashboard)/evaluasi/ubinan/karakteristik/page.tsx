@@ -104,7 +104,7 @@ export default function KarakteristikSampelUbinanPage() {
             </div>
             <p className="text-white/90 dark:text-white/85 text-sm sm:text-base lg:text-lg font-medium flex items-center gap-2">
               <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-white flex-shrink-0" />
-              <span>Analisis komprehensif karakteristik lahan, varietas benih, penggunaan pupuk, dan dukungan program</span>
+              <span>Analisis karakteristik lahan, varietas benih, penggunaan pupuk, dan dukungan program</span>
               <span className="font-bold bg-white/20 dark:bg-white/15 px-2 py-1 rounded-lg text-white text-sm sm:text-base">{selectedYear || 'Pilih Tahun'}</span>
             </p>
             
