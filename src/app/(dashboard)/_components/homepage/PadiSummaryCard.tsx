@@ -3,8 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Clock, AlertTriangle } from "lucide-react";
+import { Clock, AlertTriangle, Pin } from "lucide-react";
 import { getStatusVisuals } from '@/lib/status-visuals';
+import { PinButton } from "@/components/ui/pin-button";
+import { cn } from "@/lib/utils";
 
 // Definisikan tipe data untuk props
 interface PadiSummaryCardProps {
@@ -16,17 +18,36 @@ interface PadiSummaryCardProps {
   lastUpdate: string | null;
   selectedYear: number;
   isHighlighted?: boolean;
+  // PIN props
+  isPinned?: boolean;
+  pinOrder?: number | null;
+  onTogglePin?: (kpiId: string) => Promise<void>;
+  canPinMore?: boolean;
 }
 
-export function PadiSummaryCard({ isLoading, error, totals, countdownStatus, uniqueStatusNames, lastUpdate, selectedYear, isHighlighted }: PadiSummaryCardProps) {
+export function PadiSummaryCard({ 
+  isLoading, 
+  error, 
+  totals, 
+  countdownStatus, 
+  uniqueStatusNames, 
+  lastUpdate, 
+  selectedYear, 
+  isHighlighted,
+  isPinned = false,
+  pinOrder,
+  onTogglePin,
+  canPinMore = true
+}: PadiSummaryCardProps) {
   return (
-    <Card className={`
-      h-full transition-all duration-300 hover:shadow-lg hover:scale-105 relative
-      bg-white dark:bg-gray-800
-      border-2 border-[#78d19a]/30 hover:border-[#78d19a]/50 
-      dark:border-[#78d19a]/40 dark:hover:border-[#78d19a]/60
-      ${isHighlighted ? 'ring-2 ring-amber-400 shadow-lg border-amber-500' : ''}
-    `}
+    <Card className={cn(
+      "h-full transition-all duration-300 hover:shadow-lg hover:scale-105 relative",
+      "bg-white dark:bg-gray-800",
+      "border-2 border-[#78d19a]/30 hover:border-[#78d19a]/50",
+      "dark:border-[#78d19a]/40 dark:hover:border-[#78d19a]/60",
+      isHighlighted && "ring-2 ring-amber-400 shadow-lg border-amber-500",
+      isPinned && "ring-2 ring-amber-500/30 shadow-lg border-amber-500/50"
+    )}
     style={{
       backgroundColor: 'rgba(120, 209, 154, 0.1)',
     }}
@@ -40,9 +61,31 @@ export function PadiSummaryCard({ isLoading, error, totals, countdownStatus, uni
           Perlu Perhatian
         </Badge>
       )}
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
-        <CardTitle className="text-sm font-medium text-[#0f4c2a] dark:text-[#86efac]">🌾 Ubinan Padi ({selectedYear})</CardTitle>
-        <Button asChild variant="outline" size="sm" className="border-[#78d19a]/40 text-[#166534] hover:bg-[#78d19a]/20 dark:text-[#4ade80] dark:border-[#78d19a]/50">
+      <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2 relative z-10">
+        <div className="flex-1">
+          <div className="flex justify-between items-center gap-2">
+            <CardTitle className="text-sm font-medium text-[#0f4c2a] dark:text-[#86efac]">
+              🌾 Ubinan Padi ({selectedYear})
+            </CardTitle>
+            {onTogglePin && (
+              <PinButton 
+                kpiId="padi"
+                isPinned={isPinned}
+                pinOrder={pinOrder}
+                onTogglePin={onTogglePin}
+                canPinMore={canPinMore}
+                disabled={isLoading}
+              />
+            )}
+          </div>
+          {isPinned && pinOrder && (
+            <Badge variant="secondary" className="w-fit text-xs bg-blue-100 text-blue-700 mt-1">
+              <Pin className="h-3 w-3 mr-1" />
+              PIN #{pinOrder}
+            </Badge>
+          )}
+        </div>
+        <Button asChild variant="outline" size="sm" className="border-[#78d19a]/40 text-[#166534] hover:bg-[#78d19a]/20 dark:text-[#4ade80] dark:border-[#78d19a]/50 ml-2">
           <Link href="/monitoring/ubinan">Lihat Detail</Link>
         </Button>
       </CardHeader>

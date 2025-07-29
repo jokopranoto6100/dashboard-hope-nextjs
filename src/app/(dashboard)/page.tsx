@@ -11,6 +11,7 @@ import { useKsaMonitoringData } from "@/hooks/useKsaMonitoringData";
 import { useKsaJagungMonitoringData } from "@/hooks/useKsaJagungMonitoringData";
 import { useSimtpKpiData } from "@/hooks/useSimtpKpiData";
 import { useCountdown } from "@/hooks/useCountdown";
+import { useKpiPins } from "@/hooks/useKpiPins";
 
 // Import komponen-komponen modular dan UI
 import { PadiSummaryCard } from "@/app/(dashboard)/_components/homepage/PadiSummaryCard";
@@ -20,6 +21,7 @@ import { KsaJagungSummaryCard } from "@/app/(dashboard)/_components/homepage/Ksa
 import { SimtpSummaryCard } from "@/app/(dashboard)/_components/homepage/SimtpSummaryCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 
 // Import tipe data dan ikon
 import { Clock, CheckCircle, AlertTriangle } from "lucide-react";
@@ -86,6 +88,15 @@ export default function HomePage() {
   const { selectedYear } = useYear();
   const ubinanSubround = 'all';
 
+  // PIN Management
+  const { 
+    togglePin, 
+    isPinned, 
+    getPinOrder,
+    canPinMore,
+    isLoading: pinsLoading 
+  } = useKpiPins();
+
   // Bagian 1: Pengambilan Data
   const { padiTotals, loadingPadi, errorPadi, lastUpdate, uniqueStatusNames: padiUniqueStatusNames, kegiatanId: padiKegiatanId } = usePadiMonitoringData(selectedYear, ubinanSubround);
   const { palawijaTotals, loadingPalawija, errorPalawija, lastUpdatePalawija, kegiatanId: palawijaKegiatanId } = usePalawijaMonitoringData(selectedYear, ubinanSubround);
@@ -94,7 +105,31 @@ export default function HomePage() {
   const { data: simtpData, isLoading: loadingSimtp, error: errorSimtp, kegiatanId: simtpKegiatanId } = useSimtpKpiData();
   const { jadwalData, isLoading: isJadwalLoading } = useJadwalData(selectedYear);
 
-  const isAnythingLoading = loadingPadi || loadingPalawija || loadingKsa || loadingKsaJagung || loadingSimtp || isJadwalLoading;
+  const isAnythingLoading = loadingPadi || loadingPalawija || loadingKsa || loadingKsaJagung || loadingSimtp || isJadwalLoading || pinsLoading;
+
+  // Handle PIN toggle with toast notifications
+  const handleTogglePin = React.useCallback(async (kpiId: string) => {
+    try {
+      const result = await togglePin(kpiId);
+      
+      if (result.success) {
+        toast.success(result.message, {
+          description: result.action === 'pinned' ? "KPI berhasil di-pin ke atas" : "PIN berhasil dihapus",
+          duration: 2000,
+        });
+      } else {
+        toast.error("Tidak bisa pin", {
+          description: result.message,
+          duration: 3000,
+        });
+      }
+    } catch {
+      toast.error("Error", {
+        description: "Gagal mengubah PIN. Coba lagi.",
+        duration: 3000,
+      });
+    }
+  }, [togglePin]);
 
   // Bagian 2: Kalkulasi & Memoization
   const jadwalPadi = React.useMemo(() => !isJadwalLoading && padiKegiatanId ? jadwalData.find(k => k.id === padiKegiatanId) : undefined, [jadwalData, isJadwalLoading, padiKegiatanId]);
@@ -166,6 +201,8 @@ export default function HomePage() {
   }, [jadwalKsaJagung, ksaJagungDisplayMonth, ksaJagungTotals, countdownStatusKsaJagung]);
 
   const sortedKpiCards = React.useMemo(() => {
+    if (pinsLoading) return []; // Wait for pins to load
+    
     const kpiCards = [
       { id: 'padi', percentage: padiTotals?.persentase },
       { id: 'palawija', percentage: palawijaTotals?.persentase },
@@ -176,12 +213,26 @@ export default function HomePage() {
       { id: 'kegiatan2', percentage: Infinity }
     ];
     
-    return kpiCards.sort((a, b) => {
-        const aValue = a.percentage ?? 101;
-        const bValue = b.percentage ?? 101;
-        return aValue - bValue;
+    // Separate pinned and unpinned cards
+    const pinnedCards = kpiCards.filter(card => isPinned(card.id));
+    const unpinnedCards = kpiCards.filter(card => !isPinned(card.id));
+    
+    // Sort pinned cards by pin order
+    pinnedCards.sort((a, b) => {
+      const aPinOrder = getPinOrder(a.id) ?? 999;
+      const bPinOrder = getPinOrder(b.id) ?? 999;
+      return aPinOrder - bPinOrder;
     });
-  }, [padiTotals, palawijaTotals, ksaTotals, ksaJagungTotals, simtpData]);
+    
+    // Sort unpinned cards by percentage (existing logic)
+    unpinnedCards.sort((a, b) => {
+      const aValue = a.percentage ?? 101;
+      const bValue = b.percentage ?? 101;
+      return aValue - bValue;
+    });
+    
+    return [...pinnedCards, ...unpinnedCards];
+  }, [pinsLoading, padiTotals, palawijaTotals, ksaTotals, ksaJagungTotals, simtpData, isPinned, getPinOrder]);
 
   // Bagian 3: Rendering
   return (
@@ -238,20 +289,92 @@ export default function HomePage() {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 auto-rows-fr mb-6">
           {sortedKpiCards.map((card, index) => {
             const isHighlighted = index === 0;
+            const cardIsPinned = isPinned(card.id);
+            const cardPinOrder = getPinOrder(card.id);
+            
             if (card.id === 'padi') {
-              return <PadiSummaryCard key={card.id} isLoading={isAnythingLoading} error={errorPadi} totals={padiTotals} countdownStatus={countdownStatusPadi} uniqueStatusNames={padiUniqueStatusNames || []} lastUpdate={lastUpdate} selectedYear={selectedYear} isHighlighted={isHighlighted} />
+              return <PadiSummaryCard 
+                key={card.id} 
+                isLoading={isAnythingLoading} 
+                error={errorPadi} 
+                totals={padiTotals} 
+                countdownStatus={countdownStatusPadi} 
+                uniqueStatusNames={padiUniqueStatusNames || []} 
+                lastUpdate={lastUpdate} 
+                selectedYear={selectedYear} 
+                isHighlighted={isHighlighted}
+                isPinned={cardIsPinned}
+                pinOrder={cardPinOrder}
+                onTogglePin={handleTogglePin}
+                canPinMore={canPinMore}
+              />
             }
             if (card.id === 'palawija') {
-              return <PalawijaSummaryCard key={card.id} isLoading={isAnythingLoading} error={errorPalawija} totals={palawijaTotals} countdownStatus={countdownStatusPalawija} lastUpdate={lastUpdatePalawija} selectedYear={selectedYear} isHighlighted={isHighlighted} />
+              return <PalawijaSummaryCard 
+                key={card.id} 
+                isLoading={isAnythingLoading} 
+                error={errorPalawija} 
+                totals={palawijaTotals} 
+                countdownStatus={countdownStatusPalawija} 
+                lastUpdate={lastUpdatePalawija} 
+                selectedYear={selectedYear} 
+                isHighlighted={isHighlighted}
+                isPinned={cardIsPinned}
+                pinOrder={cardPinOrder}
+                onTogglePin={handleTogglePin}
+                canPinMore={canPinMore}
+              />
             }
             if (card.id === 'ksa') {
-              return <KsaSummaryCard key={card.id} isLoading={isAnythingLoading} error={errorKsa} totals={ksaTotals} displayStatus={ksaDisplayStatus} displayMonth={ksaDisplayMonth || ''} uniqueStatusNames={ksaUniqueStatusNames || []} lastUpdate={lastUpdatedKsa} selectedYear={selectedYear} isHighlighted={isHighlighted} />
+              return <KsaSummaryCard 
+                key={card.id} 
+                isLoading={isAnythingLoading} 
+                error={errorKsa} 
+                totals={ksaTotals} 
+                displayStatus={ksaDisplayStatus} 
+                displayMonth={ksaDisplayMonth || ''} 
+                uniqueStatusNames={ksaUniqueStatusNames || []} 
+                lastUpdate={lastUpdatedKsa} 
+                selectedYear={selectedYear} 
+                isHighlighted={isHighlighted}
+                isPinned={cardIsPinned}
+                pinOrder={cardPinOrder}
+                onTogglePin={handleTogglePin}
+                canPinMore={canPinMore}
+              />
             }
             if (card.id === 'ksa-jagung') {
-              return <KsaJagungSummaryCard key={card.id} isLoading={isAnythingLoading} error={errorKsaJagung} totals={ksaJagungTotals} displayStatus={ksaJagungDisplayStatus} displayMonth={ksaJagungDisplayMonth || ''} uniqueStatusNames={ksaJagungUniqueStatusNames || []} lastUpdate={lastUpdatedKsaJagung} selectedYear={selectedYear} isHighlighted={isHighlighted} />
+              return <KsaJagungSummaryCard 
+                key={card.id} 
+                isLoading={isAnythingLoading} 
+                error={errorKsaJagung} 
+                totals={ksaJagungTotals} 
+                displayStatus={ksaJagungDisplayStatus} 
+                displayMonth={ksaJagungDisplayMonth || ''} 
+                uniqueStatusNames={ksaJagungUniqueStatusNames || []} 
+                lastUpdate={lastUpdatedKsaJagung} 
+                selectedYear={selectedYear} 
+                isHighlighted={isHighlighted}
+                isPinned={cardIsPinned}
+                pinOrder={cardPinOrder}
+                onTogglePin={handleTogglePin}
+                canPinMore={canPinMore}
+              />
             }
             if (card.id === 'simtp') {
-              return <SimtpSummaryCard key={card.id} isLoading={isAnythingLoading} error={errorSimtp} data={simtpData} displayStatus={simtpDisplayStatus} selectedYear={selectedYear} isHighlighted={isHighlighted} />
+              return <SimtpSummaryCard 
+                key={card.id} 
+                isLoading={isAnythingLoading} 
+                error={errorSimtp} 
+                data={simtpData} 
+                displayStatus={simtpDisplayStatus} 
+                selectedYear={selectedYear} 
+                isHighlighted={isHighlighted}
+                isPinned={cardIsPinned}
+                pinOrder={cardPinOrder}
+                onTogglePin={handleTogglePin}
+                canPinMore={canPinMore}
+              />
             }
             if (card.id === 'kegiatan1') {
               return <KegiatanLainnyaCard key={card.id} title="Kegiatan Lainnya 1" isHighlighted={isHighlighted} />

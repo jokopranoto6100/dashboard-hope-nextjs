@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { ElementType } from 'react';
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Pin } from "lucide-react";
+import { PinButton } from "@/components/ui/pin-button";
+import { cn } from "@/lib/utils";
 
 interface SimtpSummaryCardProps {
   isLoading: boolean;
@@ -20,23 +22,43 @@ interface SimtpSummaryCardProps {
   } | null;
   selectedYear: number;
   isHighlighted?: boolean;
+  // PIN props
+  isPinned?: boolean;
+  pinOrder?: number | null;
+  onTogglePin?: (kpiId: string) => Promise<void>;
+  canPinMore?: boolean;
 }
 
-export function SimtpSummaryCard({ isLoading, error, data, displayStatus, selectedYear, isHighlighted }: SimtpSummaryCardProps) {
+export function SimtpSummaryCard({ 
+  isLoading, 
+  error, 
+  data, 
+  displayStatus, 
+  selectedYear, 
+  isHighlighted = false,
+  // PIN props
+  isPinned = false,
+  pinOrder = null,
+  onTogglePin,
+  canPinMore = true
+}: SimtpSummaryCardProps) {
   return (
-    <Card className={`
-      h-full transition-all duration-300 hover:shadow-lg hover:scale-105 relative
-      bg-white dark:bg-gray-800
-      border-2 border-[#c87cc3]/30 hover:border-[#c87cc3]/50 
-      dark:border-[#c87cc3]/40 dark:hover:border-[#c87cc3]/60
-      ${isHighlighted ? 'ring-2 ring-amber-400 shadow-lg border-amber-500' : ''}
-    `}
+    <Card className={cn(
+      "h-full transition-all duration-300 hover:shadow-lg hover:scale-105 relative",
+      "bg-white dark:bg-gray-800",
+      "border-2 border-[#c87cc3]/30 hover:border-[#c87cc3]/50",
+      "dark:border-[#c87cc3]/40 dark:hover:border-[#c87cc3]/60",
+      isHighlighted && "ring-2 ring-amber-400 shadow-lg border-amber-500",
+      isPinned && "border-blue-200 bg-blue-50/50"
+    )}
     style={{
-      backgroundColor: 'rgba(200, 124, 195, 0.1)',
+      backgroundColor: isPinned ? 'rgba(59, 130, 246, 0.1)' : 'rgba(200, 124, 195, 0.1)',
     }}
     >
       {/* Dark mode background overlay */}
-      <div className="absolute inset-0 rounded-lg hidden dark:block" style={{ backgroundColor: 'rgba(200, 124, 195, 0.15)' }} />
+      <div className="absolute inset-0 rounded-lg hidden dark:block" style={{ 
+        backgroundColor: isPinned ? 'rgba(59, 130, 246, 0.15)' : 'rgba(200, 124, 195, 0.15)' 
+      }} />
       
       {isHighlighted && (
         <Badge variant="default" className="absolute -top-3 -right-3 flex items-center gap-1 bg-amber-500 text-white hover:bg-amber-600 z-10">
@@ -44,9 +66,32 @@ export function SimtpSummaryCard({ isLoading, error, data, displayStatus, select
           Perlu Perhatian
         </Badge>
       )}
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
-        <CardTitle className="text-sm font-medium text-[#581c87] dark:text-[#e9d5ff]">📱 SIMTP ({selectedYear}) - {data ? data.monthly.reportForMonthName : "Data tidak tersedia"}</CardTitle>
-        <Button asChild variant="outline" size="sm" className="border-[#c87cc3]/40 text-[#7c3aed] hover:bg-[#c87cc3]/20 dark:text-[#a855f7] dark:border-[#c87cc3]/50">
+      
+      <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2 relative z-10">
+        <div className="flex-1">
+          <div className="flex justify-between items-center gap-2">
+            <CardTitle className="text-sm font-medium text-[#581c87] dark:text-[#e9d5ff]">
+              📱 SIMTP ({selectedYear}) - {data ? data.monthly.reportForMonthName : "Data tidak tersedia"}
+            </CardTitle>
+            {onTogglePin && (
+              <PinButton
+                kpiId="simtp"
+                isPinned={isPinned}
+                pinOrder={pinOrder}
+                onTogglePin={onTogglePin}
+                canPinMore={canPinMore}
+                disabled={isLoading}
+              />
+            )}
+          </div>
+          {isPinned && pinOrder && (
+            <Badge variant="secondary" className="w-fit text-xs bg-blue-100 text-blue-700 mt-1">
+              <Pin className="h-3 w-3 mr-1" />
+              PIN #{pinOrder}
+            </Badge>
+          )}
+        </div>
+        <Button asChild variant="outline" size="sm" className="border-[#c87cc3]/40 text-[#7c3aed] hover:bg-[#c87cc3]/20 dark:text-[#a855f7] dark:border-[#c87cc3]/50 ml-2">
           <Link href="/monitoring/simtp">Lihat Detail</Link>
         </Button>
       </CardHeader>

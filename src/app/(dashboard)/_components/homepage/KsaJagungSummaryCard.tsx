@@ -4,8 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { ElementType } from 'react';
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Pin } from "lucide-react";
 import { getStatusVisuals } from '@/lib/status-visuals';
+import { PinButton } from "@/components/ui/pin-button";
+import { cn } from "@/lib/utils";
 
 interface KsaJagungSummaryCardProps {
   isLoading: boolean;
@@ -17,6 +19,11 @@ interface KsaJagungSummaryCardProps {
   lastUpdate: string | null;
   selectedYear: number;
   isHighlighted?: boolean;
+  // PIN props
+  isPinned?: boolean;
+  pinOrder?: number | null;
+  onTogglePin?: (kpiId: string) => Promise<void>;
+  canPinMore?: boolean;
 }
 
 const getMonthName = (monthNumberStr: string): string => {
@@ -27,21 +34,39 @@ const getMonthName = (monthNumberStr: string): string => {
   return (monthIndex >= 0 && monthIndex < 12) ? monthNames[monthIndex] : monthNumberStr;
 };
 
-export function KsaJagungSummaryCard({ isLoading, error, totals, displayStatus, displayMonth, uniqueStatusNames, lastUpdate, selectedYear, isHighlighted }: KsaJagungSummaryCardProps) {
+export function KsaJagungSummaryCard({ 
+  isLoading, 
+  error, 
+  totals, 
+  displayStatus, 
+  displayMonth, 
+  uniqueStatusNames, 
+  lastUpdate, 
+  selectedYear, 
+  isHighlighted = false,
+  // PIN props
+  isPinned = false,
+  pinOrder = null,
+  onTogglePin,
+  canPinMore = true
+}: KsaJagungSummaryCardProps) {
   return (
-    <Card className={`
-      h-full transition-all duration-300 hover:shadow-lg hover:scale-105 relative
-      bg-white dark:bg-gray-800
-      border-2 border-[#fdb18f]/30 hover:border-[#fdb18f]/50 
-      dark:border-[#fdb18f]/40 dark:hover:border-[#fdb18f]/60
-      ${isHighlighted ? 'ring-2 ring-amber-400 shadow-lg border-amber-500' : ''}
-    `}
+    <Card className={cn(
+      "h-full transition-all duration-300 hover:shadow-lg hover:scale-105 relative",
+      "bg-white dark:bg-gray-800",
+      "border-2 border-[#fdb18f]/30 hover:border-[#fdb18f]/50",
+      "dark:border-[#fdb18f]/40 dark:hover:border-[#fdb18f]/60",
+      isHighlighted && "ring-2 ring-amber-400 shadow-lg border-amber-500",
+      isPinned && "border-blue-200 bg-blue-50/50"
+    )}
     style={{
-      backgroundColor: 'rgba(253, 177, 143, 0.1)',
+      backgroundColor: isPinned ? 'rgba(59, 130, 246, 0.1)' : 'rgba(253, 177, 143, 0.1)',
     }}
     >
       {/* Dark mode background overlay */}
-      <div className="absolute inset-0 rounded-lg hidden dark:block" style={{ backgroundColor: 'rgba(253, 177, 143, 0.15)' }} />
+      <div className="absolute inset-0 rounded-lg hidden dark:block" style={{ 
+        backgroundColor: isPinned ? 'rgba(59, 130, 246, 0.15)' : 'rgba(253, 177, 143, 0.15)' 
+      }} />
       
       {isHighlighted && (
         <Badge variant="default" className="absolute -top-3 -right-3 flex items-center gap-1 bg-amber-500 text-white hover:bg-amber-600 z-10">
@@ -49,9 +74,32 @@ export function KsaJagungSummaryCard({ isLoading, error, totals, displayStatus, 
           Perlu Perhatian
         </Badge>
       )}
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
-        <CardTitle className="text-sm font-medium text-[#9a3412] dark:text-[#fed7aa]">🌽 KSA Jagung ({selectedYear}) - {getMonthName(displayMonth)}</CardTitle>
-        <Button asChild variant="outline" size="sm" className="border-[#fdb18f]/40 text-[#ea580c] hover:bg-[#fdb18f]/20 dark:text-[#fb923c] dark:border-[#fdb18f]/50">
+      
+            <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2 relative z-10">
+        <div className="flex-1">
+          <div className="flex justify-between items-center gap-2">
+            <CardTitle className="text-sm font-medium text-[#9a3412] dark:text-[#fed7aa]">
+              🌽 KSA Jagung ({selectedYear}) - {getMonthName(displayMonth)}
+            </CardTitle>
+            {onTogglePin && (
+              <PinButton
+                kpiId="ksa-jagung"
+                isPinned={isPinned}
+                pinOrder={pinOrder}
+                onTogglePin={onTogglePin}
+                canPinMore={canPinMore}
+                disabled={isLoading}
+              />
+            )}
+          </div>
+          {isPinned && pinOrder && (
+            <Badge variant="secondary" className="w-fit text-xs bg-blue-100 text-blue-700 mt-1">
+              <Pin className="h-3 w-3 mr-1" />
+              PIN #{pinOrder}
+            </Badge>
+          )}
+        </div>
+        <Button asChild variant="outline" size="sm" className="border-[#fdb18f]/40 text-[#ea580c] hover:bg-[#fdb18f]/20 dark:text-[#fb923c] dark:border-[#fdb18f]/50 ml-2">
           <Link href="/monitoring/ksa">Lihat Detail</Link>
         </Button>
       </CardHeader>
