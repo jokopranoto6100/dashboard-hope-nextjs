@@ -27,6 +27,17 @@ Dashboard HOPE adalah aplikasi web modern **Progressive Web App (PWA)** yang dib
 
 ### 🏠 **Dashboard Homepage (`/`)**
 * **Executive Dashboard:** KPI cards dengan real-time data monitoring
+* **Export Screenshot:** One-click export dashboard sebagai gambar PNG untuk laporan dan presentasi
+  - **High Quality:** Export dengan scale 2x untuk resolusi tinggi
+  - **Smart Filename:** Auto-generated filename dengan timestamp dan tahun
+  - **Progress Feedback:** Toast notifications untuk status export
+  - **Cross-Browser Compatible:** Menggunakan html2canvas untuk screenshot yang konsisten
+* **PIN System:** Manual prioritization system untuk KPI cards yang penting
+  - **Smart Pinning:** Pin hingga 5 KPI cards ke bagian atas dashboard
+  - **Visual Feedback:** Pinned cards ditandai dengan blue theme dan pin order indicator
+  - **Optimistic Updates:** Real-time UI updates dengan toast notifications
+  - **Cross-Device Sync:** PIN preferences tersimpan di database untuk sync across devices
+  - **Clean Interface:** PIN button terintegrasi seamlessly di header setiap card
 * **Performance Sorting:** Dynamic card arrangement berdasarkan completion percentage
 * **Responsive Design:** Mobile-optimized layout dengan adaptive spacing
 * **Status Indicators:** Color-coded badges dengan progress tracking
@@ -265,6 +276,11 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 * **RPC Functions:** Complex queries di database level untuk performance
 * **Materialized Views:** Pre-computed aggregations untuk fast data access
 * **Optimized Queries:** Fallback mechanisms untuk graceful degradation
+* **PIN System Database:**
+  - `user_kpi_pins` table dengan user_id, kpi_id, pin_order tracking
+  - Row Level Security (RLS) policies untuk user isolation
+  - `toggle_kpi_pin` RPC function untuk atomic pin operations
+  - Efficient queries dengan unique constraints dan indexing
 
 ### **Frontend Optimization**
 * **Code Splitting:** Automatic bundle splitting
@@ -272,6 +288,16 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 * **Memoization:** Extensive React optimization
 * **Debounced Inputs:** Optimized search dan filtering
 * **SWR Caching:** Intelligent data caching dengan revalidation
+* **PIN System React Hooks:**
+  - `useKpiPins` custom hook dengan optimistic updates
+  - Reusable `PinButton` component dengan loading states
+  - Toast notifications dengan Sonner integration
+  - Efficient state management dengan minimal re-renders
+* **Screenshot Export System:**
+  - `html2canvas` integration untuk high-quality screenshot capture
+  - Automatic filename generation dengan timestamp
+  - Error handling dengan user feedback via toast notifications
+  - CORS-compatible image processing
 
 ## 🚀 **Recent Major Updates**
 

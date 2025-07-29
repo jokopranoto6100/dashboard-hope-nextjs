@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { ElementType } from 'react';
-import { AlertTriangle, Pin } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import { getStatusVisuals } from '@/lib/status-visuals';
 import { PinButton } from "@/components/ui/pin-button";
 import { cn } from "@/lib/utils";
@@ -92,12 +92,6 @@ export function KsaSummaryCard({
               />
             )}
           </div>
-          {isPinned && pinOrder && (
-            <Badge variant="secondary" className="w-fit text-xs bg-blue-100 text-blue-700 mt-1">
-              <Pin className="h-3 w-3 mr-1" />
-              PIN #{pinOrder}
-            </Badge>
-          )}
         </div>
         <Button asChild variant="outline" size="sm" className="border-[#8e97fe]/40 text-[#3730a3] hover:bg-[#8e97fe]/20 dark:text-[#818cf8] dark:border-[#8e97fe]/50 ml-2">
           <Link href="/monitoring/ksa">Lihat Detail</Link>

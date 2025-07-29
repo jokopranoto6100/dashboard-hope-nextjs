@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { ElementType } from 'react';
-import { AlertTriangle, Pin } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import { PinButton } from "@/components/ui/pin-button";
 import { cn } from "@/lib/utils";
 
@@ -84,12 +84,6 @@ export function SimtpSummaryCard({
               />
             )}
           </div>
-          {isPinned && pinOrder && (
-            <Badge variant="secondary" className="w-fit text-xs bg-blue-100 text-blue-700 mt-1">
-              <Pin className="h-3 w-3 mr-1" />
-              PIN #{pinOrder}
-            </Badge>
-          )}
         </div>
         <Button asChild variant="outline" size="sm" className="border-[#c87cc3]/40 text-[#7c3aed] hover:bg-[#c87cc3]/20 dark:text-[#a855f7] dark:border-[#c87cc3]/50 ml-2">
           <Link href="/monitoring/simtp">Lihat Detail</Link>

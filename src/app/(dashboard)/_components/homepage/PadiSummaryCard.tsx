@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Clock, AlertTriangle, Pin } from "lucide-react";
+import { Clock, AlertTriangle } from "lucide-react";
 import { getStatusVisuals } from '@/lib/status-visuals';
 import { PinButton } from "@/components/ui/pin-button";
 import { cn } from "@/lib/utils";
@@ -78,12 +78,6 @@ export function PadiSummaryCard({
               />
             )}
           </div>
-          {isPinned && pinOrder && (
-            <Badge variant="secondary" className="w-fit text-xs bg-blue-100 text-blue-700 mt-1">
-              <Pin className="h-3 w-3 mr-1" />
-              PIN #{pinOrder}
-            </Badge>
-          )}
         </div>
         <Button asChild variant="outline" size="sm" className="border-[#78d19a]/40 text-[#166534] hover:bg-[#78d19a]/20 dark:text-[#4ade80] dark:border-[#78d19a]/50 ml-2">
           <Link href="/monitoring/ubinan">Lihat Detail</Link>
