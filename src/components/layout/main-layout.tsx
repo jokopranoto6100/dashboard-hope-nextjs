@@ -17,6 +17,7 @@ import { useDarkMode } from '@/context/DarkModeContext';
 import { Moon, Sun, Menu } from 'lucide-react';
 import { useSwipeToClose } from '@/hooks/useSwipeToClose';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
+import { ScrollToTop } from '@/components/ui/scroll-to-top';
 
 import {
   Sheet,
@@ -198,6 +199,9 @@ export default function MainLayout({ children, isCollapsed, setIsCollapsed }: Ma
           <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 lg:p-8 bg-muted/40 w-full max-w-screen">
             {children}
           </main>
+
+          {/* Global Floating Scroll to Top Button */}
+          <ScrollToTop threshold={400} variant="default" />
         </div>
       </div>
     </SidebarProvider>
