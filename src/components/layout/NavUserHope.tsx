@@ -105,10 +105,10 @@ export function NavUserHope({ onNavigate }: NavUserHopeProps) {
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className="w-[var(--radix-dropdown-menu-trigger-width)] min-w-56 rounded-lg"
-            side={isMobile ? "top" : "right"}
-            align="end"
-            sideOffset={isMobile ? 12 : 8}
+            className="w-56 rounded-lg"
+            side={isMobile ? "bottom" : "right"}
+            align="center"
+            sideOffset={8}
             avoidCollisions={true}
             collisionPadding={16}
             onCloseAutoFocus={(event) => {
