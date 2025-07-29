@@ -20,11 +20,13 @@ import { KsaSummaryCard } from "@/app/(dashboard)/_components/homepage/KsaSummar
 import { KsaJagungSummaryCard } from "@/app/(dashboard)/_components/homepage/KsaJagungSummaryCard";
 import { SimtpSummaryCard } from "@/app/(dashboard)/_components/homepage/SimtpSummaryCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import * as htmlToImage from 'html-to-image';
 
 // Import tipe data dan ikon
-import { Clock, CheckCircle, AlertTriangle } from "lucide-react";
+import { Clock, CheckCircle, AlertTriangle, Camera, Loader2 } from "lucide-react";
 
 // Komponen Skeleton untuk seluruh halaman
 const HomepageSkeleton = () => (
@@ -88,6 +90,10 @@ export default function HomePage() {
   const { selectedYear } = useYear();
   const ubinanSubround = 'all';
 
+  // Reference for export
+  const dashboardRef = React.useRef<HTMLDivElement>(null);
+  const [isExporting, setIsExporting] = React.useState(false);
+
   // PIN Management
   const { 
     togglePin, 
@@ -130,6 +136,61 @@ export default function HomePage() {
       });
     }
   }, [togglePin]);
+
+  // Export Dashboard as Image
+  const handleExportImage = React.useCallback(async () => {
+    if (!dashboardRef.current || isExporting) return;
+    
+    setIsExporting(true);
+    toast.loading("Menggenerate gambar dashboard...", { id: 'export-loading' });
+    
+    try {
+      // Add temporary padding for export
+      const originalPadding = dashboardRef.current.style.padding;
+      dashboardRef.current.style.padding = '32px';
+      
+      const dataUrl = await htmlToImage.toPng(dashboardRef.current, {
+        quality: 1.0,
+        pixelRatio: 2, // For high resolution
+        backgroundColor: '#ffffff',
+        width: dashboardRef.current.scrollWidth,
+        height: dashboardRef.current.scrollHeight,
+        style: {
+          transform: 'scale(1)',
+          transformOrigin: 'top left',
+        }
+      });
+
+      // Restore original padding
+      dashboardRef.current.style.padding = originalPadding;
+
+      // Create download link
+      const link = document.createElement('a');
+      link.download = `dashboard-hope-${selectedYear}-${new Date().toISOString().slice(0, 10)}.png`;
+      link.href = dataUrl;
+      link.click();
+
+      toast.dismiss('export-loading');
+      toast.success("Dashboard berhasil diekspor!", {
+        description: "Gambar telah diunduh ke perangkat Anda",
+        duration: 3000,
+      });
+    } catch (error) {
+      // Restore original padding in case of error
+      if (dashboardRef.current) {
+        dashboardRef.current.style.padding = '';
+      }
+      
+      toast.dismiss('export-loading');
+      toast.error("Gagal mengekspor dashboard", {
+        description: "Terjadi kesalahan saat membuat gambar",
+        duration: 3000,
+      });
+      console.error('Export error:', error);
+    } finally {
+      setIsExporting(false);
+    }
+  }, [selectedYear, isExporting]);
 
   // Bagian 2: Kalkulasi & Memoization
   const jadwalPadi = React.useMemo(() => !isJadwalLoading && padiKegiatanId ? jadwalData.find(k => k.id === padiKegiatanId) : undefined, [jadwalData, isJadwalLoading, padiKegiatanId]);
@@ -236,7 +297,7 @@ export default function HomePage() {
 
   // Bagian 3: Rendering
   return (
-    <div className="space-y-6">
+    <div ref={dashboardRef} className="space-y-6">
       {/* Enhanced Header dengan desain modern dan konsisten dengan halaman lainnya */}
       <div 
         className="relative overflow-hidden rounded-xl p-4 sm:p-6 text-white shadow-xl"
@@ -251,6 +312,24 @@ export default function HomePage() {
         {/* Decorative circles dengan dark mode adaptif */}
         <div className="absolute -top-4 -right-4 h-24 w-24 rounded-full bg-white/10 dark:bg-white/5 blur-xl" />
         <div className="absolute -bottom-6 -left-6 h-32 w-32 rounded-full bg-white/5 dark:bg-white/3 blur-2xl" />
+        
+        {/* Export Button - positioned absolutely with proper z-index */}
+        <Button
+          onClick={handleExportImage}
+          disabled={isExporting || isAnythingLoading}
+          variant="ghost"
+          size="sm"
+          className="group absolute top-1/2 right-4 sm:right-6 -translate-y-1/2 z-20 bg-white/15 hover:bg-white/25 border border-white/30 text-white backdrop-blur-md transition-all duration-300 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-lg hover:shadow-xl"
+        >
+          {isExporting ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Camera className="h-4 w-4 transition-transform duration-300 group-hover:rotate-12" />
+          )}
+          <span className="hidden sm:inline-block ml-2 font-medium">
+            {isExporting ? 'Exporting...' : 'Export'}
+          </span>
+        </Button>
         
         <div className="relative">
           <div className="space-y-2 sm:space-y-3">
