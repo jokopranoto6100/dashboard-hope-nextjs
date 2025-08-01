@@ -10,7 +10,7 @@ import { DarkModeProvider } from '@/context/DarkModeContext';
 import { Analytics } from '@vercel/analytics/react'; // <-- 1. Tambahkan import ini
 import PWAInstallPrompt from '@/components/PWAInstallPrompt';
 import OfflineIndicator from '@/components/OfflineIndicator';
-import SplashWrapperDebug from '@/components/SplashWrapperDebug';
+import SplashWrapper from '@/components/SplashWrapper';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -84,7 +84,7 @@ export default function RootLayout({
         <meta property="og:image" content="https://yourapp.com/icon/hope.png" />
       </head>
       <body className={inter.className}>
-        <SplashWrapperDebug>
+        <SplashWrapper>
           <DarkModeProvider>
             <AuthProvider>
               <YearProvider>
@@ -96,7 +96,7 @@ export default function RootLayout({
           <PWAInstallPrompt />
           <OfflineIndicator />
           <Analytics /> 
-        </SplashWrapperDebug>
+        </SplashWrapper>
       </body>
     </html>
   );

@@ -14,18 +14,34 @@ export default function SplashWrapper({ children }: SplashWrapperProps) {
   useEffect(() => {
     setIsClient(true);
     
-    // Check if app was launched as PWA
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
-                        (window.navigator as any).standalone ||
-                        document.referrer.includes('android-app://');
+    // More accurate PWA detection
+    const isPWA = () => {
+      // Check if running in standalone mode (iOS Safari)
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+      
+      // Check if running as PWA on iOS
+      const isIOSPWA = (window.navigator as any).standalone === true;
+      
+      // Check if running as Android PWA
+      const isAndroidPWA = document.referrer.includes('android-app://');
+      
+      // Check if running in fullscreen mode (some Android browsers)
+      const isFullscreen = window.matchMedia('(display-mode: fullscreen)').matches;
+      
+      // Check if window.location has app-like characteristics
+      const hasAppMode = window.location.search.includes('pwa=true') || 
+                        window.location.hash.includes('pwa');
+      
+      return isStandalone || isIOSPWA || isAndroidPWA || isFullscreen || hasAppMode;
+    };
     
-    // Show splash screen for PWA launches
-    if (isStandalone) {
+    // Only show splash screen if actually running as PWA
+    if (isPWA()) {
       setShowSplash(true);
     }
   }, []);
 
-  // Show children immediately if not client-side yet or no splash needed
+  // Always show children first if not PWA or not client-side yet
   if (!isClient || !showSplash) {
     return <>{children}</>;
   }

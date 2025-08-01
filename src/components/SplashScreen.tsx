@@ -51,9 +51,6 @@ export default function SplashScreen({ onFinish }: SplashScreenProps) {
       
       {/* Animated Logo Container */}
       <div className="relative flex flex-col items-center justify-center">
-        {/* Outer Ring Animation */}
-        <div className="absolute inset-0 w-32 h-32 border-4 border-transparent border-t-purple-300 rounded-full animate-spin-slow opacity-60" />
-        
         {/* Logo with ChatGPT-style Animation */}
         <div className="w-24 h-24 relative animate-pulse-scale mb-6">
           <div className="relative w-12 h-12 mx-auto animate-rotate-scale">
