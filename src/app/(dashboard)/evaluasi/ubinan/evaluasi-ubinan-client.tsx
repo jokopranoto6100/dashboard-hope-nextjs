@@ -266,11 +266,11 @@ export function EvaluasiUbinanClient() {
 
   return (
     <div className="space-y-4">
-      {/* Header - following scatter-plot pattern with gradient */}
+      {/* Header - matching homepage gradient colors */}
       <div 
         className="relative overflow-hidden rounded-xl p-4 sm:p-6 text-white shadow-xl"
         style={{
-          background: 'linear-gradient(135deg, rgb(59, 130, 246) 0%, rgb(37, 99, 235) 50%, rgb(29, 78, 216) 100%)'
+          background: 'linear-gradient(135deg, rgb(137, 132, 216) 0%, rgb(120, 115, 200) 50%, rgb(100, 95, 180) 100%)'
         }}
       >
         {/* Background pattern dengan dark mode adaptif */}

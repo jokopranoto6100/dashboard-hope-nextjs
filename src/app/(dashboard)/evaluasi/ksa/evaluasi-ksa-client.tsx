@@ -328,11 +328,11 @@ export function EvaluasiKsaClient() {
 
     return (
         <div className="space-y-4">
-            {/* Header - following evaluasi ubinan pattern with gradient */}
+            {/* Header - matching homepage gradient colors */}
             <div 
                 className="relative overflow-hidden rounded-xl p-4 sm:p-6 text-white shadow-xl"
                 style={{
-                    background: 'linear-gradient(135deg, rgb(59, 130, 246) 0%, rgb(37, 99, 235) 50%, rgb(29, 78, 216) 100%)'
+                    background: 'linear-gradient(135deg, rgb(137, 132, 216) 0%, rgb(120, 115, 200) 50%, rgb(100, 95, 180) 100%)'
                 }}
             >
                 {/* Background pattern dengan dark mode adaptif */}
@@ -367,26 +367,30 @@ export function EvaluasiKsaClient() {
                 </div>
             </div>
 
-            {/* Filter Controls */}
-            <div className="flex gap-3">
-                <div className="flex-1 space-y-2">
-                    <Label htmlFor="filter-ksa-type" className="text-sm font-medium">Jenis Survei</Label>
-                    <Select value={selectedKsaType} onValueChange={(v) => setSelectedKsaType(v as 'Padi' | 'Jagung')}>
-                        <SelectTrigger id="filter-ksa-type">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="Padi">KSA Padi</SelectItem>
-                            <SelectItem value="Jagung" disabled>KSA Jagung (Segera)</SelectItem>
-                        </SelectContent>
-                    </Select>
+            {/* Filter Controls - Matching Ubinan Layout */}
+            <div className="flex gap-2 max-w-xl">
+                <div className="flex-1">
+                    {isLoadingFilters ? (
+                        <Skeleton className="h-9 w-full" />
+                    ) : (
+                        <Select value={selectedKsaType} onValueChange={(v) => setSelectedKsaType(v as 'Padi' | 'Jagung')}>
+                            <SelectTrigger className="h-9 w-full bg-white border-gray-300">
+                                <SelectValue placeholder="Jenis Survei" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="Padi">KSA Padi</SelectItem>
+                                <SelectItem value="Jagung" disabled>KSA Jagung (Segera)</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    )}
                 </div>
-                <div className="flex-1 space-y-2">
-                    <Label htmlFor="filter-kabupaten" className="text-sm font-medium">Wilayah</Label>
-                    {isLoadingFilters ? <Skeleton className="h-10 w-full" /> : (
+                <div className="flex-1">
+                    {isLoadingFilters ? (
+                        <Skeleton className="h-9 w-full" />
+                    ) : (
                         <Select value={selectedKabupaten} onValueChange={setSelectedKabupaten} disabled={isLoadingFilters}>
-                            <SelectTrigger id="filter-kabupaten">
-                                <SelectValue />
+                            <SelectTrigger className="h-9 w-full bg-white border-gray-300">
+                                <SelectValue placeholder="Wilayah" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="semua">Semua Kabupaten</SelectItem>
