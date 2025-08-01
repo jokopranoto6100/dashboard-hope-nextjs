@@ -368,8 +368,19 @@ export async function uploadUbinanRawAction(formData: FormData): Promise<ActionR
     });
     if (rpcError) throw rpcError;
 
-    await supabaseServer.rpc('refresh_materialized_view_ubinan_anomali');
-    await supabaseServer.rpc('refresh_materialized_view_ubinan_dashboard');
+    // Refresh materialized views in parallel for better performance
+    const [refreshAnomaliResult, refreshDashboardResult] = await Promise.all([
+        supabaseServer.rpc('refresh_materialized_view_ubinan_anomali'),
+        supabaseServer.rpc('refresh_materialized_view_ubinan_dashboard')
+    ]);
+
+    if (refreshAnomaliResult.error) {
+        console.error("Gagal me-refresh materialized view 'ubinan_anomali':", refreshAnomaliResult.error);
+    }
+
+    if (refreshDashboardResult.error) {
+        console.error("Gagal me-refresh materialized view 'ubinan_dashboard':", refreshDashboardResult.error);
+    }
     
     revalidatePath("/update-data/ubinan");
     revalidatePath("/monitoring/ubinan");
@@ -449,7 +460,11 @@ export async function uploadMasterSampleAction(formData: FormData): Promise<Acti
       .upsert(allRowsToUpsert, { onConflict: 'tahun,subround,bulan,idsegmen,subsegmen' });
     if (upsertError) throw upsertError;
 
-    await supabaseServer.rpc('refresh_materialized_view_ubinan_dashboard');
+    // Refresh materialized view with error handling
+    const refreshResult = await supabaseServer.rpc('refresh_materialized_view_ubinan_dashboard');
+    if (refreshResult.error) {
+        console.error("Gagal me-refresh materialized view 'ubinan_dashboard':", refreshResult.error);
+    }
 
     revalidatePath("/update-data/ubinan");
 
