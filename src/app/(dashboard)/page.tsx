@@ -50,7 +50,6 @@ const KegiatanLainnyaCard = ({ title, isHighlighted }: { title: string, isHighli
       border-dashed 
       transition-all duration-300 
       hover:shadow-lg 
-      hover:scale-105
       h-full 
       ${isHighlighted ? 'border-2 shadow-lg ring-2' : 'border-2'}
     `}
@@ -209,19 +208,31 @@ export default function HomePage() {
       if (!jadwalSimtp || !simtpData) return null;
       const allJadwalItems = [...(jadwalSimtp.jadwal || []), ...(jadwalSimtp.subKegiatan?.flatMap(sub => sub.jadwal || []) || [])].sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
       if (allJadwalItems.length === 0) return null;
-      const today = new Date(); today.setHours(0, 0, 0, 0);
-      const currentOrNextSegment = allJadwalItems.find(item => new Date(item.endDate) >= today);
+      
+      // Fix timezone issue - use date strings for comparison to avoid timezone problems
+      const today = new Date();
+      const todayDateString = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+      
+      const currentOrNextSegment = allJadwalItems.find(item => item.endDate >= todayDateString);
       if (!currentOrNextSegment) return { line1: { text: `Status Laporan: ${simtpData.monthly.percentage >= 100 ? 'Selesai' : 'Terlambat'}`, color: "text-gray-500", icon: CheckCircle } };
-      const segmentStart = new Date(currentOrNextSegment.startDate);
-      const segmentEnd = new Date(currentOrNextSegment.endDate);
+      
       if (countdownStatusSimtp) {
-        if (today >= segmentStart && today <= segmentEnd) return { line1: { text: `Laporan ${segmentStart.toLocaleString('id-ID', { month: 'long' })} ${countdownStatusSimtp.text.toLowerCase()}`, color: countdownStatusSimtp.color, icon: countdownStatusSimtp.icon } };
-        if (today < segmentStart) {
+        // Jika dalam periode aktif upload
+        if (todayDateString >= currentOrNextSegment.startDate && todayDateString <= currentOrNextSegment.endDate) {
+          return { line1: { text: `Laporan ${simtpData.monthly.reportForMonthName} ${countdownStatusSimtp.text.toLowerCase()}`, color: countdownStatusSimtp.color, icon: countdownStatusSimtp.icon } };
+        }
+        // Jika belum mulai periode upload
+        if (todayDateString < currentOrNextSegment.startDate) {
           const kpiProgress = simtpData.monthly.percentage;
           return {
             line1: { text: kpiProgress >= 100 ? `Laporan ${simtpData.monthly.reportForMonthName}: Selesai` : `Laporan ${simtpData.monthly.reportForMonthName}: Terlambat`, color: kpiProgress >= 100 ? "text-green-600" : "text-amber-600", icon: kpiProgress >= 100 ? CheckCircle : AlertTriangle },
             line2: { text: `Periode berikutnya ${countdownStatusSimtp.text.toLowerCase()}`, color: countdownStatusSimtp.color, icon: countdownStatusSimtp.icon }
           };
+        }
+        // Jika periode sudah lewat
+        if (todayDateString > currentOrNextSegment.endDate) {
+          const kpiProgress = simtpData.monthly.percentage;
+          return { line1: { text: kpiProgress >= 100 ? `Laporan ${simtpData.monthly.reportForMonthName}: Selesai` : `Laporan ${simtpData.monthly.reportForMonthName}: Terlambat`, color: kpiProgress >= 100 ? "text-green-600" : "text-red-600", icon: kpiProgress >= 100 ? CheckCircle : AlertTriangle } };
         }
       }
       return null;
@@ -270,8 +281,7 @@ export default function HomePage() {
       { id: 'ksa', percentage: ksaTotals?.persentase },
       { id: 'ksa-jagung', percentage: ksaJagungTotals?.persentase },
       { id: 'simtp', percentage: simtpData?.monthly.percentage },
-      { id: 'kegiatan1', percentage: Infinity },
-      { id: 'kegiatan2', percentage: Infinity }
+      { id: 'kegiatan1', percentage: Infinity }
     ];
     
     // Separate pinned and unpinned cards
@@ -457,9 +467,6 @@ export default function HomePage() {
             }
             if (card.id === 'kegiatan1') {
               return <KegiatanLainnyaCard key={card.id} title="Kegiatan Lainnya 1" isHighlighted={isHighlighted} />
-            }
-            if (card.id === 'kegiatan2') {
-              return <KegiatanLainnyaCard key={card.id} title="Kegiatan Lainnya 2" isHighlighted={isHighlighted} />
             }
             return null;
           })}

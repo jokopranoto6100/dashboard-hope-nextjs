@@ -38,6 +38,9 @@ interface ChartSectionProps {
     lineChart: ChartDataPoint[];
     pieChart: { name: string; value: number }[];
     bulanRangeText: string;
+    kpi: {
+      satuan: string;
+    };
   };
   filters: {
     level: 'provinsi' | 'kabupaten';
@@ -91,8 +94,8 @@ export function ChartSection({
               <div className="min-w-0">
                 <CardTitle>
                   {filters.level === 'provinsi' ? 
-                    `Data ${filters.indikatorNama} Provinsi` : 
-                    `Perbandingan ${filters.indikatorNama} Antar Kabupaten`
+                    `Data ${filters.indikatorNama} Provinsi (${processedData.kpi.satuan})` : 
+                    `Perbandingan ${filters.indikatorNama} Antar Kabupaten (${processedData.kpi.satuan})`
                   }
                 </CardTitle>
                 <CardDescription className="mt-1">
@@ -133,7 +136,7 @@ export function ChartSection({
               <Card ref={pieChartCardRef}>
                 <CardHeader className="flex flex-row items-center justify-between">
                   <div className="min-w-0">
-                    <CardTitle>Kontribusi {filters.indikatorNama}</CardTitle>
+                    <CardTitle>Kontribusi {filters.indikatorNama} ({processedData.kpi.satuan})</CardTitle>
                     <CardDescription className="mt-1">
                       {filters.bulan === 'tahunan'
                         ? `Data tahunan untuk ${selectedYear}`
@@ -180,7 +183,7 @@ export function ChartSection({
               </Button>
             )}
             <div className="flex-grow">
-              <CardTitle>Tren Waktu: {filters.indikatorNama}</CardTitle>
+              <CardTitle>Tren Waktu: {filters.indikatorNama} ({processedData.kpi.satuan})</CardTitle>
               <CardDescription className="mt-1">
                 {`${selectedKabupaten ? 
                   `Data untuk ${KABUPATEN_MAP[selectedKabupaten]}` : 

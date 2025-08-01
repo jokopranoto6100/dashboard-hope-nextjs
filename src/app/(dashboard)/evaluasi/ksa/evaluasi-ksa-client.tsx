@@ -11,14 +11,17 @@ import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Calendar, Tractor, Scissors, Info, Table as TableIcon } from "lucide-react";
+import { Calendar, Tractor, Scissors, Info, Table as TableIcon, Download } from "lucide-react";
 import { ColumnDef, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { DetailKsaModal } from './DetailKsaModal';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MemoizedAreaChart, MemoizedLineChart } from './MemoizedCharts';
 import { SwipeIndicator } from '@/components/ui/swipe-indicator';
+import { toast } from "sonner";
+import * as XLSX from 'xlsx';
 
 // Lazy load heavy components
 const AnomalyValidatorTab = lazy(() => import('./AnomalyValidatorTab').then(module => ({ default: module.AnomalyValidatorTab })));
@@ -238,6 +241,91 @@ export function EvaluasiKsaClient() {
 
     const COLORS = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#17becf'];
 
+    // Export functions
+    const exportDistribusiPanenToExcel = () => {
+        try {
+            if (pivotTableData.length === 0) {
+                toast.error("Tidak ada data untuk diekspor");
+                return;
+            }
+
+            // Prepare data for Excel
+            const excelData = pivotTableData.map(row => {
+                const newRow: any = { 'Kabupaten/Kota': row.kabupaten };
+                harvestColumns.forEach(col => {
+                    newRow[`${col}x Panen`] = row[`${col}x`] || 0;
+                });
+                return newRow;
+            });
+
+            // Add total row
+            const totalRow: any = { 'Kabupaten/Kota': 'Total Kalimantan Barat' };
+            harvestColumns.forEach(col => {
+                totalRow[`${col}x Panen`] = harvestTotals[`${col}x`] || 0;
+            });
+            excelData.push(totalRow);
+
+            // Create workbook
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(excelData);
+
+            // Add sheet to workbook
+            XLSX.utils.book_append_sheet(wb, ws, 'Distribusi Frekuensi Panen');
+
+            // Generate filename
+            const filename = `Distribusi_Frekuensi_Panen_${selectedKsaType}_${selectedYear}_${selectedKabupaten === 'semua' ? 'Semua_Kabupaten' : selectedKabupaten}.xlsx`;
+
+            // Save file
+            XLSX.writeFile(wb, filename);
+            toast.success("File Excel berhasil diunduh!");
+        } catch (error) {
+            console.error('Export error:', error);
+            toast.error("Gagal mengekspor data ke Excel");
+        }
+    };
+
+    const exportSubsegmenTidakDiamatiToExcel = () => {
+        try {
+            if (completionTableData.length === 0) {
+                toast.error("Tidak ada data untuk diekspor");
+                return;
+            }
+
+            // Prepare data for Excel
+            const excelData = completionTableData.map(row => {
+                const newRow: any = { 'Kabupaten/Kota': row.kabupaten };
+                completionMonths.forEach(month => {
+                    newRow[MONTH_NAMES[month - 1]] = (row as any)[String(month)] || 0;
+                });
+                return newRow;
+            });
+
+            // Add total row
+            const totalRow: any = { 'Kabupaten/Kota': 'Total Kalimantan Barat' };
+            completionMonths.forEach(month => {
+                totalRow[MONTH_NAMES[month - 1]] = completionFooterTotals[month] || 0;
+            });
+            excelData.push(totalRow);
+
+            // Create workbook
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(excelData);
+
+            // Add sheet to workbook
+            XLSX.utils.book_append_sheet(wb, ws, 'Subsegmen Tidak Dapat Diamati');
+
+            // Generate filename
+            const filename = `Subsegmen_Tidak_Dapat_Diamati_${selectedKsaType}_${selectedYear}_${selectedKabupaten === 'semua' ? 'Semua_Kabupaten' : selectedKabupaten}.xlsx`;
+
+            // Save file
+            XLSX.writeFile(wb, filename);
+            toast.success("File Excel berhasil diunduh!");
+        } catch (error) {
+            console.error('Export error:', error);
+            toast.error("Gagal mengekspor data ke Excel");
+        }
+    };
+
     return (
         <div className="space-y-4">
             {/* Header - following evaluasi ubinan pattern with gradient */}
@@ -380,7 +468,28 @@ export function EvaluasiKsaClient() {
                     </Card>
                     
                     <Card>
-                        <CardHeader><CardTitle className="flex items-center gap-2"><TableIcon className="h-5 w-5"/> Distribusi Frekuensi Panen</CardTitle><CardDescription>Jumlah subsegmen berdasarkan berapa kali panen dalam setahun ({selectedYear}). Klik baris untuk melihat semua detail atau klik angka panen spesifik untuk filter sesuai frekuensi.</CardDescription></CardHeader>
+                        <CardHeader>
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                <div>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <TableIcon className="h-5 w-5"/> 
+                                        Distribusi Frekuensi Panen
+                                    </CardTitle>
+                                    <CardDescription>
+                                        Jumlah subsegmen berdasarkan berapa kali panen dalam setahun ({selectedYear}). Klik baris untuk melihat semua detail atau klik angka panen spesifik untuk filter sesuai frekuensi.
+                                    </CardDescription>
+                                </div>
+                                <Button 
+                                    onClick={exportDistribusiPanenToExcel}
+                                    disabled={pivotTableData.length === 0}
+                                    size="sm"
+                                    className="gap-2"
+                                >
+                                    <Download className="h-4 w-4" />
+                                    Export Excel
+                                </Button>
+                            </div>
+                        </CardHeader>
                         <CardContent>{pivotTableData.length === 0 ? <NoDataDisplay message="Tidak ada data panen untuk filter ini." /> : (
                             <div className="rounded-md border overflow-x-auto">
                                 <Table>
@@ -425,8 +534,26 @@ export function EvaluasiKsaClient() {
                     
                     <Card>
                       <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><TableIcon className="h-5 w-5"/> Tabulasi Subsegmen Tidak dapat Diamati (Kode 12)</CardTitle>
-                        <CardDescription>Jumlah subsegmen yang tidak dapat diamati per kabupaten setiap bulannya di tahun {selectedYear}.</CardDescription>
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div>
+                                <CardTitle className="flex items-center gap-2">
+                                    <TableIcon className="h-5 w-5"/> 
+                                    Tabulasi Subsegmen Tidak dapat Diamati (Kode 12)
+                                </CardTitle>
+                                <CardDescription>
+                                    Jumlah subsegmen yang tidak dapat diamati per kabupaten setiap bulannya di tahun {selectedYear}.
+                                </CardDescription>
+                            </div>
+                            <Button 
+                                onClick={exportSubsegmenTidakDiamatiToExcel}
+                                disabled={completionTableData.length === 0}
+                                size="sm"
+                                className="gap-2"
+                            >
+                                <Download className="h-4 w-4" />
+                                Export Excel
+                            </Button>
+                        </div>
                       </CardHeader>
                       <CardContent>
                         {isCompletionLoading ? ( 

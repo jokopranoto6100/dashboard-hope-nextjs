@@ -250,7 +250,10 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
           />
           
           <ChartSection
-            processedData={processedData}
+            processedData={{
+              ...processedData,
+              kpi: { satuan: processedData.kpi.satuan }
+            }}
             filters={{
               level: state.filters.level as 'provinsi' | 'kabupaten',
               indikatorNama: state.filters.indikatorNama,
@@ -279,6 +282,7 @@ export function StatistikClient({ availableIndicators }: StatistikClientProps) {
             totalNilaiPembanding={processedData.kpi.totalPembanding}
             isLoading={isLoading}
             onExportData={handleExportData}
+            satuan={processedData.kpi.satuan}
           />
         </div>
       )}

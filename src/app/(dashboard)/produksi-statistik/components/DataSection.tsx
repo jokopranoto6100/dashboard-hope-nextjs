@@ -16,6 +16,7 @@ interface DataSectionProps {
   totalNilaiPembanding: number;
   isLoading: boolean;
   onExportData: (data: AugmentedAtapDataPoint[]) => void;
+  satuan: string; // Tambahkan prop satuan
 }
 
 export function DataSection({
@@ -26,7 +27,8 @@ export function DataSection({
   totalNilai,
   totalNilaiPembanding,
   isLoading,
-  onExportData
+  onExportData,
+  satuan
 }: DataSectionProps) {
   // Memoize table columns untuk optimasi performance
   const tableColumns = useMemo(
@@ -38,7 +40,7 @@ export function DataSection({
     <Card>
       <CardHeader className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <CardTitle>Data Rinci: {indikatorNama}</CardTitle>
+          <CardTitle>Data Rinci: {indikatorNama} ({satuan})</CardTitle>
           <CardDescription className="mt-1">
             Data mendetail berdasarkan filter yang Anda pilih.
           </CardDescription>

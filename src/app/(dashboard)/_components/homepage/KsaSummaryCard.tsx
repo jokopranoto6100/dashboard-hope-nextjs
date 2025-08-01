@@ -52,7 +52,7 @@ export function KsaSummaryCard({
 }: KsaSummaryCardProps) {
   return (
     <Card className={cn(
-      "h-full transition-all duration-300 hover:shadow-lg hover:scale-105 relative",
+      "h-full transition-all duration-300 hover:shadow-lg relative",
       "bg-white dark:bg-gray-800",
       "border-2 border-[#8e97fe]/30 hover:border-[#8e97fe]/50",
       "dark:border-[#8e97fe]/40 dark:hover:border-[#8e97fe]/60",
