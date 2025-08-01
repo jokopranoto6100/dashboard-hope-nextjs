@@ -421,18 +421,132 @@ export function EvaluasiKsaClient() {
               <TabsContent value="visualisasi">
                 {isLoading ? (
                     <div className="space-y-6 pt-4">
-                        <div className="grid gap-4 md:grid-cols-2"><Skeleton className="h-24"/><Skeleton className="h-24"/></div>
+                        <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+                            <Skeleton className="h-40"/>
+                            <Skeleton className="h-40"/>
+                            <Skeleton className="h-40 md:col-span-2 xl:col-span-1"/>
+                        </div>
                         <Skeleton className="h-80"/>
                         <Skeleton className="h-80"/>
-                        <Skeleton className="h-80"/>
+                        <Skeleton className="h-96"/>
+                        <Skeleton className="h-96"/>
                     </div>
                  ) : error ? (
                     <p className="text-red-500 dark:text-red-400 text-center py-8">{error}</p>
                  ) : (
                   <div className="space-y-6 pt-4">
-                    <div className="grid gap-4 md:grid-cols-2">
-                        <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Rata-Rata Frekuensi Panen Setahun</CardTitle><Scissors className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{formatNumber(kpiData?.avgHarvestFrequency ?? 0)} kali</div><p className="text-xs text-muted-foreground">rata-rata per subsegmen/tahun</p></CardContent></Card>
-                        <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Puncak Aktivitas Tanam & Panen</CardTitle><Calendar className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="space-y-2"><div className="flex items-center justify-between"><span className="text-sm text-muted-foreground flex items-center gap-1"><Tractor className="h-3 w-3" />Tanam:</span><span className="text-lg font-semibold">{kpiData?.peakTanamMonth ?? '-'}</span></div><div className="flex items-center justify-between"><span className="text-sm text-muted-foreground flex items-center gap-1"><Scissors className="h-3 w-3" />Panen:</span><span className="text-lg font-semibold">{kpiData?.peakPanenMonth ?? '-'}</span></div></div></CardContent></Card>
+                    {/* Enhanced KPI Section with clean design */}
+                    <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+                        {/* KPI Card 1: Rata-rata Frekuensi Panen */}
+                        <Card className="relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-20 h-20 transform translate-x-6 -translate-y-6">
+                                <div className="w-full h-full bg-muted/20 rounded-full" />
+                            </div>
+                            <CardHeader className="pb-3">
+                                <div className="flex items-center justify-between">
+                                    <div className="p-2 bg-muted rounded-lg">
+                                        <Scissors className="h-5 w-5 text-muted-foreground" />
+                                    </div>
+                                    <div className="text-muted-foreground text-xs font-medium">
+                                        FREKUENSI PANEN
+                                    </div>
+                                </div>
+                                <CardTitle className="text-xs sm:text-sm font-semibold leading-tight">
+                                    Rata-Rata Frekuensi Panen Setahun
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="pt-0">
+                                <div className="space-y-2">
+                                    <div className="flex items-baseline gap-2">
+                                        <span className="text-2xl sm:text-3xl font-bold">
+                                            {formatNumber(kpiData?.avgHarvestFrequency ?? 0, 2)}
+                                        </span>
+                                        <span className="text-muted-foreground font-medium text-sm sm:text-base">kali</span>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                        rata-rata per subsegmen/tahun
+                                    </p>
+                                    <div className="mt-3 h-1.5 bg-muted rounded-full overflow-hidden">
+                                        <div 
+                                            className="h-full bg-primary rounded-full transition-all duration-1000"
+                                            style={{ 
+                                                width: `${Math.min((kpiData?.avgHarvestFrequency ?? 0) * 25, 100)}%` 
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* KPI Card 2: Puncak Aktivitas Tanam */}
+                        <Card className="relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-20 h-20 transform translate-x-6 -translate-y-6">
+                                <div className="w-full h-full bg-muted/20 rounded-full" />
+                            </div>
+                            <CardHeader className="pb-3">
+                                <div className="flex items-center justify-between">
+                                    <div className="p-2 bg-muted rounded-lg">
+                                        <Tractor className="h-5 w-5 text-muted-foreground" />
+                                    </div>
+                                    <div className="text-muted-foreground text-xs font-medium">
+                                        MUSIM TANAM
+                                    </div>
+                                </div>
+                                <CardTitle className="text-xs sm:text-sm font-semibold leading-tight">
+                                    Puncak Aktivitas Tanam
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="pt-0">
+                                <div className="space-y-3">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-1.5 bg-muted rounded">
+                                            <Tractor className="h-4 w-4 text-muted-foreground" />
+                                        </div>
+                                        <div>
+                                            <div className="text-xl sm:text-2xl font-bold">
+                                                {kpiData?.peakTanamMonth ?? '-'}
+                                            </div>
+                                            <p className="text-xs text-muted-foreground">bulan puncak tanam</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* KPI Card 3: Puncak Aktivitas Panen */}
+                        <Card className="relative overflow-hidden md:col-span-2 xl:col-span-1">
+                            <div className="absolute top-0 right-0 w-20 h-20 transform translate-x-6 -translate-y-6">
+                                <div className="w-full h-full bg-muted/20 rounded-full" />
+                            </div>
+                            <CardHeader className="pb-3">
+                                <div className="flex items-center justify-between">
+                                    <div className="p-2 bg-muted rounded-lg">
+                                        <Scissors className="h-5 w-5 text-muted-foreground" />
+                                    </div>
+                                    <div className="text-muted-foreground text-xs font-medium">
+                                        MUSIM PANEN
+                                    </div>
+                                </div>
+                                <CardTitle className="text-xs sm:text-sm font-semibold leading-tight">
+                                    Puncak Aktivitas Panen
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="pt-0">
+                                <div className="space-y-3">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-1.5 bg-muted rounded">
+                                            <Scissors className="h-4 w-4 text-muted-foreground" />
+                                        </div>
+                                        <div>
+                                            <div className="text-xl sm:text-2xl font-bold">
+                                                {kpiData?.peakPanenMonth ?? '-'}
+                                            </div>
+                                            <p className="text-xs text-muted-foreground">bulan puncak panen</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
                     </div>
                     <Card>
                         <CardHeader><CardTitle>Proporsi Fase Amatan per Bulan</CardTitle><CardDescription>Komposisi fase tanam padi (disederhanakan) sepanjang tahun {selectedYear}.</CardDescription></CardHeader>

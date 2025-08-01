@@ -20,7 +20,7 @@ export interface OfficerPerformanceData {
   rincian_anomali: Record<string, number>;
 }
 
-// Hook sekarang hanya bergantung pada filter yang dikirimkan
+// Hook mengambil data berdasarkan bulan yang dipilih
 export const useOfficerPerformanceData = (selectedMonth: string) => {
   const { supabase } = useAuth();
   const { selectedYear } = useYear();
@@ -32,7 +32,7 @@ export const useOfficerPerformanceData = (selectedMonth: string) => {
 
   const fetchData = useCallback(async () => {
     // Guard clause untuk memastikan semua filter siap
-    if (!selectedYear || !selectedKabupaten || !selectedMonth) {
+    if (!selectedYear || !selectedKabupaten || !selectedMonth || selectedMonth === '') {
       setIsLoading(false);
       return;
     }
@@ -44,7 +44,7 @@ export const useOfficerPerformanceData = (selectedMonth: string) => {
       const { data, error: rpcError } = await supabase.rpc('get_officer_performance', {
         p_year: selectedYear,
         p_kabupaten: selectedKabupaten,
-        p_bulan: Number(selectedMonth) // Kirim bulan yang dipilih
+        p_bulan: Number(selectedMonth) // Kirim bulan yang dipilih sesuai filter
       });
 
       if (rpcError) throw rpcError;
@@ -56,7 +56,7 @@ export const useOfficerPerformanceData = (selectedMonth: string) => {
     } finally {
       setIsLoading(false);
     }
-  }, [supabase, selectedYear, selectedKabupaten, selectedMonth]); // dependensi diperbarui
+  }, [supabase, selectedYear, selectedKabupaten, selectedMonth]); // kembalikan selectedMonth ke dependensi
 
   useEffect(() => {
     fetchData();

@@ -22,9 +22,11 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { User, Clock, AlertCircle, ArrowUpDown, TrendingDown, CheckCircle2 } from "lucide-react";
+import { User, Clock, AlertCircle, ArrowUpDown, TrendingDown, CheckCircle2, Download } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { toast } from "sonner";
+import * as XLSX from 'xlsx';
 
 const NAMA_BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
@@ -80,7 +82,7 @@ export function OfficerPerformanceTab() {
   const { selectedKabupaten } = useKsaEvaluasiFilter();
   
   const [availableMonths, setAvailableMonths] = useState<number[]>([]);
-  const [selectedMonth, setSelectedMonth] = useState<string>('0'); 
+  const [selectedMonth, setSelectedMonth] = useState<string>(''); // Mulai dengan string kosong
   const [isMonthLoading, setIsMonthLoading] = useState(true);
   const [sorting, setSorting] = useState<SortingState>([
     { id: 'total_entri', desc: true }
@@ -109,24 +111,35 @@ export function OfficerPerformanceTab() {
     fetchAvailableMonths();
   }, [selectedYear, selectedKabupaten, supabase]);
 
-  const { performanceData, error } = useOfficerPerformanceData(selectedMonth);
+  const { performanceData, error, isLoading: isPerformanceLoading } = useOfficerPerformanceData(selectedMonth);
   const { dailyData, isLoading: isChartLoading, error: chartError } = useDailySubmissions(selectedMonth);
 
-  // Filter data berdasarkan bulan yang dipilih untuk KPI dan tabel
-  const filteredPerformanceData = useMemo(() => {
-    if (selectedMonth === '0') return performanceData;
-    return performanceData.filter(p => p.bulan === Number(selectedMonth));
-  }, [performanceData, selectedMonth]);
+  // Tidak perlu memfilter lagi karena data sudah difilter di hook berdasarkan selectedMonth
+  const filteredPerformanceData = performanceData;
 
+  // KPI Data dihitung berdasarkan data yang difilter sesuai bulan
   const kpiData = useMemo(() => {
+    // Gunakan data yang sudah difilter untuk semua metrik termasuk Total Petugas
     const dataForKpi = filteredPerformanceData;
+    
     if (!dataForKpi || dataForKpi.length === 0) {
-      return { totalPetugas: 0, petugasTerlama: { name: '-', durasi: 0 }, petugasTercepat: { name: '-' }, petugasTeratas: { name: '-', tingkat: 0 } };
+      return { 
+        totalPetugas: 0, 
+        petugasTerlama: { name: '-', durasi: 0 }, 
+        petugasTercepat: { name: '-' }, 
+        petugasTeratas: { name: '-', tingkat: 0 } 
+      };
     }
+    
+    // Semua metrik dihitung dari data yang difilter berdasarkan bulan
     const totalPetugas = new Set(dataForKpi.map(p => p.nama_petugas)).size;
+      
     const petugasTerlama = [...dataForKpi].sort((a, b) => (b.durasi_hari || 0) - (a.durasi_hari || 0))[0];
+      
     const petugasTercepat = [...dataForKpi].filter(p => p.tanggal_selesai).sort((a, b) => new Date(a.tanggal_selesai).getTime() - new Date(b.tanggal_selesai).getTime())[0];
+      
     const petugasTeratas = [...dataForKpi].sort((a, b) => (b.tingkat_anomali || 0) - (a.tingkat_anomali || 0))[0];
+    
     return {
       totalPetugas,
       petugasTerlama: { name: petugasTerlama.nama_petugas, durasi: petugasTerlama.durasi_hari || 0 },
@@ -145,7 +158,60 @@ export function OfficerPerformanceTab() {
     state: { sorting },
   });
 
-  if (isMonthLoading) return (
+  // Export function for Excel
+  const exportKinerjaToExcel = () => {
+    try {
+      if (filteredPerformanceData.length === 0) {
+        toast.error("Tidak ada data untuk diekspor");
+        return;
+      }
+
+      // Prepare data for Excel
+      const excelData = filteredPerformanceData.map(row => {
+        const tglMulai = new Date(row.tanggal_mulai);
+        const tglSelesai = new Date(row.tanggal_selesai);
+        const hariMulai = tglMulai.getDate();
+        const hariSelesai = tglSelesai.getDate();
+        const namaBulan = tglMulai.toLocaleDateString('id-ID', { month: 'short' });
+        
+        let rentangKerja;
+        if (hariMulai === hariSelesai) {
+          rentangKerja = `${hariMulai} ${namaBulan}`;
+        } else {
+          rentangKerja = `${hariMulai} - ${hariSelesai} ${namaBulan}`;
+        }
+
+        return {
+          'Nama Petugas': toProperCase(row.nama_petugas),
+          'Kabupaten': row.kabupaten,
+          'Subsegmen': row.total_entri,
+          'Rentang Kerja': rentangKerja,
+          'Durasi (hari)': row.durasi_hari,
+          'Tingkat Anomali (%)': row.tingkat_anomali
+        };
+      });
+
+      // Create workbook
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(excelData);
+
+      // Add sheet to workbook
+      XLSX.utils.book_append_sheet(wb, ws, 'Kinerja Petugas');
+
+      // Generate filename
+      const bulanName = selectedMonth === '0' ? 'Semua_Bulan' : NAMA_BULAN[Number(selectedMonth) - 1];
+      const filename = `Kinerja_Petugas_${bulanName}_${selectedYear}.xlsx`;
+
+      // Save file
+      XLSX.writeFile(wb, filename);
+      toast.success("File Excel berhasil diunduh!");
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error("Gagal mengekspor data ke Excel");
+    }
+  };
+
+  if (isMonthLoading || selectedMonth === '' || isPerformanceLoading) return (
     <div className="pt-4 space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         <div className="lg:col-span-1 flex flex-col justify-between space-y-4">
@@ -174,7 +240,9 @@ export function OfficerPerformanceTab() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{kpiData.totalPetugas}</div>
-              <p className="text-xs text-muted-foreground">petugas pada periode ini</p>
+              <p className="text-xs text-muted-foreground">
+                {selectedMonth === '0' ? 'petugas sepanjang tahun' : `petugas di bulan ${NAMA_BULAN[Number(selectedMonth) - 1]}`}
+              </p>
             </CardContent>
         </Card>
 
@@ -260,9 +328,9 @@ export function OfficerPerformanceTab() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Label htmlFor="month-filter-kinerja" className="text-sm flex-shrink-0">Bulan:</Label>
-                    <Select value={selectedMonth} onValueChange={setSelectedMonth} disabled={availableMonths.length === 0}>
+                    <Select value={selectedMonth} onValueChange={setSelectedMonth} disabled={availableMonths.length === 0 || selectedMonth === ''}>
                         <SelectTrigger id="month-filter-kinerja" className="w-[140px] md:w-[180px]">
-                            <SelectValue placeholder="Pilih bulan..." />
+                            <SelectValue placeholder="Memuat bulan..." />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="0">Semua Bulan</SelectItem>
@@ -315,13 +383,26 @@ export function OfficerPerformanceTab() {
       
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
-            Data Kinerja Petugas
-          </CardTitle>
-          <CardDescription>
-            Daftar petugas lapangan dengan informasi kinerja, durasi kerja, dan tingkat anomali temuan. Klik kolom untuk mengurutkan data.
-          </CardDescription>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <User className="h-5 w-5" />
+                Data Kinerja Petugas
+              </CardTitle>
+              <CardDescription>
+                Daftar petugas lapangan dengan informasi kinerja, durasi kerja, dan tingkat anomali temuan. Klik kolom untuk mengurutkan data.
+              </CardDescription>
+            </div>
+            <Button 
+              onClick={exportKinerjaToExcel}
+              disabled={filteredPerformanceData.length === 0}
+              size="sm"
+              className="gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Export Excel
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border overflow-hidden">
