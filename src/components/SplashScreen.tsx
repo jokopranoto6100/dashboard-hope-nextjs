@@ -10,8 +10,14 @@ interface SplashScreenProps {
 export default function SplashScreen({ onFinish }: SplashScreenProps) {
   const [isVisible, setIsVisible] = useState(true);
   const [fadeOut, setFadeOut] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   useEffect(() => {
+    // Preload the image
+    const img = new window.Image();
+    img.onload = () => setImageLoaded(true);
+    img.src = '/icon/hope.png';
+
     // Splash screen akan mulai fade out setelah 2.5 detik
     const fadeTimer = setTimeout(() => {
       setFadeOut(true);
@@ -50,27 +56,31 @@ export default function SplashScreen({ onFinish }: SplashScreenProps) {
         
         {/* Logo with ChatGPT-style Animation */}
         <div className="w-24 h-24 relative animate-pulse-scale mb-6">
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-400 to-purple-600 rounded-2xl shadow-2xl animate-rotate-scale">
-            <div className="absolute inset-2 bg-white dark:bg-gray-800 rounded-xl flex items-center justify-center shadow-inner">
-              <div className="relative w-12 h-12">
-                <Image
-                  src="/icon/hope.png"
-                  alt="Dashboard HOPE"
-                  fill
-                  className="object-contain"
-                  priority
-                  onError={(e) => {
-                    // Fallback if image fails to load
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = 'none';
-                  }}
-                />
-                {/* Fallback icon if image fails */}
-                <div className="absolute inset-0 flex items-center justify-center text-purple-600 font-bold text-xl">
-                  H
+          <div className="relative w-12 h-12 mx-auto animate-rotate-scale">
+            {imageLoaded ? (
+              <Image
+                src="/icon/hope.png"
+                alt="Dashboard HOPE"
+                fill
+                className="object-contain"
+                priority
+                unoptimized
+              />
+            ) : (
+              /* Fallback atom-like icon while loading */
+              <div className="w-12 h-12 flex items-center justify-center">
+                <div className="relative">
+                  {/* Atom nucleus */}
+                  <div className="w-3 h-3 bg-purple-600 rounded-full"></div>
+                  {/* Electron orbits */}
+                  <div className="absolute inset-0 w-8 h-8 border border-purple-400 rounded-full transform -rotate-45" style={{top: '-10px', left: '-10px'}}></div>
+                  <div className="absolute inset-0 w-8 h-8 border border-purple-400 rounded-full transform rotate-45" style={{top: '-10px', left: '-10px'}}></div>
+                  {/* Electrons */}
+                  <div className="absolute w-1 h-1 bg-purple-500 rounded-full animate-ping" style={{top: '-12px', left: '2px'}}></div>
+                  <div className="absolute w-1 h-1 bg-purple-500 rounded-full animate-ping" style={{top: '2px', left: '14px', animationDelay: '0.5s'}}></div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
         

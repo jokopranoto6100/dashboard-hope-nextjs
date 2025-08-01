@@ -8,7 +8,7 @@ interface SplashWrapperProps {
 }
 
 export default function SplashWrapper({ children }: SplashWrapperProps) {
-  const [showSplash, setShowSplash] = useState(true);
+  const [showSplash, setShowSplash] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -19,27 +19,23 @@ export default function SplashWrapper({ children }: SplashWrapperProps) {
                         (window.navigator as any).standalone ||
                         document.referrer.includes('android-app://');
     
-    // Only show splash screen for PWA launches
-    if (!isStandalone) {
-      setShowSplash(false);
+    // Show splash screen for PWA launches
+    if (isStandalone) {
+      setShowSplash(true);
     }
   }, []);
 
-  // Don't render anything on server side
-  if (!isClient) {
+  // Show children immediately if not client-side yet or no splash needed
+  if (!isClient || !showSplash) {
     return <>{children}</>;
   }
 
-  if (showSplash) {
-    return (
-      <>
-        <SplashScreen onFinish={() => setShowSplash(false)} />
-        <div style={{ display: 'none' }}>
-          {children}
-        </div>
-      </>
-    );
-  }
-
-  return <>{children}</>;
+  return (
+    <>
+      <SplashScreen onFinish={() => setShowSplash(false)} />
+      <div style={{ display: 'none' }}>
+        {children}
+      </div>
+    </>
+  );
 }
